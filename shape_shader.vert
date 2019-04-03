@@ -52,9 +52,10 @@ void main()
 	vec4 worldSpacePos = TDDeform(P);
 	
 	
-	worldSpacePos.xyz -= centerPos;
-	worldSpacePos.xyz *= localScale;
-	worldSpacePos.xyz += centerPos;
+//	worldSpacePos.xyz -= centerPos;
+//	worldSpacePos.xyz *= localScale;
+//	worldSpacePos.xyz += centerPos;
+	//worldSpacePos.xyz = mix(worldSpacePos.xyz, centerPos, 0.5);
 	
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
 	gl_Position = TDWorldToProj(worldSpacePos, uvUnwrapCoord);
