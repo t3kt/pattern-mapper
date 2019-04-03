@@ -1,0 +1,15 @@
+PGEOMETRY V5
+NPoints 6 NPrims 1
+NPointGroups 0 NPrimGroups 0
+NPointAttrib 0 NVertexAttrib 1 NPrimAttrib 0 NAttrib 0
+6 93.1473007 0 1
+53.2577019 93.2610016 0 1
+52.5716019 247.873001 0 1
+188.218002 342.852997 0 1
+156.487 390.196014 0 1
+7.20239019 292.531006 0 1
+VertexAttrib
+uv 3 float 0 0 0
+Poly 6 < 0 (0 0.5 0) 1 (0.200000003 0.5 0) 2 (0.400000006 0.5 0) 3 (0.600000024 0.5 0) 4 (0.800000012 0.5 0) 5 (1 0.5 0)
+beginExtra
+endExtra
