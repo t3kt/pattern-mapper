@@ -2,9 +2,9 @@ PGEOMETRY V5
 NPoints 4 NPrims 1
 NPointGroups 0 NPrimGroups 0
 NPointAttrib 0 NVertexAttrib 1 NPrimAttrib 0 NAttrib 0
-50 86.6025009 0 1
-6 86.6025009 0 1
 6 10 0 1
+6 86.6025009 0 1
+50 86.6025009 0 1
 94.2668991 10 0 1
 VertexAttrib
 uv 3 float 0 0 0
