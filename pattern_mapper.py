@@ -32,6 +32,51 @@ def generateSequenceIndex(chop, shapeattrs, mask, sortby):
 				if sortchan[shapeindex] == sortval and maskchan[shapeindex] >= 0.5:
 					seqindex[shapeindex] = sortvalindex / (len(sortvals) - 1)
 
+class PatternParser:
+	def __init__(self, ownerComp):
+		self.ownerComp = ownerComp
+
+	@property
+	def _shapeAttrs(self):
+		return self.ownerComp.op('shape_attrs')
+
+	@property
+	def _shapes(self):
+		return self.ownerComp.op('shapes')
+
+	def BuildGroupTable(self, dat):
+		dat.clear()
+		dat.appendRow(['groupname', 'groupindex', 'shapes'])
+		attrs = self._shapeAttrs
+		n = attrs.numSamples
+		for groupindex, groupchan in enumerate(attrs.chans('group_*')):
+			dat.appendRow([
+				groupchan.name.replace('group_', ''),
+				groupindex,
+				' '.join([
+					str(i)
+					for i in range(n)
+					if groupchan[i]
+				])
+			])
+
+	def BuildPathLookupTable(self, chop, tablelength):
+		chop.clear()
+		shapes = self._shapes
+		shapecount = shapes.numPrims
+		chop.numSamples = tablelength
+		for shapeindex in range(shapecount):
+			xchan = chop.appendChan('shape{}:tx'.format(shapeindex))
+			ychan = chop.appendChan('shape{}:ty'.format(shapeindex))
+			zchan = chop.appendChan('shape{}:tz'.format(shapeindex))
+			prim = shapes.prims[shapeindex]
+			for i in range(tablelength):
+				pos = prim.eval(i / (tablelength - 1), 0)
+				xchan[i] = pos.x
+				ychan[i] = pos.y
+				zchan[i] = pos.z
+
+
 class PatternDebugger:
 	def __init__(self, ownerComp):
 		self.ownerComp = ownerComp
