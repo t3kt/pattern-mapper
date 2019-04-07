@@ -32,4 +32,68 @@ def generateSequenceIndex(chop, shapeattrs, mask, sortby):
 				if sortchan[shapeindex] == sortval and maskchan[shapeindex] >= 0.5:
 					seqindex[shapeindex] = sortvalindex / (len(sortvals) - 1)
 
+class PatternDebugger:
+	def __init__(self, ownerComp):
+		self.ownerComp = ownerComp
 
+	@property
+	def _shapeAttrs(self):
+		return self.ownerComp.op('shape_attrs')
+
+	@property
+	def _shapeCount(self):
+		return self._shapeAttrs.numSamples
+
+	def SelectShape(self, i, toggle=False):
+		n = self._shapeCount
+		if i < 0 or i >= n or (toggle and i == self.ownerComp.par.Selectedshape):
+			self.ownerComp.par.Selectedshape = -1
+		else:
+			self.ownerComp.par.Selectedshape = i
+
+	def PrevShape(self):
+		i = self.ownerComp.par.Selectedshape
+		if i > 0:
+			i -= 1
+		else:
+			i = self._shapeCount - 1
+		self.SelectShape(i)
+
+	def NextShape(self):
+		i = self.ownerComp.par.Selectedshape
+		n = self._shapeCount
+		if i < (n - 1):
+			i += 1
+		else:
+			i = 0
+		self.SelectShape(i)
+
+	def BuildShapeInfo(self, dat):
+		dat.clear()
+		i = self.ownerComp.par.Selectedshape.eval()
+		attrs = self._shapeAttrs
+		if i == -1 or i >= attrs.numSamples:
+			i = None
+			dat.appendRow(['index', ''])
+		else:
+			dat.appendRow(['index', i])
+		groups = {}
+		vals = {}
+		for chan in attrs.chans():
+			if chan.name == 'index':
+				continue
+			if i is None:
+				val = ''
+			else:
+				val = chan[i]
+			if chan.name.startswith('group_'):
+				groupname = chan.name.replace('group_','')
+				groups[groupname] = int(val) if isinstance(val, (float,int)) else val
+			elif isinstance(val, str):
+				vals[chan.name] = val
+			else:
+				vals[chan.name] = round(val, 4)
+		for name in sorted(vals.keys()):
+			dat.appendRow([name, vals[name]])
+		for name in sorted(groups.keys()):
+			dat.appendRow(['group[{}]'.format(name), groups[name]])
