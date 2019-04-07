@@ -11,7 +11,7 @@ in Vertex
 	flat vec4 onColor;
 	flat vec4 offColor;
 	flat float phase;
-	flat float count;
+	flat float period;
 } iVert;
 
 out vec4 fragColor;
@@ -20,7 +20,7 @@ void main()
 	TDCheckDiscard();
 	
 	float phase = iVert.phase + iVert.texCoord0.x;
-	phase *= iVert.count;
+	phase /= iVert.period;
 	phase = mod(phase, 1.0);
     vec4 color = mix(iVert.offColor, iVert.onColor, phase);
     

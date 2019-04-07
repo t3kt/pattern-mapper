@@ -2,7 +2,7 @@ uniform int uShapeCount;
 uniform float uPhaseOffset;
 uniform samplerBuffer bOnColors;
 uniform samplerBuffer bOffColors;
-uniform samplerBuffer bPhaseCount;
+uniform samplerBuffer bPhasePeriod;
 uniform samplerBuffer bLocalScales;
 
 in int shapeIndex;
@@ -18,7 +18,7 @@ out Vertex
 	flat vec4 onColor;
 	flat vec4 offColor;
 	flat float phase;
-	flat float count;
+	flat float period;
 } oVert;
 
 void main() 
@@ -41,9 +41,9 @@ void main()
 	oVert.shapeIndex = shapeIndex;
 	oVert.onColor = texelFetch(bOnColors, shapeIndex);
 	oVert.offColor = texelFetch(bOffColors, shapeIndex);
-	vec4 phaseAndCount = texelFetch(bPhaseCount, shapeIndex);
-	oVert.phase = phaseAndCount.r + uPhaseOffset;
-	oVert.count = phaseAndCount.g;
+	vec4 phaseAndPeriod = texelFetch(bPhasePeriod, shapeIndex);
+	oVert.phase = phaseAndPeriod.r + uPhaseOffset;
+	oVert.period = phaseAndPeriod.g;
 	vec3 localScale = texelFetch(bLocalScales, shapeIndex).xyz;
 	
 	

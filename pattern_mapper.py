@@ -26,6 +26,8 @@ def generateSequenceIndex(chop, shapeattrs, mask, sortby):
 			s = sortchan[i]
 			if s not in sortvals:
 				sortvals.append(s)
+		if len(sortvals) < 2:
+			return
 		sortvals.sort()
 		for sortvalindex, sortval in enumerate(sortvals):
 			for shapeindex in range(n):
