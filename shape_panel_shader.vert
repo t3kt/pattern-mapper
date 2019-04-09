@@ -12,6 +12,7 @@ out Vertex
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec2 texCoord1;
+	vec2 faceTexCoord;
 	flat int shapeIndex;
 } oVert;
 
@@ -26,6 +27,11 @@ void main()
 	{ // Avoid duplicate variable defs
 		vec3 texcoord = TDInstanceTexCoord(uv[1]);
 		oVert.texCoord1.st = texcoord.st;
+	}
+
+	{ // Avoid duplicate variable defs
+		vec3 texcoord = TDInstanceTexCoord(uv[2]);
+		oVert.faceTexCoord.st = texcoord.st;
 	}
 
 	
