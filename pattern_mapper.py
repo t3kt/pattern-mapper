@@ -144,3 +144,12 @@ class PatternDebugger:
 			dat.appendRow([name, vals[name]])
 		for name in sorted(groups.keys()):
 			dat.appendRow(['group[{}]'.format(name), groups[name]])
+
+def FixFaceFlipping(sop, insop):
+	sop.copy(insop)
+	for prim in sop.prims:
+		if prim.normal.z < 0:
+			origpoints = [v.point for v in prim]
+			n = len(prim)
+			for i in range(n):
+				prim[i].point = origpoints[-i]
