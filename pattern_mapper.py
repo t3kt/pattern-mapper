@@ -1,3 +1,7 @@
+
+if False:
+	from .common.lib._stubs import *
+
 remap = mod.tdu.remap
 
 def getGroupChanNames(groupspec):
