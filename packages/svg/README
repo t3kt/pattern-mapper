@@ -1,0 +1,4 @@
+svg.path library pulled from https://github.com/regebro/svg.path
+at revision #cb58310
+
+... because using proper package management with TouchDesigner and source control can get annoying...

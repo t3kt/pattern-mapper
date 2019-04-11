@@ -2,6 +2,12 @@
 if False:
 	from .common.lib._stubs import *
 
+# adds the 'packages/' dir to the import path
+import td_python_package_init
+td_python_package_init.init()
+
+import svg.path
+
 remap = mod.tdu.remap
 
 def getGroupChanNames(groupspec):
