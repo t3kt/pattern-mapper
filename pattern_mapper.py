@@ -6,7 +6,9 @@ if False:
 import td_python_package_init
 td_python_package_init.init()
 
-import svg.path
+import svg.path as svgpath
+import svg.svg as svg
+
 import xml.etree.ElementTree as ET
 
 remap = mod.tdu.remap
@@ -172,12 +174,12 @@ def parseSvgPattern(svgxml, sop):
 	root = ET.fromstring(svgxml)
 	for pathelem in root.iter('{http://www.w3.org/2000/svg}path'):
 		rawpath = pathelem.attrib['d']
-		path = svg.path.parse_path(rawpath)
+		path = svgpath.parse_path(rawpath)
 		if len(path) < 2:
 			raise Exception('Unsupported path (too short) {}'.format(rawpath))
 		poly = sop.appendPoly(len(path), addPoints=True, closed=path.closed)
 		firstsegment = path[0]
-		if not isinstance(firstsegment, svg.path.Move):
+		if not isinstance(firstsegment, svgpath.Move):
 			raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
 		print('omg new path', rawpath)
 		vertex = poly[0]
@@ -186,7 +188,7 @@ def parseSvgPattern(svgxml, sop):
 		vertex.point.x = pathpt[0]
 		vertex.point.y = pathpt[1]
 		for i, segment in enumerate(path[1:]):
-			if not isinstance(segment, svg.path.Line):
+			if not isinstance(segment, svgpath.Line):
 				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
 					type(segment), rawpath))
 			vertex = poly[i]
