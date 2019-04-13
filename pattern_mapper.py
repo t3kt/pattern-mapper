@@ -1,18 +1,13 @@
-from collections import defaultdict
-from io import StringIO
-from typing import DefaultDict, List
+from typing import DefaultDict
+
+from pattern_model import SequenceStep, GroupInfo
+try:
+	from common import keydefaultdict, hextorgb
+except ImportError:
+	from lib.common import keydefaultdict, hextorgb
 
 if False:
-	from .common.lib._stubs import *
-
-# adds the 'packages/' dir to the import path
-import td_python_package_init
-td_python_package_init.init()
-
-import svg.path as svgpath
-import svg.svg as svg
-
-import xml.etree.ElementTree as ET
+	from common.lib._stubs import *
 
 remap = mod.tdu.remap
 
@@ -49,29 +44,6 @@ def generateSequenceIndex(chop, shapeattrs, mask, sortby):
 			for shapeindex in range(n):
 				if sortchan[shapeindex] == sortval and maskchan[shapeindex] >= 0.5:
 					seqindex[shapeindex] = sortvalindex / (len(sortvals) - 1)
-
-class SequenceStep:
-	def __init__(
-			self,
-			sequenceindex=0,
-			shapeindices: List[int]=None,
-			isdefault=False):
-		self.sequenceindex = sequenceindex
-		self.shapeindices = list(shapeindices or [])
-		self.isdefault = isdefault
-
-class GroupInfo:
-	def __init__(
-			self,
-			groupname,
-			groupindex=None,
-			shapeindices: List[int]=None,
-			sequencesteps: List[SequenceStep]=None,
-		):
-		self.groupname = groupname
-		self.groupindex = groupindex
-		self.shapeindices = list(shapeindices or [])
-		self.sequencesteps = list(sequencesteps or [])
 
 class PatternParser:
 	def __init__(self, ownerComp):
@@ -126,7 +98,7 @@ class PatternParser:
 				groupindex=groupindex,
 				shapeindices=[i for i in range(n) if groupchan[i]],
 			)
-			stepsbyindex = _keydefaultdict(lambda i: SequenceStep(i))  # type: DefaultDict[int, SequenceStep]
+			stepsbyindex = keydefaultdict(lambda i: SequenceStep(i))  # type: DefaultDict[int, SequenceStep]
 			if seqindexchan is None:
 				stepsbyindex[0] = SequenceStep(isdefault=True, shapeindices=groupinfo.shapeindices)
 			else:
@@ -220,87 +192,3 @@ class PatternDebugger:
 			dat.appendRow([name, vals[name]])
 		for name in sorted(groups.keys()):
 			dat.appendRow(['group[{}]'.format(name), groups[name]])
-
-def fixFaceFlipping(sop, insop):
-	sop.copy(insop)
-	for prim in sop.prims:
-		if prim.normal.z < 0:
-			origpoints = [v.point for v in prim]
-			n = len(prim)
-			for i in range(n):
-				prim[i].point = origpoints[-i]
-
-def parseSvgPattern(svgxml, sop):
-	sop.clear()
-	if not svgxml:
-		return
-	sop.primAttribs.create('shapeid', '')
-	sop.primAttribs.create('Cd')
-	sop.vertexAttribs.create('uv')
-	root = ET.fromstring(svgxml)
-	for pathelem in root.iter('{http://www.w3.org/2000/svg}path'):
-		rawpath = pathelem.attrib['d']
-		path = svgpath.parse_path(rawpath)
-		if len(path) < 2:
-			raise Exception('Unsupported path (too short) {}'.format(rawpath))
-		firstsegment = path[0]
-		if not isinstance(firstsegment, svgpath.Move):
-			raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
-		print('omg new path', rawpath)
-		pathpoints = []
-		totaldist = path.length()
-		distsofar = 0
-		distances = []
-		pathpt = _pathpoint(firstsegment.start)
-		pathpoints.append(pathpt)
-		distances.append(0)
-		for segment in path[1:]:
-			if not isinstance(segment, svgpath.Line):
-				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
-					type(segment), rawpath))
-			distsofar += segment.length()
-			pathpt = _pathpoint(segment.end)
-			pathpoints.append(pathpt)
-			distances.append(distsofar / totaldist)
-		if pathpoints[-1] == pathpoints[0]:
-			pathpoints.pop()
-		poly = sop.appendPoly(len(pathpoints), addPoints=True, closed=True)
-		poly.shapeid[0] = pathelem.attrib['id'] if 'id' in pathelem.attrib else ''
-		if 'stroke' in pathelem.attrib:
-			rgb = _hextorgb(pathelem.attrib['stroke'])
-		elif 'fill' in pathelem.attrib:
-			rgb = _hextorgb(pathelem.attrib['fill'])
-		else:
-			rgb = (255, 255, 255)
-		poly.Cd[0] = rgb[0] / 255.0
-		poly.Cd[1] = rgb[1] / 255.0
-		poly.Cd[2] = rgb[2] / 255.0
-		poly.Cd[3] = 1
-		for i, pathpt in enumerate(pathpoints):
-			vertex = poly[i]
-			vertex.point.x, vertex.point.y = pathpt
-			vertex.uv[0] = distances[i]
-
-def _pathpoint(pathpt: complex):
-	return pathpt.real, pathpt.imag
-
-def _hextorgb(hexcolor: str):
-	if not hexcolor:
-		return None
-	if hexcolor.startswith('#'):
-		hexcolor = hexcolor[1:]
-	return _HEXDEC[hexcolor[0:2]], _HEXDEC[hexcolor[2:4]], _HEXDEC[hexcolor[4:6]]
-
-_NUMERALS = '0123456789abcdefABCDEF'
-_HEXDEC = {v: int(v, 16) for v in (x+y for x in _NUMERALS for y in _NUMERALS)}
-
-
-# variant of defaultdict that passes the key to the factory function
-# https://stackoverflow.com/questions/2912231/is-there-a-clever-way-to-pass-the-key-to-defaultdicts-default-factory
-class _keydefaultdict(defaultdict):
-	def __missing__(self, key):
-		if self.default_factory is None:
-			raise KeyError(key)
-		else:
-			ret = self[key] = self.default_factory(key)
-			return ret
