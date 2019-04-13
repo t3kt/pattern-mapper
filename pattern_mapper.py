@@ -234,53 +234,55 @@ def parseSvgPattern(svgxml, sop):
 	sop.clear()
 	if not svgxml:
 		return
+	sop.primAttribs.create('shapeid', '')
+	sop.primAttribs.create('Cd')
+	sop.vertexAttribs.create('uv')
 	root = ET.fromstring(svgxml)
 	for pathelem in root.iter('{http://www.w3.org/2000/svg}path'):
 		rawpath = pathelem.attrib['d']
 		path = svgpath.parse_path(rawpath)
 		if len(path) < 2:
 			raise Exception('Unsupported path (too short) {}'.format(rawpath))
-		poly = sop.appendPoly(len(path), addPoints=True, closed=path.closed)
 		firstsegment = path[0]
 		if not isinstance(firstsegment, svgpath.Move):
 			raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
 		print('omg new path', rawpath)
-		vertex = poly[0]
+		pathpoints = []
+		totaldist = path.length()
+		distsofar = 0
+		distances = []
 		pathpt = _pathpoint(firstsegment.start)
-		print('... first point:', pathpt)
-		vertex.point.x = pathpt[0]
-		vertex.point.y = pathpt[1]
-		for i, segment in enumerate(path[1:]):
+		pathpoints.append(pathpt)
+		distances.append(0)
+		for segment in path[1:]:
 			if not isinstance(segment, svgpath.Line):
 				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
 					type(segment), rawpath))
-			vertex = poly[i]
+			distsofar += segment.length()
 			pathpt = _pathpoint(segment.end)
-			print('... segment start:', _pathpoint(segment.start), 'end:', _pathpoint(segment.end))
+			pathpoints.append(pathpt)
+			distances.append(distsofar / totaldist)
+		if pathpoints[-1] == pathpoints[0]:
+			pathpoints.pop()
+		poly = sop.appendPoly(len(pathpoints), addPoints=True, closed=True)
+		poly.shapeid[0] = pathelem.attrib['id'] if 'id' in pathelem.attrib else ''
+		if 'stroke' in pathelem.attrib:
+			rgb = _hextorgb(pathelem.attrib['stroke'])
+		elif 'fill' in pathelem.attrib:
+			rgb = _hextorgb(pathelem.attrib['fill'])
+		else:
+			rgb = (255, 255, 255)
+		poly.Cd[0] = rgb[0] / 255.0
+		poly.Cd[1] = rgb[1] / 255.0
+		poly.Cd[2] = rgb[2] / 255.0
+		poly.Cd[3] = 1
+		for i, pathpt in enumerate(pathpoints):
+			vertex = poly[i]
 			vertex.point.x, vertex.point.y = pathpt
-
+			vertex.uv[0] = distances[i]
 
 def _pathpoint(pathpt: complex):
 	return pathpt.real, pathpt.imag
-
-def _parseSvgXml(xmltext):
-	if not xmltext:
-		return None
-	f = StringIO(xmltext)
-	return svg.Svg(f)
-
-def buildPatternFromSvg(xmltext):
-	svgdoc = _parseSvgXml(xmltext)
-
-	pass
-
-class _Shape:
-	def __init__(
-			self,
-			path: svg.Path):
-		self.path = path
-
-		pass
 
 def _hextorgb(hexcolor: str):
 	if not hexcolor:
