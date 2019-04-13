@@ -1,3 +1,6 @@
+from collections import defaultdict
+from io import StringIO
+from typing import DefaultDict, List
 
 if False:
 	from .common.lib._stubs import *
@@ -47,6 +50,29 @@ def generateSequenceIndex(chop, shapeattrs, mask, sortby):
 				if sortchan[shapeindex] == sortval and maskchan[shapeindex] >= 0.5:
 					seqindex[shapeindex] = sortvalindex / (len(sortvals) - 1)
 
+class SequenceStep:
+	def __init__(
+			self,
+			sequenceindex=0,
+			shapeindices: List[int]=None,
+			isdefault=False):
+		self.sequenceindex = sequenceindex
+		self.shapeindices = list(shapeindices or [])
+		self.isdefault = isdefault
+
+class GroupInfo:
+	def __init__(
+			self,
+			groupname,
+			groupindex=None,
+			shapeindices: List[int]=None,
+			sequencesteps: List[SequenceStep]=None,
+		):
+		self.groupname = groupname
+		self.groupindex = groupindex
+		self.shapeindices = list(shapeindices or [])
+		self.sequencesteps = list(sequencesteps or [])
+
 class PatternParser:
 	def __init__(self, ownerComp):
 		self.ownerComp = ownerComp
@@ -59,21 +85,58 @@ class PatternParser:
 	def _shapes(self):
 		return self.ownerComp.op('shapes')
 
-	def BuildGroupTable(self, dat):
+	def BuildGroupsTable(self, dat):
+		# yes it's inefficient to build the groupinfos both here and for the
+		# steps table, but something about using a CHOP execute to construct
+		# the tables seems not great for some reason
+		groupinfos = self._BuildGroupInfos()
 		dat.clear()
-		dat.appendRow(['groupname', 'groupindex', 'shapes'])
+		dat.appendRow(['groupname', 'groupindex', 'sequencelength', 'shapes'])
+		for groupinfo in groupinfos:
+			dat.appendRow([
+				groupinfo.groupname,
+				groupinfo.groupindex,
+				len(groupinfo.sequencesteps),
+				' '.join(map(str, groupinfo.shapeindices)),
+			])
+
+	def BuildSequenceStepsTable(self, dat):
+		groupinfos = self._BuildGroupInfos()
+		dat.clear()
+		dat.appendRow(['groupname', 'sequenceindex', 'isdefault', 'shapes'])
+		for groupinfo in groupinfos:
+			for step in groupinfo.sequencesteps:
+				if not step.shapeindices:
+					continue
+				dat.appendRow([
+					groupinfo.groupname,
+					step.sequenceindex,
+					int(step.isdefault),
+					' '.join(map(str, step.shapeindices)),
+				])
+
+	def _BuildGroupInfos(self):
 		attrs = self._shapeAttrs
 		n = attrs.numSamples
+		seqindexchan = attrs.chan('sequenceIndex')
+		groupinfos = []
 		for groupindex, groupchan in enumerate(attrs.chans('group_*')):
-			dat.appendRow([
-				groupchan.name.replace('group_', ''),
-				groupindex,
-				' '.join([
-					str(i)
-					for i in range(n)
-					if groupchan[i]
-				])
-			])
+			groupinfo = GroupInfo(
+				groupname=groupchan.name.replace('group_', ''),
+				groupindex=groupindex,
+				shapeindices=[i for i in range(n) if groupchan[i]],
+			)
+			stepsbyindex = _keydefaultdict(lambda i: SequenceStep(i))  # type: DefaultDict[int, SequenceStep]
+			if seqindexchan is None:
+				stepsbyindex[0] = SequenceStep(isdefault=True, shapeindices=groupinfo.shapeindices)
+			else:
+				for i in groupinfo.shapeindices:
+					seqindex = round(seqindexchan[i])
+					stepsbyindex[seqindex].shapeindices.append(i)
+			for seqindex in range(max(stepsbyindex.keys())):
+				groupinfo.sequencesteps.append(stepsbyindex[seqindex])
+			groupinfos.append(groupinfo)
+		return groupinfos
 
 	def BuildPathLookupTable(self, chop, tablelength):
 		chop.clear()
@@ -199,3 +262,43 @@ def parseSvgPattern(svgxml, sop):
 
 def _pathpoint(pathpt: complex):
 	return pathpt.real, pathpt.imag
+
+def _parseSvgXml(xmltext):
+	if not xmltext:
+		return None
+	f = StringIO(xmltext)
+	return svg.Svg(f)
+
+def buildPatternFromSvg(xmltext):
+	svgdoc = _parseSvgXml(xmltext)
+
+	pass
+
+class _Shape:
+	def __init__(
+			self,
+			path: svg.Path):
+		self.path = path
+
+		pass
+
+def _hextorgb(hexcolor: str):
+	if not hexcolor:
+		return None
+	if hexcolor.startswith('#'):
+		hexcolor = hexcolor[1:]
+	return _HEXDEC[hexcolor[0:2]], _HEXDEC[hexcolor[2:4]], _HEXDEC[hexcolor[4:6]]
+
+_NUMERALS = '0123456789abcdefABCDEF'
+_HEXDEC = {v: int(v, 16) for v in (x+y for x in _NUMERALS for y in _NUMERALS)}
+
+
+# variant of defaultdict that passes the key to the factory function
+# https://stackoverflow.com/questions/2912231/is-there-a-clever-way-to-pass-the-key-to-defaultdicts-default-factory
+class _keydefaultdict(defaultdict):
+	def __missing__(self, key):
+		if self.default_factory is None:
+			raise KeyError(key)
+		else:
+			ret = self[key] = self.default_factory(key)
+			return ret
