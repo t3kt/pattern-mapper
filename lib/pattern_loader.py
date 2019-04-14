@@ -3,7 +3,7 @@ print('pattern_loader.py loading...')
 import xml.etree.ElementTree as ET
 
 if False:
-	from common.lib._stubs import *
+	from ._stubs import *
 
 # adds the 'packages/' dir to the import path
 import td_python_package_init
@@ -21,20 +21,27 @@ from pattern_model import GroupInfo, SequenceStep, ShapeInfo
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
+		self.SvgWidth = tdu.Dependency(0)
+		self.SvgHeight = tdu.Dependency(0)
 
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
+		self.SvgWidth.val = 0
+		self.SvgHeight.val = 0
 		sop.clear()
 		if not svgxml:
 			return
 		sop.primAttribs.create('shapeid', '')
 		sop.primAttribs.create('Cd')
-		sop.primAttribs.create('shapelength', 0)
+		sop.primAttribs.create('shapelength', 0.0)
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absreldist', (0.0, 0.0))
 		root = ET.fromstring(svgxml)
-		pathelems = list(root.iter('{http://www.w3.org/2000/svg}path'))
-		for pathelem in pathelems:
+		self.SvgWidth.val = float(root.attrib['width'])
+		self.SvgHeight.val = float(root.attrib['height'])
+		scale = 1 / max(self.SvgWidth.val, self.SvgHeight.val)
+		offset = -self.SvgWidth.val / 2, -self.SvgHeight.val / 2
+		for pathelem in root.iter('{http://www.w3.org/2000/svg}path'):
 			rawpath = pathelem.attrib['d']
 			path = svgpath.parse_path(rawpath)
 			if len(path) < 2:
@@ -53,13 +60,15 @@ class PatternLoader(ExtensionBase):
 			# 	pathpoints.pop()
 			poly = sop.appendPoly(len(pathpoints), addPoints=True, closed=False)
 			totaldist = path.length()
-			distances = _segmentDistances(path)
+			distances = _segmentDistances(path, scale)
+			totaldist *= scale
 			poly.shapelength[0] = totaldist
 			poly.shapeid[0] = pathelem.attrib['id'] if 'id' in pathelem.attrib else ''
 			_applyPathColor(poly, pathelem)
 			for i, pathpt in enumerate(pathpoints):
 				vertex = poly[i]
-				vertex.point.x, vertex.point.y = pathpt
+				vertex.point.x = (pathpt[0] + offset[0]) * scale
+				vertex.point.y = -((pathpt[1] + offset[1]) * scale)
 				vertex.absreldist[0] = distances[i]
 				vertex.absreldist[1] = distances[i] / totaldist
 
@@ -88,11 +97,11 @@ def _applyPathColor(poly, pathelem):
 	poly.Cd[2] = rgb[2] / 255.0
 	poly.Cd[3] = 1
 
-def _segmentDistances(path: svgpath.Path):
+def _segmentDistances(path: svgpath.Path, scale):
 	distsofar = 0
 	distances = [0]
 	for segment in path[1:]:
-		distsofar += segment.length()
+		distsofar += segment.length() * scale
 		distances.append(distsofar)
 	return distances
 

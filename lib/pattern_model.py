@@ -3,7 +3,7 @@ print('pattern_model.py loading...')
 from typing import List
 
 if False:
-	from common.lib._stubs import *
+	from ._stubs import *
 
 try:
 	from common import cleandict, mergedicts, BaseDataObject

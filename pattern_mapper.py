@@ -7,7 +7,7 @@ except ImportError:
 	from lib.common import keydefaultdict, hextorgb
 
 if False:
-	from common.lib._stubs import *
+	from .lib._stubs import *
 
 remap = mod.tdu.remap
 
