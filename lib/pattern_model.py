@@ -7,9 +7,9 @@ if False:
 	from ._stubs import *
 
 try:
-	from common import cleandict, mergedicts, BaseDataObject
+	from common import cleandict, excludekeys, mergedicts, BaseDataObject
 except ImportError:
-	from .common import cleandict, mergedicts, BaseDataObject
+	from .common import cleandict, excludekeys, mergedicts, BaseDataObject
 
 class ShapeInfo(BaseDataObject):
 	def __init__(
@@ -56,10 +56,17 @@ class SequenceStep(BaseDataObject):
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'sequenceindex': self.sequenceindex,
-			'shapeindices': self.shapeindices,
+			'shapeindices': _formatIndexList(self.shapeindices),
 			'isdefault': self.isdefault,
 			'inferredfromvalue': self.inferredfromvalue,
 		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			shapeindices=_parseIndexList(obj.get('shapeindices')),
+			**excludekeys(obj, ['shapeindices'])
+		)
 
 class GroupInfo(BaseDataObject):
 	def __init__(
@@ -85,6 +92,62 @@ class GroupInfo(BaseDataObject):
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype,
 			'inferredfromvalue': self.inferredfromvalue,
-			'shapeindices': self.shapeindices,
+			'shapeindices': _formatIndexList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			sequencesteps=SequenceStep.FromJsonDicts(obj.get('sequencesteps')),
+			shapeindices=_parseIndexList(obj.get('shapeindices')),
+			**excludekeys(obj, ['sequencesteps', 'shapeindices'])
+		)
+
+class BoolOpNames:
+	OR = 'or'
+	AND = 'and'
+
+class GroupSpec(GroupInfo):
+	def __init__(
+			self,
+			groupname,
+			basedongroups: List[str]=None,
+			boolop: str=None,
+			**attrs):
+		super().__init__(groupname=groupname, **attrs)
+		self.basedongroups = list(basedongroups or [])
+		self.boolop = boolop
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'basedongroups': self.basedongroups,
+			'boolop': self.boolop,
+		}))
+
+	@property
+	def ismanual(self):
+		return bool(self.sequencesteps or self.shapeindices)
+
+	@property
+	def iscombination(self):
+		return bool(self.basedongroups or self.boolop)
+
+def _parseIndexList(val):
+	if not val:
+		return []
+	if isinstance(val, str):
+		return [int(v) for v in val.split(' ')]
+	if isinstance(val, int):
+		return [val]
+	if isinstance(val, (list, tuple)):
+		results = []
+		for part in val:
+			results += _parseIndexList(part)
+		return results
+	raise Exception('Unsupported index list value: {!r}'.format(val))
+
+def _formatIndexList(indices):
+	if not indices:
+		return None
+	return ' '.join([str(i) for i in indices])

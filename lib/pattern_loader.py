@@ -2,7 +2,7 @@ print('pattern_loader.py loading...')
 
 from collections import defaultdict
 import xml.etree.ElementTree as ET
-from typing import DefaultDict, List, Tuple
+from typing import DefaultDict, Dict, List, Set, Tuple
 
 if False:
 	from ._stubs import *
@@ -14,11 +14,11 @@ td_python_package_init.init()
 import svg.path as svgpath
 
 try:
-	from common import ExtensionBase, simpleloggedmethod, hextorgb, loggedmethod
+	from common import ExtensionBase, simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
 except ImportError:
-	from .common import ExtensionBase, simpleloggedmethod, hextorgb, loggedmethod
+	from .common import ExtensionBase, simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
 
-from pattern_model import GroupInfo, SequenceStep, ShapeInfo
+from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
 
 remap = tdu.remap
 
@@ -35,6 +35,12 @@ class PatternLoader(ExtensionBase):
 	@property
 	def _rawShapes(self):
 		return self.op('raw_shapes')
+
+	@property
+	def TEMP_jsonObj(self):
+		return {
+			'groups': GroupInfo.ToJsonDicts(self.groups)
+		}
 
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
@@ -260,8 +266,9 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def _BuildInferredGroups(self, sop):
-		shapes = _shapeInfosFromPolys(sop.prims)
-		self.groups = _InferredGroupExtractor().load(shapes)
+		builder = _GroupsBuilder()
+		builder.loadImplicitGroups(sop)
+		self.groups = builder.grouplist
 
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
@@ -410,3 +417,109 @@ def _longestCommonPrefix(strs):
 			return strs[0][:i]
 	else:
 		return min(strs)
+
+_boolOps = {
+	BoolOpNames.OR: any,
+	BoolOpNames.AND: all,
+}
+
+class _GroupsBuilder:
+	def __init__(self):
+		self.grouplist = []  # type: List[GroupInfo]
+		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
+
+	def loadImplicitGroups(self, sop):
+		shapes = _shapeInfosFromPolys(sop.prims)
+		implicitgroups = _InferredGroupExtractor().load(shapes)
+		for group in implicitgroups:
+			self._addGroup(group)
+
+	def loadGroupSpecs(self, groupspecs: List[GroupSpec]):
+		for groupspec in groupspecs:
+			group = self._createGroupFromSpec(groupspec)
+			self._addGroup(group)
+
+	def _createGroupFromSpec(self, groupspec: GroupSpec):
+		if groupspec.inferencetype or groupspec.inferredfromvalue:
+			raise Exception('Inference not yet supported for group specs {!r}'.format(groupspec))
+		group = GroupInfo(
+			groupname=groupspec.groupname,
+			grouppath=groupspec.grouppath,
+			shapeindices=list(groupspec.shapeindices),
+			**groupspec.attrs,
+		)
+
+		if groupspec.ismanual:
+			if groupspec.iscombination:
+				raise Exception('Group cannot be both manual and combination {!r}'.format(groupspec))
+			group.shapeindices = list(groupspec.shapeindices)
+			for step in groupspec.sequencesteps:
+				group.sequencesteps.append(SequenceStep(
+					sequenceindex=step.sequenceindex,
+					shapeindices=step.shapeindices,
+					isdefault=step.isdefault,
+					inferredfromvalue=step.inferredfromvalue,
+					**step.attrs,
+				))
+				for shapeindex in step.shapeindices:
+					if shapeindex not in group.shapeindices:
+						group.shapeindices.append(shapeindex)
+		elif groupspec.iscombination:
+			combiner = _GroupCombiner()
+			for basedonname in groupspec.basedongroups:
+				basedongroup = self.groupsbyname.get(basedonname, None)
+				if not basedongroup:
+					raise Exception('Basis group not found {!r} for {!r}'.format(basedonname, groupspec))
+				combiner.addGroup(basedongroup)
+			combiner.buildInto(resultgroup=group, boolop=groupspec.boolop)
+
+		return group
+
+	def _addGroup(self, group: GroupInfo):
+		self.grouplist.append(group)
+		if group.groupname:
+			if group.groupname in self.groupsbyname:
+				print('ignoring duplicate group name {!r}'.format(group.groupname))
+			else:
+				self.groupsbyname[group.groupname] = group
+
+class _GroupCombiner:
+	def __init__(self):
+		self.shapeindexsets = []  # type: List[Set[int]]
+		self.stepsetsbyindex = defaultdict(list)  # type: DefaultDict[int, List[SequenceStep]]
+
+	def addGroup(self, group: GroupInfo):
+		self.shapeindexsets.append(set(group.shapeindices))
+		for step in group.sequencesteps:
+			self.stepsetsbyindex[step.sequenceindex].append(step)
+
+	def buildInto(self, resultgroup: GroupInfo, boolop: str):
+		boolop = boolop or BoolOpNames.OR
+		allshapeindices = self._combineIndexSets(self.shapeindexsets, boolop=boolop)
+
+		combinedsteps = []  # type: List[SequenceStep]
+		for sequenceindex, steps in self.stepsetsbyindex.items():
+			stepindices = self._combineIndexSets(
+				[s.shapeindices for s in steps],
+				boolop=boolop)
+			combinedsteps.append(SequenceStep(
+				sequenceindex=sequenceindex,
+				shapeindices=list(sorted(stepindices))
+			))
+			allshapeindices = allshapeindices.union(stepindices)
+
+		resultgroup.shapeindices = list(sorted(allshapeindices))
+		resultgroup.sequencesteps = list(sorted(allshapeindices))
+
+	@staticmethod
+	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
+		if not indexsets:
+			return set()
+		combinedindices = set(indexsets[0])
+		if boolop == BoolOpNames.AND:
+			combinedindices.intersection_update(*indexsets[1:])
+		elif boolop == BoolOpNames.OR:
+			combinedindices = combinedindices.union(*combinedindices[1:])
+		else:
+			return set()
+		return combinedindices
