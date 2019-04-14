@@ -51,6 +51,8 @@ class PatternLoader(ExtensionBase):
 			elemid = elem.get('id')
 			if elemid and (elemid == 'Background' or elemid.startswith('-')):
 				return
+			if elem.get('display') == 'none':
+				return
 			tagname = _localname(elem.tag)
 			if tagname == 'path':
 				_handlePathElem(elem, parentpath=parentpath)
@@ -73,7 +75,9 @@ class PatternLoader(ExtensionBase):
 				raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
 			pathpoints = [_pathPoint(firstsegment.start)]
 			for segment in path[1:]:
-				if not isinstance(segment, svgpath.Line):
+				if isinstance(segment, (svgpath.CubicBezier, svgpath.QuadraticBezier)):
+					self._LogEvent('WARNING: treating bezier as line {}'.format(rawpath))
+				elif not isinstance(segment, svgpath.Line):
 					raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
 						type(segment), rawpath))
 				pathpt = _pathPoint(segment.end)
