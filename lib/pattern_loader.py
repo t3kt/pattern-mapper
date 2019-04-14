@@ -48,11 +48,14 @@ class PatternLoader(ExtensionBase):
 		offset = tdu.Vector(-self.SvgWidth.val / 2, -self.SvgHeight.val / 2, 0)
 
 		def _handleElem(elem, indexinparent, parentpath=''):
-			elemid = elem.get('id', '_{}'.format(indexinparent))
+			elemid = elem.get('id')
+			if elemid and (elemid == 'Background' or elemid.startswith('-')):
+				return
 			tagname = _localname(elem.tag)
 			if tagname == 'path':
 				_handlePathElem(elem, parentpath=parentpath)
 			else:
+				elemid = elemid or '_{}'.format(indexinparent)
 				if parentpath:
 					childparentpath = parentpath + '/' + elemid
 				else:
@@ -160,8 +163,7 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def BuildInferredGroups(self, dat, sop):
-		shapes = _shapeInfosFromPolys(sop.prims)
-		groups = _InferredGroupExtractor().load(shapes)
+		groups = self._BuildInferredGroups(sop)
 		dat.clear()
 		dat.appendRow(['groupname', 'groupindex', 'grouppath', 'sequencelength', 'shapes'])
 		for groupinfo in groups:
@@ -172,6 +174,24 @@ class PatternLoader(ExtensionBase):
 				len(groupinfo.sequencesteps),
 				' '.join(map(str, groupinfo.shapeindices)),
 			])
+
+	@loggedmethod
+	def AddInferredGroupAttrs(self, sop):
+		groups = self._BuildInferredGroups(sop)
+		sop.primAttribs.create('sequenceIndex', 0)
+		for group in groups:
+			attrname = 'group_' + group.groupname
+			sop.primAttribs.create(attrname, 0)
+			for shapeindex in group.shapeindices:
+				getattr(sop.prims[shapeindex], attrname)[0] = 1
+			for step in group.sequencesteps:
+				for shapeindex in step.shapeindices:
+					sop.prims[shapeindex].sequenceIndex[0] = step.sequenceindex
+
+	@loggedmethod
+	def _BuildInferredGroups(self, sop):
+		shapes = _shapeInfosFromPolys(sop.prims)
+		return _InferredGroupExtractor().load(shapes)
 
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
@@ -200,9 +220,18 @@ def fixFaceFlipping(sop):
 	for prim in sop.prims:
 		if prim.normal.z < 0:
 			origpoints = [v.point for v in prim]
+			origuvs = [_attrDataToTuple(v.uv) for v in prim]
 			n = len(prim)
 			for i in range(n):
 				prim[i].point = origpoints[-i]
+				_setAttrDataFromTuple(prim[i].uv, origuvs[-i])
+
+def _attrDataToTuple(attrdata):
+	return tuple(attrdata[i] for i in range(len(attrdata)))
+
+def _setAttrDataFromTuple(attrdata, values):
+	for i in range(len(values)):
+		attrdata[i] = values[i]
 
 def _applyPathColor(poly, pathelem):
 	if 'stroke' in pathelem.attrib:
@@ -239,6 +268,11 @@ def _shapeInfosFromPolys(polys):
 	]
 
 class _InferredGroupExtractor:
+	"""
+	Extracts groups from ShapeInfos, based on primitive colors.
+	Each unique pair of hue and saturation defines a group of all the matching shapes.
+	Within each group, value (as in HSV value) defines the sequence ordering.
+	"""
 	def __init__(self):
 		# list of shapes keyed by (hue, saturation)
 		self.shapesbyhuesat = defaultdict(list)  # type: DefaultDict[Tuple, List[ShapeInfo]]
