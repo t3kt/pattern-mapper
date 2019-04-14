@@ -2,7 +2,7 @@ print('pattern_loader.py loading...')
 
 from collections import defaultdict
 import xml.etree.ElementTree as ET
-from typing import DefaultDict, Iterable, List, Tuple
+from typing import DefaultDict, List, Tuple
 
 if False:
 	from ._stubs import *
@@ -25,8 +25,16 @@ remap = tdu.remap
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
-		self.SvgWidth = tdu.Dependency(0)
-		self.SvgHeight = tdu.Dependency(0)
+		self.SvgWidth = tdu.Dependency(1)
+		self.SvgHeight = tdu.Dependency(1)
+		self.groups = []  # type: List[GroupInfo]
+
+	def op(self, path):
+		return self.ownerComp.op(path)
+
+	@property
+	def _rawShapes(self):
+		return self.op('raw_shapes')
 
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
@@ -102,9 +110,7 @@ class PatternLoader(ExtensionBase):
 
 		_handleElem(root, 0)
 
-	@loggedmethod
-	def InferGroups(self, sop):
-		pass
+		self._BuildInferredGroups(sop)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -167,23 +173,83 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def BuildInferredGroups(self, dat, sop):
-		groups = self._BuildInferredGroups(sop)
+		# NOTE: this depends on `.groups` having been populated already
+		if not self.groups:
+			self._BuildInferredGroups(sop)
 		dat.clear()
-		dat.appendRow(['groupname', 'groupindex', 'grouppath', 'sequencelength', 'shapes'])
-		for groupinfo in groups:
+		dat.appendRow([
+			'groupname',
+			'grouppath',
+			'inferencetype',
+			'inferredfromvalue',
+			'sequencelength',
+			'shapes',
+		])
+		for groupinfo in self.groups:
 			dat.appendRow([
 				groupinfo.groupname,
-				groupinfo.groupindex,
-				groupinfo.grouppath,
+				groupinfo.grouppath or '',
+				groupinfo.inferencetype or '',
+				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
 				len(groupinfo.sequencesteps),
 				' '.join(map(str, groupinfo.shapeindices)),
 			])
 
 	@loggedmethod
+	def BuildGroupTable(self, dat):
+		if not self.groups:
+			self._BuildInferredGroups(sop=self._rawShapes)
+		dat.clear()
+		dat.appendRow([
+			'groupname',
+			'grouppath',
+			'inferencetype',
+			'inferredfromvalue',
+			'sequencelength',
+			'shapes',
+		])
+		for groupinfo in self.groups:
+			dat.appendRow([
+				groupinfo.groupname or '',
+				groupinfo.grouppath or '',
+				groupinfo.inferencetype or '',
+				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
+				len(groupinfo.sequencesteps),
+				' '.join(map(str, groupinfo.shapeindices)),
+			])
+
+	@loggedmethod
+	def BuildSequenceStepTable(self, dat):
+		if not self.groups:
+			self._BuildInferredGroups(sop=self._rawShapes)
+		dat.clear()
+		dat.clear()
+		dat.appendRow([
+			'groupname',
+			'sequenceindex',
+			'isdefault',
+			'inferredfromvalue',
+			'shapes',
+		])
+		for groupinfo in self.groups:
+			for step in groupinfo.sequencesteps:
+				if not step.shapeindices:
+					continue
+				dat.appendRow([
+					groupinfo.groupname,
+					step.sequenceindex,
+					int(step.isdefault or 0),
+					step.inferredfromvalue,
+					' '.join(map(str, step.shapeindices)),
+				])
+
+	@loggedmethod
 	def AddInferredGroupAttrs(self, sop):
-		groups = self._BuildInferredGroups(sop)
+		# NOTE: this depends on `.groups` having been populated already
+		if not self.groups:
+			self._BuildInferredGroups(sop)
 		sop.primAttribs.create('sequenceIndex', 0)
-		for group in groups:
+		for group in self.groups:
 			attrname = 'group_' + group.groupname
 			sop.primAttribs.create(attrname, 0)
 			for shapeindex in group.shapeindices:
@@ -195,7 +261,7 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def _BuildInferredGroups(self, sop):
 		shapes = _shapeInfosFromPolys(sop.prims)
-		return _InferredGroupExtractor().load(shapes)
+		self.groups = _InferredGroupExtractor().load(shapes)
 
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
@@ -285,8 +351,8 @@ class _InferredGroupExtractor:
 	def load(self, shapes: List[ShapeInfo]):
 		for shape in shapes:
 			self._loadshape(shape)
-		for shapes in self.shapesbyhuesat.values():
-			self._addgroup(shapes)
+		for huesat, shapes in self.shapesbyhuesat.items():
+			self._addgroup(huesat, shapes)
 		return self.groups
 
 	def _loadshape(self, shape: ShapeInfo):
@@ -295,22 +361,23 @@ class _InferredGroupExtractor:
 			return
 		self.shapesbyhuesat[(hsvcolor[0], hsvcolor[1])].append(shape)
 
-	def _addgroup(self, shapes: List[ShapeInfo]):
+	def _addgroup(self, huesat, shapes: List[ShapeInfo]):
 		shapesbyvalue = defaultdict(list)  # type: DefaultDict[float, List[ShapeInfo]]
 		shapeindices = [shape.shapeindex for shape in shapes]
 		pathparts = _longestCommonPrefix([shape.parentpath.split('/') for shape in shapes])
-		groupindex = len(self.groups)
 		name = None
 		if pathparts:
 			cleanedpathparts = [p for p in pathparts if p and not p.startswith('_')]
 			if cleanedpathparts:
 				name = cleanedpathparts[-1]
 		if not name:
+			groupindex = len(self.groups)
 			name = '_{}'.format(groupindex)
 		group = GroupInfo(
 			groupname=name,
 			grouppath='/'.join(pathparts),
-			groupindex=groupindex,
+			inferencetype='HS:V',
+			inferredfromvalue=huesat,
 			shapeindices=list(shapeindices),
 		)
 		for shape in shapes:
@@ -318,6 +385,7 @@ class _InferredGroupExtractor:
 		if len(shapesbyvalue) == 1:
 			group.sequencesteps.append(SequenceStep(
 				sequenceindex=0,
+				inferredfromvalue=list(shapesbyvalue.keys())[0],
 				shapeindices=list(shapeindices),
 			))
 		else:
@@ -325,6 +393,7 @@ class _InferredGroupExtractor:
 				group.sequencesteps.append(
 					SequenceStep(
 						sequenceindex=i,
+						inferredfromvalue=key,
 						shapeindices=[shape.shapeindex for shape in shapesbyvalue[key]]
 					)
 				)

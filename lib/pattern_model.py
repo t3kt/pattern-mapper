@@ -1,7 +1,7 @@
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 if False:
 	from ._stubs import *
@@ -44,41 +44,47 @@ class SequenceStep(BaseDataObject):
 			self,
 			sequenceindex=0,
 			shapeindices: List[int]=None,
-			isdefault=False,
+			isdefault: bool=None,
+			inferredfromvalue: Any=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.sequenceindex = sequenceindex
 		self.shapeindices = list(shapeindices or [])
 		self.isdefault = isdefault
+		self.inferredfromvalue = inferredfromvalue
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'sequenceindex': self.sequenceindex,
 			'shapeindices': self.shapeindices,
 			'isdefault': self.isdefault,
+			'inferredfromvalue': self.inferredfromvalue,
 		}))
 
 class GroupInfo(BaseDataObject):
 	def __init__(
 			self,
 			groupname,
-			groupindex=None,
 			grouppath=None,
+			inferencetype: str=None,
+			inferredfromvalue: Any=None,
 			shapeindices: List[int]=None,
 			sequencesteps: List[SequenceStep]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
-		self.groupindex = groupindex
 		self.grouppath = grouppath
+		self.inferencetype = inferencetype
+		self.inferredfromvalue = inferredfromvalue
 		self.shapeindices = list(shapeindices or [])
 		self.sequencesteps = list(sequencesteps or [])
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
-			'groupindex': self.groupindex,
 			'grouppath': self.grouppath,
+			'inferencetype': self.inferencetype,
+			'inferredfromvalue': self.inferredfromvalue,
 			'shapeindices': self.shapeindices,
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 		}))

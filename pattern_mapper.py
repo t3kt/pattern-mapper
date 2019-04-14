@@ -63,11 +63,10 @@ class PatternParser:
 		# the tables seems not great for some reason
 		groupinfos = self._BuildGroupInfos()
 		dat.clear()
-		dat.appendRow(['groupname', 'groupindex', 'sequencelength', 'shapes'])
+		dat.appendRow(['groupname', 'sequencelength', 'shapes'])
 		for groupinfo in groupinfos:
 			dat.appendRow([
 				groupinfo.groupname,
-				groupinfo.groupindex,
 				len(groupinfo.sequencesteps),
 				' '.join(map(str, groupinfo.shapeindices)),
 			])
@@ -83,7 +82,7 @@ class PatternParser:
 				dat.appendRow([
 					groupinfo.groupname,
 					step.sequenceindex,
-					int(step.isdefault),
+					int(step.isdefault or 0),
 					' '.join(map(str, step.shapeindices)),
 				])
 
@@ -92,10 +91,9 @@ class PatternParser:
 		n = attrs.numSamples
 		seqindexchan = attrs.chan('sequenceIndex')
 		groupinfos = []
-		for groupindex, groupchan in enumerate(attrs.chans('group_*')):
+		for groupchan in attrs.chans('group_*'):
 			groupinfo = GroupInfo(
 				groupname=groupchan.name.replace('group_', ''),
-				groupindex=groupindex,
 				shapeindices=[i for i in range(n) if groupchan[i]],
 			)
 			stepsbyindex = keydefaultdict(lambda i: SequenceStep(i))  # type: DefaultDict[int, SequenceStep]
