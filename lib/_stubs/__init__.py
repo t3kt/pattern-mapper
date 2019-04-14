@@ -1,6 +1,6 @@
 # trick pycharm
 
-from typing import List as _List
+from typing import List as _List, Union as _Union
 
 class _Expando:
 	def __init__(self):
@@ -84,7 +84,75 @@ class td:
 	@staticmethod
 	def run(codeorwhatever, delayFrames=0, delayMilliSeconds=0, delayRef=None): pass
 
+	class Attribute:
+		def __init__(self):
+			self.owner = None  # type: OP
+			self.name = ''
+			self.size = 0
+			self.type = None  # type: type
+			self.default = None  # type: _Union[float, int, str, tuple, _Position, _Vector]
+
 del _TD_ERROR
+
+class _Matrix:
+	pass
+
+class _Position:
+	def __init__(self, *vals):
+		self.x = self.y = self.z = 0
+
+	def translate(self, x, y, z): pass
+
+	def scale(self, x, y, z): pass
+
+	def copy(self) -> '_Position': pass
+
+	def __getitem__(self, item: int) -> float: pass
+
+	def __setitem__(self, key, value): pass
+
+	def __mul__(self, other: _Union[float, _Matrix]) -> _Union[float, '_Position']: pass
+
+	def __add__(self, other: _Union[float, '_Position', '_Vector']) -> _Union[float, '_Position']: pass
+
+	def __sub__(self, other: _Union[float, '_Position', '_Vector']) -> _Union[float, '_Position']: pass
+
+	def __div__(self, other: float) -> '_Position': pass
+
+	def __abs__(self) -> '_Position': pass
+
+	def __neg__(self) -> '_Position': pass
+
+
+class _Vector:
+	def __init__(self, *vals):
+		self.x = self.y = self.z = 0
+
+	def translate(self, x, y, z): pass
+
+	def scale(self, x, y, z): pass
+
+	def __getitem__(self, item: int) -> float: pass
+
+	def __setitem__(self, key, value): pass
+
+	def normalize(self): pass
+
+	def length(self) -> float: pass
+
+	def lengthSquared(self) -> float: pass
+
+	def copy(self) -> '_Vector': pass
+
+	def distance(self, vec: '_Vector') -> float: pass
+
+	def lerp(self, vec: '_Vector', t: float) -> '_Vector': pass
+
+	def slerp(self, vec: '_Vector', t: float) -> '_Vector': pass
+
+	def project(self, vec1: '_Vector', vec2: '_Vector'): pass
+
+	def reflect(self, vec: '_Vector'): pass
 
 class tdu:
 	@staticmethod
@@ -104,6 +172,9 @@ class tdu:
 			self.val = None
 
 		def modified(self): pass
+
+	Position = _Position
+	Vector = _Vector
 
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0

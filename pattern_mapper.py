@@ -9,7 +9,7 @@ except ImportError:
 if False:
 	from .lib._stubs import *
 
-remap = mod.tdu.remap
+remap = tdu.remap
 
 def getGroupChanNames(groupspec):
 	if not groupspec:
