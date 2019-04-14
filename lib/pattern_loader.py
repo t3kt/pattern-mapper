@@ -1,7 +1,8 @@
 print('pattern_loader.py loading...')
 
+from collections import defaultdict
 import xml.etree.ElementTree as ET
-from typing import List
+from typing import DefaultDict, Iterable, List, Tuple
 
 if False:
 	from ._stubs import *
@@ -52,10 +53,10 @@ class PatternLoader(ExtensionBase):
 			if tagname == 'path':
 				_handlePathElem(elem, parentpath=parentpath)
 			else:
-				if not parentpath:
-					childparentpath = '/'
-				else:
+				if parentpath:
 					childparentpath = parentpath + '/' + elemid
+				else:
+					childparentpath = elemid
 				for childindex, childelem in enumerate(list(elem)):
 					_handleElem(childelem, childindex, childparentpath)
 
@@ -93,6 +94,10 @@ class PatternLoader(ExtensionBase):
 				vertex.absRelDist[1] = distances[i] / totaldist
 
 		_handleElem(root, 0)
+
+	@loggedmethod
+	def InferGroups(self, sop):
+		pass
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -153,6 +158,21 @@ class PatternLoader(ExtensionBase):
 			# _copyAttrVals(toattr=todata, fromattr=fromdata)
 			pass
 
+	@loggedmethod
+	def BuildInferredGroups(self, dat, sop):
+		shapes = _shapeInfosFromPolys(sop.prims)
+		groups = _InferredGroupExtractor().load(shapes)
+		dat.clear()
+		dat.appendRow(['groupname', 'groupindex', 'grouppath', 'sequencelength', 'shapes'])
+		for groupinfo in groups:
+			dat.appendRow([
+				groupinfo.groupname,
+				groupinfo.groupindex,
+				groupinfo.grouppath,
+				len(groupinfo.sequencesteps),
+				' '.join(map(str, groupinfo.shapeindices)),
+			])
+
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
 		for prim in sop.prims:
@@ -206,3 +226,80 @@ def _segmentDistances(path: svgpath.Path, scale):
 
 def _pathPoint(pathpt: complex):
 	return tdu.Position(pathpt.real, pathpt.imag, 0)
+
+def _shapeInfosFromPolys(polys):
+	return [
+		ShapeInfo(
+			shapeindex=poly.index,
+			shapename=poly.shapeId[0],
+			parentpath=poly.parentPath[0],
+			color=(poly.Cd[0], poly.Cd[1], poly.Cd[2]),
+		)
+		for poly in polys
+	]
+
+class _InferredGroupExtractor:
+	def __init__(self):
+		# list of shapes keyed by (hue, saturation)
+		self.shapesbyhuesat = defaultdict(list)  # type: DefaultDict[Tuple, List[ShapeInfo]]
+		self.groups = []  # type: List[GroupInfo]
+
+	def load(self, shapes: List[ShapeInfo]):
+		for shape in shapes:
+			self._loadshape(shape)
+		for shapes in self.shapesbyhuesat.values():
+			self._addgroup(shapes)
+		return self.groups
+
+	def _loadshape(self, shape: ShapeInfo):
+		hsvcolor = shape.hsvcolor
+		if not hsvcolor:
+			return
+		self.shapesbyhuesat[(hsvcolor[0], hsvcolor[1])].append(shape)
+
+	def _addgroup(self, shapes: List[ShapeInfo]):
+		shapesbyvalue = defaultdict(list)  # type: DefaultDict[float, List[ShapeInfo]]
+		shapeindices = [shape.shapeindex for shape in shapes]
+		pathparts = _longestCommonPrefix([shape.parentpath.split('/') for shape in shapes])
+		groupindex = len(self.groups)
+		name = None
+		if pathparts:
+			cleanedpathparts = [p for p in pathparts if p and not p.startswith('_')]
+			if cleanedpathparts:
+				name = cleanedpathparts[-1]
+		if not name:
+			name = '_{}'.format(groupindex)
+		group = GroupInfo(
+			groupname=name,
+			grouppath='/'.join(pathparts),
+			groupindex=groupindex,
+			shapeindices=list(shapeindices),
+		)
+		for shape in shapes:
+			shapesbyvalue[shape.hsvcolor[2]].append(shape)
+		if len(shapesbyvalue) == 1:
+			group.sequencesteps.append(SequenceStep(
+				sequenceindex=0,
+				shapeindices=list(shapeindices),
+			))
+		else:
+			for i, key in enumerate(sorted(shapesbyvalue.keys())):
+				group.sequencesteps.append(
+					SequenceStep(
+						sequenceindex=i,
+						shapeindices=[shape.shapeindex for shape in shapesbyvalue[key]]
+					)
+				)
+		self.groups.append(group)
+
+def _longestCommonPrefix(strs):
+	if not strs:
+		return ""
+	for i, letter_group in enumerate(zip(*strs)):
+		# ["flower","flow","flight"]
+		# print(i,letter_group,set(letter_group))
+		# 0 ('f', 'f', 'f') {'f'}
+		if len(set(letter_group)) > 1:
+			return strs[0][:i]
+	else:
+		return min(strs)
