@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 import json
 from typing import Dict, Iterable, List, Optional, Union
+import sys
 
 print('common.py loading...')
 
@@ -23,6 +24,7 @@ def Log(msg, file=None):
 		_LoggerTimestamp(),
 		msg,
 		file=file)
+	file.flush()
 
 class IndentedLogger:
 	def __init__(self, outfile=None):
@@ -59,7 +61,28 @@ class IndentedLogger:
 	def LogEnd(self, path, opid, event):
 		self.LogEvent(path, opid, event, unindentbefore=True)
 
-_logger = IndentedLogger()
+class _Tee:
+	def __init__(self, *files):
+		self.files = files
+
+	def write(self, obj):
+		for f in self.files:
+			f.write(obj)
+			# f.flush()  # make the output to be visible immediately
+
+	def flush(self):
+		for f in self.files:
+			f.flush()
+
+def _InitFileLog():
+	f = open(project.name + '-log.txt', mode='a')
+	print('\n-----[Initialize Log: {}]-----\n'.format(
+		datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S.%f')), file=f)
+	f.flush()
+	return IndentedLogger(outfile=_Tee(sys.stdout, f))
+
+#_logger = IndentedLogger()
+_logger = _InitFileLog()
 
 class LoggableBase:
 	def _GetLogId(self) -> Optional[str]:

@@ -1,6 +1,6 @@
 # trick pycharm
 
-from typing import List as _List, Union as _Union
+from typing import List as _List, Union as _Union, Tuple as _Tuple
 
 class _Expando:
 	def __init__(self):
@@ -94,8 +94,34 @@ class td:
 
 del _TD_ERROR
 
+
 class _Matrix:
-	pass
+	def __init__(self, *values):
+		self.vals = []  # type: _List[float]
+		self.rows = []  # type: _List[_List[float]]
+		self.cols = []  # type: _List[_List[float]]
+
+	def transpose(self): pass
+
+	def invert(self): pass
+
+	def determinant(self) -> float: pass
+
+	def copy(self) -> '_Matrix': pass
+
+	def identity(self): pass
+
+	def translate(self, tx, ty, tz, fromRight=False): pass
+
+	def rotate(self, rx, ry, rz, fromRight=False, pivot=None): pass
+
+	def rotateOnAxis(self, rotationAxis, angle, fromRight=False, pivot=None): pass
+
+	def scale(self, sx, sy, sz, fromRight=False, pivot=None): pass
+
+	def lookat(self, eyePos, target, up): pass
+
+	def decompose(self) -> _Tuple[_Tuple]: pass
 
 class _Position:
 	def __init__(self, *vals):
@@ -175,6 +201,10 @@ class tdu:
 
 	Position = _Position
 	Vector = _Vector
+	Matrix = _Matrix
+
+	@staticmethod
+	def split(string, eval=False)-> '_List': pass
 
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0

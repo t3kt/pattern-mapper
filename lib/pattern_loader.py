@@ -1,6 +1,7 @@
 print('pattern_loader.py loading...')
 
 from collections import defaultdict
+import json
 import xml.etree.ElementTree as ET
 from typing import DefaultDict, Dict, List, Set, Tuple
 
@@ -14,9 +15,14 @@ td_python_package_init.init()
 import svg.path as svgpath
 
 try:
-	from common import ExtensionBase, simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+	from common import ExtensionBase, LoggableSubComponent
 except ImportError:
-	from .common import ExtensionBase, simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+	from .common import ExtensionBase, LoggableSubComponent
+
+try:
+	from common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+except ImportError:
+	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
 
 from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
 
@@ -41,6 +47,15 @@ class PatternLoader(ExtensionBase):
 		return {
 			'groups': GroupInfo.ToJsonDicts(self.groups)
 		}
+
+	@property
+	def PatternJsonFileName(self):
+		svgname = self.ownerComp.par.Svgfile.eval()
+		if not svgname:
+			return ''
+		if svgname.endswith('.svg'):
+			return svgname.replace('.svg', '.json')
+		return ''
 
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
@@ -116,7 +131,7 @@ class PatternLoader(ExtensionBase):
 
 		_handleElem(root, 0)
 
-		self._BuildInferredGroups(sop)
+		self._BuildGroups(sop)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -181,7 +196,7 @@ class PatternLoader(ExtensionBase):
 	def BuildInferredGroups(self, dat, sop):
 		# NOTE: this depends on `.groups` having been populated already
 		if not self.groups:
-			self._BuildInferredGroups(sop)
+			self._BuildGroups(sop)
 		dat.clear()
 		dat.appendRow([
 			'groupname',
@@ -204,7 +219,7 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def BuildGroupTable(self, dat):
 		if not self.groups:
-			self._BuildInferredGroups(sop=self._rawShapes)
+			self._BuildGroups(sop=self._rawShapes)
 		dat.clear()
 		dat.appendRow([
 			'groupname',
@@ -227,7 +242,7 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def BuildSequenceStepTable(self, dat):
 		if not self.groups:
-			self._BuildInferredGroups(sop=self._rawShapes)
+			self._BuildGroups(sop=self._rawShapes)
 		dat.clear()
 		dat.clear()
 		dat.appendRow([
@@ -253,7 +268,7 @@ class PatternLoader(ExtensionBase):
 	def AddInferredGroupAttrs(self, sop):
 		# NOTE: this depends on `.groups` having been populated already
 		if not self.groups:
-			self._BuildInferredGroups(sop)
+			self._BuildGroups(sop)
 		sop.primAttribs.create('sequenceIndex', 0)
 		for group in self.groups:
 			attrname = 'group_' + group.groupname
@@ -265,9 +280,26 @@ class PatternLoader(ExtensionBase):
 					sop.prims[shapeindex].sequenceIndex[0] = step.sequenceindex
 
 	@loggedmethod
-	def _BuildInferredGroups(self, sop):
-		builder = _GroupsBuilder()
-		builder.loadImplicitGroups(sop)
+	def _BuildGroups(self, sop):
+		shapes = _shapeInfosFromPolys(sop.prims)
+		builder = _GroupsBuilder(self, shapes)
+		builder.loadImplicitGroups()
+		if not builder.hasGroup('top'):
+			builder.loadGroupSpecs([GroupSpec('top', ybound=(0, None))])
+		if not builder.hasGroup('bottom'):
+			builder.loadGroupSpecs([GroupSpec('bottom', ybound=(None, 0))])
+		if not builder.hasGroup('left'):
+			builder.loadGroupSpecs([GroupSpec('left', xbound=(None, 0))])
+		if not builder.hasGroup('right'):
+			builder.loadGroupSpecs([GroupSpec('right', xbound=(0, None))])
+		jsondat = self.op('load_json_file')
+		jsondat.clear()
+		jsondat.par.loadonstartpulse.pulse()
+		if jsondat.text:
+			obj = json.loads(jsondat.text)
+			groupspecs = GroupSpec.FromJsonDicts(obj.get('groups'))
+			# if groupspecs:
+			# 	builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
 
 	@staticmethod
@@ -339,7 +371,8 @@ def _shapeInfosFromPolys(polys):
 			shapeindex=poly.index,
 			shapename=poly.shapeId[0],
 			parentpath=poly.parentPath[0],
-			color=(poly.Cd[0], poly.Cd[1], poly.Cd[2]),
+			color=(round(255 * poly.Cd[0]), round(255 * poly.Cd[1]), round(255 * poly.Cd[2])),
+			center=(poly.center.x, poly.center.y, poly.center.z),
 		)
 		for poly in polys
 	]
@@ -418,30 +451,33 @@ def _longestCommonPrefix(strs):
 	else:
 		return min(strs)
 
-_boolOps = {
-	BoolOpNames.OR: any,
-	BoolOpNames.AND: all,
-}
-
-class _GroupsBuilder:
-	def __init__(self):
+class _GroupsBuilder(LoggableSubComponent):
+	def __init__(self, hostobj, shapes: List[ShapeInfo]):
+		super().__init__(hostobj, logprefix='_GroupsBuilder')
+		self.shapes = shapes or []
 		self.grouplist = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
 
-	def loadImplicitGroups(self, sop):
-		shapes = _shapeInfosFromPolys(sop.prims)
-		implicitgroups = _InferredGroupExtractor().load(shapes)
+	def hasGroup(self, groupname):
+		return groupname in self.groupsbyname
+
+	@loggedmethod
+	def loadImplicitGroups(self):
+		implicitgroups = _InferredGroupExtractor().load(self.shapes)
 		for group in implicitgroups:
 			self._addGroup(group)
 
+	@loggedmethod
 	def loadGroupSpecs(self, groupspecs: List[GroupSpec]):
 		for groupspec in groupspecs:
 			group = self._createGroupFromSpec(groupspec)
 			self._addGroup(group)
 
+	@loggedmethod
 	def _createGroupFromSpec(self, groupspec: GroupSpec):
 		if groupspec.inferencetype or groupspec.inferredfromvalue:
 			raise Exception('Inference not yet supported for group specs {!r}'.format(groupspec))
+		groupspec.validate()
 		group = GroupInfo(
 			groupname=groupspec.groupname,
 			grouppath=groupspec.grouppath,
@@ -450,30 +486,71 @@ class _GroupsBuilder:
 		)
 
 		if groupspec.ismanual:
-			if groupspec.iscombination:
-				raise Exception('Group cannot be both manual and combination {!r}'.format(groupspec))
-			group.shapeindices = list(groupspec.shapeindices)
-			for step in groupspec.sequencesteps:
-				group.sequencesteps.append(SequenceStep(
-					sequenceindex=step.sequenceindex,
-					shapeindices=step.shapeindices,
-					isdefault=step.isdefault,
-					inferredfromvalue=step.inferredfromvalue,
-					**step.attrs,
-				))
-				for shapeindex in step.shapeindices:
-					if shapeindex not in group.shapeindices:
-						group.shapeindices.append(shapeindex)
+			self._initManualGroup(group, groupspec)
 		elif groupspec.iscombination:
-			combiner = _GroupCombiner()
-			for basedonname in groupspec.basedongroups:
-				basedongroup = self.groupsbyname.get(basedonname, None)
-				if not basedongroup:
-					raise Exception('Basis group not found {!r} for {!r}'.format(basedonname, groupspec))
-				combiner.addGroup(basedongroup)
-			combiner.buildInto(resultgroup=group, boolop=groupspec.boolop)
+			self._initCombinedGroup(group, groupspec)
+		elif groupspec.isbounded:
+			self._initBoundedGroup(group, groupspec)
 
 		return group
+
+	@simpleloggedmethod
+	def _initManualGroup(self, group: GroupInfo, groupspec: GroupSpec):
+		group.shapeindices = list(groupspec.shapeindices)
+		for step in groupspec.sequencesteps:
+			group.sequencesteps.append(SequenceStep(
+				sequenceindex=step.sequenceindex,
+				shapeindices=step.shapeindices,
+				isdefault=step.isdefault,
+				inferredfromvalue=step.inferredfromvalue,
+				**step.attrs,
+			))
+			for shapeindex in step.shapeindices:
+				if shapeindex not in group.shapeindices:
+					group.shapeindices.append(shapeindex)
+
+	@simpleloggedmethod
+	def _initCombinedGroup(self, group: GroupInfo, groupspec: GroupSpec):
+		combiner = _GroupCombiner(hostobj=self)
+		for basedonname in groupspec.basedon:
+			basedongroup = self.groupsbyname.get(basedonname, None)
+			if not basedongroup:
+				raise Exception('Basis group not found {!r} for {!r}'.format(basedonname, groupspec))
+			combiner.addGroup(basedongroup)
+		combiner.buildInto(resultgroup=group, boolop=groupspec.boolop)
+
+	@simpleloggedmethod
+	def _initBoundedGroup(self, group: GroupInfo, groupspec: GroupSpec):
+		xform = tdu.Matrix()
+		if groupspec.prerotate:
+			xform.rotate(rx=0, ry=0, rz=groupspec.prerotate, pivot=(0, 0, 0))
+		xmin, xmax = groupspec.xbound or (None, None)
+		ymin, ymax = groupspec.ybound or (None, None)
+		shapeindices = []
+		for shape in self.shapes:
+			pos = tdu.Position(shape.center)
+			pos *= xform
+			if xmin is not None and pos.x < xmin:
+				continue
+			if xmax is not None and pos.x > xmax:
+				continue
+			if ymin is not None and pos.y < ymin:
+				continue
+			if ymax is not None and pos.y > ymax:
+				continue
+			if shape.shapeindex not in shapeindices:
+				shapeindices.append(shape.shapeindex)
+		group.shapeindices += shapeindices
+		if not group.sequencesteps:
+			group.sequencesteps.append(SequenceStep(
+				sequenceindex=0,
+				shapeindices=shapeindices,
+				isdefault=True,
+			))
+		else:
+			step = group.sequencesteps[0]
+			step.isdefault = True
+			step.shapeindices += shapeindices
 
 	def _addGroup(self, group: GroupInfo):
 		self.grouplist.append(group)
@@ -483,8 +560,9 @@ class _GroupsBuilder:
 			else:
 				self.groupsbyname[group.groupname] = group
 
-class _GroupCombiner:
-	def __init__(self):
+class _GroupCombiner(LoggableSubComponent):
+	def __init__(self, hostobj):
+		super().__init__(hostobj, logprefix='_GroupCombiner')
 		self.shapeindexsets = []  # type: List[Set[int]]
 		self.stepsetsbyindex = defaultdict(list)  # type: DefaultDict[int, List[SequenceStep]]
 
@@ -509,7 +587,7 @@ class _GroupCombiner:
 			allshapeindices = allshapeindices.union(stepindices)
 
 		resultgroup.shapeindices = list(sorted(allshapeindices))
-		resultgroup.sequencesteps = list(sorted(allshapeindices))
+		resultgroup.sequencesteps = combinedsteps
 
 	@staticmethod
 	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
