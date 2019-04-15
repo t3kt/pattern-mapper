@@ -1,7 +1,7 @@
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Iterable, List, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -61,7 +61,7 @@ class SequenceStep(BaseDataObject):
 			'sequenceindex': self.sequenceindex,
 			'shapeindices': _formatValueList(self.shapeindices),
 			'isdefault': self.isdefault,
-			'inferredfromvalue': self.inferredfromvalue,
+			'inferredfromvalue': _formatValue(self.inferredfromvalue, keepnone=True),
 		}))
 
 	@classmethod
@@ -94,7 +94,7 @@ class GroupInfo(BaseDataObject):
 			'groupname': self.groupname,
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype,
-			'inferredfromvalue': self.inferredfromvalue,
+			'inferredfromvalue': _formatValue(self.inferredfromvalue, keepnone=True),
 			'shapeindices': _formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 		}))
@@ -106,6 +106,14 @@ class GroupInfo(BaseDataObject):
 			shapeindices=_parseValueList(obj.get('shapeindices')),
 			**excludekeys(obj, ['sequencesteps', 'shapeindices'])
 		)
+
+	@property
+	def issequenced(self):
+		if not self.sequencesteps:
+			return False
+		if len(self.sequencesteps) > 1:
+			return True
+		return not self.sequencesteps[0].isdefault
 
 class BoolOpNames:
 	OR = 'or'
@@ -124,15 +132,15 @@ class GroupSpec(GroupInfo):
 			basedon: List[str]=None,
 			boolop: str=None,
 			prerotate: float=None,
-			xbound: Tuple[Optional[Union[float]], Optional[Union[float]]]=None,
-			ybound: Tuple[Optional[Union[float]], Optional[Union[float]]]=None,
+			xbound: Iterable=None,
+			ybound: Iterable=None,
 			**attrs):
 		super().__init__(groupname=groupname, **attrs)
 		self.basedon = list(basedon or [])
 		self.boolop = BoolOpNames.aliases.get(boolop) or boolop
 		self.prerotate = prerotate
-		self.xbound = xbound
-		self.ybound = ybound
+		self.xbound = list(xbound) if xbound else None
+		self.ybound = list(ybound) if ybound else None
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(super().ToJsonDict(), {
@@ -204,10 +212,10 @@ def _parseValueList(val):
 		return results
 	raise Exception('Unsupported index list value: {!r}'.format(val))
 
-def _formatVal(val):
+def _formatValue(val, keepnone=False):
 	if isinstance(val, str):
 		return val
-	if val is None:
+	if val is None and not keepnone:
 		return '_'
 	if isinstance(val, float) and int(val) == val:
 		return str(int(val))
@@ -216,4 +224,4 @@ def _formatVal(val):
 def _formatValueList(vals):
 	if not vals:
 		return None
-	return ' '.join([_formatVal(i) for i in vals])
+	return ' '.join([_formatValue(i) for i in vals])

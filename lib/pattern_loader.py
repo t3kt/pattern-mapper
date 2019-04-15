@@ -193,30 +193,6 @@ class PatternLoader(ExtensionBase):
 			pass
 
 	@loggedmethod
-	def BuildInferredGroups(self, dat, sop):
-		# NOTE: this depends on `.groups` having been populated already
-		if not self.groups:
-			self._BuildGroups(sop)
-		dat.clear()
-		dat.appendRow([
-			'groupname',
-			'grouppath',
-			'inferencetype',
-			'inferredfromvalue',
-			'sequencelength',
-			'shapes',
-		])
-		for groupinfo in self.groups:
-			dat.appendRow([
-				groupinfo.groupname,
-				groupinfo.grouppath or '',
-				groupinfo.inferencetype or '',
-				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
-				len(groupinfo.sequencesteps),
-				' '.join(map(str, groupinfo.shapeindices)),
-			])
-
-	@loggedmethod
 	def BuildGroupTable(self, dat):
 		if not self.groups:
 			self._BuildGroups(sop=self._rawShapes)
@@ -241,9 +217,6 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def BuildSequenceStepTable(self, dat):
-		if not self.groups:
-			self._BuildGroups(sop=self._rawShapes)
-		dat.clear()
 		dat.clear()
 		dat.appendRow([
 			'groupname',
@@ -252,6 +225,8 @@ class PatternLoader(ExtensionBase):
 			'inferredfromvalue',
 			'shapes',
 		])
+		if not self.groups:
+			return
 		for groupinfo in self.groups:
 			for step in groupinfo.sequencesteps:
 				if not step.shapeindices:
@@ -260,46 +235,84 @@ class PatternLoader(ExtensionBase):
 					groupinfo.groupname,
 					step.sequenceindex,
 					int(step.isdefault or 0),
-					step.inferredfromvalue,
+					step.inferredfromvalue if step.inferredfromvalue is not None else '',
 					' '.join(map(str, step.shapeindices)),
 				])
 
 	@loggedmethod
 	def AddInferredGroupAttrs(self, sop):
-		# NOTE: this depends on `.groups` having been populated already
+		return
 		if not self.groups:
-			self._BuildGroups(sop)
+			return
 		sop.primAttribs.create('sequenceIndex', 0)
+		shapeswithoutseqindices = set(range(sop.numPrims))
 		for group in self.groups:
+			self._LogEvent('group: {!r}'.format(group.groupname))
 			attrname = 'group_' + group.groupname
+			self._LogEvent('creating attribute: {!r}'.format(attrname))
 			sop.primAttribs.create(attrname, 0)
+			self._LogEvent('assigning values to {}'.format(attrname))
 			for shapeindex in group.shapeindices:
 				getattr(sop.prims[shapeindex], attrname)[0] = 1
+			if not shapeswithoutseqindices:
+				self._LogEvent('all shapes already have sequence indices')
+				continue
+			self._LogEvent('assigning sequence indices based on {}'.format(group.groupname))
 			for step in group.sequencesteps:
 				for shapeindex in step.shapeindices:
+					if shapeindex not in shapeswithoutseqindices:
+						self._LogEvent('skipping shape that already has index: {}'.format(shapeindex))
+						continue
+					shapeswithoutseqindices.remove(shapeindex)
 					sop.prims[shapeindex].sequenceIndex[0] = step.sequenceindex
+		self._LogEvent('Finished adding group attrs')
+
+
+	# Build a chop with a channel for each group and a sample for each shape.
+	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
+	# is not in that group.
+	@loggedmethod
+	def BuildShapeGroupSequenceIndices(self, chop):
+		chop.clear()
+		rawshapes = self._rawShapes
+		numshapes = rawshapes.numPrims
+		chop.numSamples = numshapes
+		if not self.groups:
+			self._BuildGroups(sop=rawshapes)
+		for group in self.groups:
+			chan = chop.appendChan('groupseq_' + group.groupname)
+			shapesteps = [-1] * numshapes
+			for step in group.sequencesteps:
+				for shapeindex in step.shapeindices:
+					if shapesteps[shapeindex] == -1:
+						shapesteps[shapeindex] = step.sequenceindex
+			for shapeindex in range(numshapes):
+				chan[shapeindex] = shapesteps[shapeindex]
 
 	@loggedmethod
 	def _BuildGroups(self, sop):
 		shapes = _shapeInfosFromPolys(sop.prims)
 		builder = _GroupsBuilder(self, shapes)
 		builder.loadImplicitGroups()
-		if not builder.hasGroup('top'):
-			builder.loadGroupSpecs([GroupSpec('top', ybound=(0, None))])
-		if not builder.hasGroup('bottom'):
-			builder.loadGroupSpecs([GroupSpec('bottom', ybound=(None, 0))])
-		if not builder.hasGroup('left'):
-			builder.loadGroupSpecs([GroupSpec('left', xbound=(None, 0))])
-		if not builder.hasGroup('right'):
-			builder.loadGroupSpecs([GroupSpec('right', xbound=(0, None))])
+
 		jsondat = self.op('load_json_file')
 		jsondat.clear()
 		jsondat.par.loadonstartpulse.pulse()
-		if jsondat.text:
-			obj = json.loads(jsondat.text)
-			groupspecs = GroupSpec.FromJsonDicts(obj.get('groups'))
-			# if groupspecs:
-			# 	builder.loadGroupSpecs(groupspecs)
+		obj = json.loads(jsondat.text) if jsondat.text else {}
+
+		if obj.get('autosides'):
+			if not builder.hasGroup('top'):
+				builder.loadGroupSpecs([GroupSpec('top', ybound=(0, None))])
+			if not builder.hasGroup('bottom'):
+				builder.loadGroupSpecs([GroupSpec('bottom', ybound=(None, 0))])
+			if not builder.hasGroup('left'):
+				builder.loadGroupSpecs([GroupSpec('left', xbound=(None, 0))])
+			if not builder.hasGroup('right'):
+				builder.loadGroupSpecs([GroupSpec('right', xbound=(0, None))])
+
+		groupspecs = GroupSpec.FromJsonDicts(obj.get('groups'))
+		if groupspecs:
+			builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
 
 	@staticmethod
@@ -471,7 +484,8 @@ class _GroupsBuilder(LoggableSubComponent):
 	def loadGroupSpecs(self, groupspecs: List[GroupSpec]):
 		for groupspec in groupspecs:
 			group = self._createGroupFromSpec(groupspec)
-			self._addGroup(group)
+			if group:
+				self._addGroup(group)
 
 	@loggedmethod
 	def _createGroupFromSpec(self, groupspec: GroupSpec):
@@ -485,12 +499,16 @@ class _GroupsBuilder(LoggableSubComponent):
 			**groupspec.attrs,
 		)
 
-		if groupspec.ismanual:
-			self._initManualGroup(group, groupspec)
-		elif groupspec.iscombination:
-			self._initCombinedGroup(group, groupspec)
-		elif groupspec.isbounded:
-			self._initBoundedGroup(group, groupspec)
+		try:
+			if groupspec.ismanual:
+				self._initManualGroup(group, groupspec)
+			elif groupspec.iscombination:
+				self._initCombinedGroup(group, groupspec)
+			elif groupspec.isbounded:
+				self._initBoundedGroup(group, groupspec)
+		except Exception as e:
+			self._LogEvent('Skipping group due to error: {}'.format(e))
+			return None
 
 		return group
 
@@ -517,13 +535,15 @@ class _GroupsBuilder(LoggableSubComponent):
 			if not basedongroup:
 				raise Exception('Basis group not found {!r} for {!r}'.format(basedonname, groupspec))
 			combiner.addGroup(basedongroup)
+		group.inferencetype = groupspec.boolop or BoolOpNames.OR
+		group.inferredfromvalue = groupspec.basedon
 		combiner.buildInto(resultgroup=group, boolop=groupspec.boolop)
 
 	@simpleloggedmethod
 	def _initBoundedGroup(self, group: GroupInfo, groupspec: GroupSpec):
 		xform = tdu.Matrix()
 		if groupspec.prerotate:
-			xform.rotate(rx=0, ry=0, rz=groupspec.prerotate, pivot=(0, 0, 0))
+			xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
 		xmin, xmax = groupspec.xbound or (None, None)
 		ymin, ymax = groupspec.ybound or (None, None)
 		shapeindices = []
@@ -540,7 +560,7 @@ class _GroupsBuilder(LoggableSubComponent):
 				continue
 			if shape.shapeindex not in shapeindices:
 				shapeindices.append(shape.shapeindex)
-		group.shapeindices += shapeindices
+		group.shapeindices = shapeindices
 		if not group.sequencesteps:
 			group.sequencesteps.append(SequenceStep(
 				sequenceindex=0,
@@ -550,8 +570,13 @@ class _GroupsBuilder(LoggableSubComponent):
 		else:
 			step = group.sequencesteps[0]
 			step.isdefault = True
-			step.shapeindices += shapeindices
+			step.shapeindices = list(shapeindices)
+		group.inferencetype = 'bounded'
+		description = 'x: {}, '.format([v if v is not None else '*' for v in (xmin, xmax)])
+		description += 'y: {}'.format([v if v is not None else '*' for v in (ymin, ymax)])
+		group.inferredfromvalue = description
 
+	@loggedmethod
 	def _addGroup(self, group: GroupInfo):
 		self.grouplist.append(group)
 		if group.groupname:
@@ -563,41 +588,60 @@ class _GroupsBuilder(LoggableSubComponent):
 class _GroupCombiner(LoggableSubComponent):
 	def __init__(self, hostobj):
 		super().__init__(hostobj, logprefix='_GroupCombiner')
-		self.shapeindexsets = []  # type: List[Set[int]]
-		self.stepsetsbyindex = defaultdict(list)  # type: DefaultDict[int, List[SequenceStep]]
+		self.sequencegroup = None  # type: GroupInfo
+		self.othergroups = []  # type: List[GroupInfo]
 
 	def addGroup(self, group: GroupInfo):
-		self.shapeindexsets.append(set(group.shapeindices))
-		for step in group.sequencesteps:
-			self.stepsetsbyindex[step.sequenceindex].append(step)
+		if group.issequenced:
+			if self.sequencegroup:
+				self._LogEvent('Ignoring sequencing for group {}'.format(group.groupname))
+				self.othergroups.append(group)
+			else:
+				self.sequencegroup = group
+		else:
+			self.othergroups.append(group)
 
 	def buildInto(self, resultgroup: GroupInfo, boolop: str):
 		boolop = boolop or BoolOpNames.OR
-		allshapeindices = self._combineIndexSets(self.shapeindexsets, boolop=boolop)
+		allshapeindices = self._combineIndexSets(
+			[group.shapeindices for group in self.othergroups],
+			boolop=boolop
+		)
+		if not self.sequencegroup:
+			resultgroup.sequencesteps = [
+				SequenceStep(
+					sequenceindex=0,
+					isdefault=True,
+					shapeindices=list(sorted(allshapeindices)))
+			]
+			resultgroup.shapeindices = list(sorted(allshapeindices))
+		else:
+			resultsteps = []  # type: List[SequenceStep]
+			finalallstepindices = []
+			for basestep in self.sequencegroup.sequencesteps:
+				stepindices = self._combineIndexSets(
+					[basestep.shapeindices, allshapeindices],
+					boolop=boolop
+				)
+				finalallstepindices += list(stepindices)
+				resultsteps.append(SequenceStep(
+					sequenceindex=basestep.sequenceindex,
+					shapeindices=list(sorted(stepindices))))
+			resultgroup.sequencesteps = resultsteps
+			resultgroup.shapeindices = list(sorted(set(finalallstepindices)))
+		self._LogEvent('.. shapeindices: {}'.format(resultgroup.shapeindices))
+		self._LogEvent('.. steps: {}'.format(resultgroup.sequencesteps))
 
-		combinedsteps = []  # type: List[SequenceStep]
-		for sequenceindex, steps in self.stepsetsbyindex.items():
-			stepindices = self._combineIndexSets(
-				[s.shapeindices for s in steps],
-				boolop=boolop)
-			combinedsteps.append(SequenceStep(
-				sequenceindex=sequenceindex,
-				shapeindices=list(sorted(stepindices))
-			))
-			allshapeindices = allshapeindices.union(stepindices)
-
-		resultgroup.shapeindices = list(sorted(allshapeindices))
-		resultgroup.sequencesteps = combinedsteps
-
-	@staticmethod
-	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
+	@loggedmethod
+	def _combineIndexSets(self, indexsets: List[Set[int]], boolop: str):
 		if not indexsets:
 			return set()
 		combinedindices = set(indexsets[0])
 		if boolop == BoolOpNames.AND:
-			combinedindices.intersection_update(*indexsets[1:])
+			combinedindices = combinedindices.intersection(*indexsets[1:])
 		elif boolop == BoolOpNames.OR:
 			combinedindices = combinedindices.union(*combinedindices[1:])
 		else:
 			return set()
+		self._LogEvent('result: {}'.format(combinedindices))
 		return combinedindices

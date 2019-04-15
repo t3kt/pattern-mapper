@@ -1,0 +1,49 @@
+{
+  "autosides": false,
+  "groups": [
+    {
+      "groupname": "top",
+      "prerotate": 45,
+      "xbound": "_ 0",
+      "ybound": "0 _"
+    },
+    {
+      "groupname": "left",
+      "prerotate": 45,
+      "xbound": "_ 0",
+      "ybound": "_ 0"
+    },
+    {
+      "groupname": "bottom",
+      "prerotate": 45,
+      "xbound": "0 _",
+      "ybound": "_ 0"
+    },
+    {
+      "groupname": "right",
+      "prerotate": 45,
+      "xbound": "0 _",
+      "ybound": "0 _"
+    },
+    {
+      "groupname": "bluetop",
+      "basedon": "blue top",
+      "boolop": "and"
+    },
+    {
+      "groupname": "bluebottom",
+      "basedon": "blue bottom",
+      "boolop": "and"
+    },
+    {
+      "groupname": "blueleft",
+      "basedon": "blue left",
+      "boolop": "and"
+    },
+    {
+      "groupname": "blueright",
+      "basedon": "blue right",
+      "boolop": "and"
+    }
+  ]
+}
