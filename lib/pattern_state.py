@@ -1,9 +1,6 @@
 print('pattern_state.py loading...')
 
-from collections import defaultdict
-import json
-import xml.etree.ElementTree as ET
-from typing import Any, DefaultDict, Dict, List, Set, Tuple
+from typing import Any, Dict
 
 if False:
 	from ._stubs import *
@@ -14,58 +11,81 @@ except ImportError:
 	from .common import ExtensionBase
 
 try:
-	from common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+	from common import cleandict, excludekeys, mergedicts
 except ImportError:
-	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
-try:
-	from common import cleandict, excludekeys, mergedicts, BaseDataObject
-except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, BaseDataObject
-
-from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
+	from .common import cleandict, excludekeys, mergedicts
 
 
 class ShapeSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.par = ownerComp.par
+		o = ownerComp
+		self.pargroups = [
+			_ParGroup(o, None, 'Pathalpha'),
+			_ParGroup(o, 'Includepathoncolor', 'Pathoncolor[rgba]'),
+			_ParGroup(o, 'Includepathoffcolor', 'Pathoffcolor[rgba]'),
+			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
+			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]'),
+			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
+			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
+			_ParGroup(o, 'Includepathphase', 'Pathphase'),
+			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
+		]
 
-	def GetState(self):
-		return cleandict(mergedicts(
-			self.par.Includepathoncolor and self._parValsDict('Pathoncolor[rgba]'),
-			self.par.Includepathoffcolor and self._parValsDict('Pathoffcolor[rgba]'),
-			self.par.Includepanelcolor and self._parValsDict('Panel*color[rgba]'),
-			self.par.Includelocalscale and self._parValsDict('Localscale[xyz]'),
-			self.par.Includelocalrotate and self._parValsDict('Localrotate[xyz]'),
-			self.par.Includelocaltranslate and self._parValsDict('Localtranslate[xyz]'),
-			self.par.Includepathphase and self._parValsDict('Pathphase'),
-			self.par.Includepathperiod and self._parValsDict('Pathperiod', 'Pathreverse'),
-		))
+	def GetState(self, filtered=True):
+		return cleandict(mergedicts(*[
+			pg.getVals(filtered=filtered)
+			for pg in self.pargroups
+		]))
 
 	def SetState(self, obj: Dict[str, Any], clearmissing=True):
-		for switchpar, parnames in [
-			(self.par.Includepathoncolor, ['Pathoncolor[rgba]']),
-			(self.par.Includepathoffcolor, ['Pathoffcolor[rgba]']),
-			(self.par.Includepanelcolor, ['Panel*color[rgba]']),
-			(self.par.Includelocalscale, ['Localscale[xyz]']),
-			(self.par.Includelocalrotate, ['Localrotate[xyz]']),
-			(self.par.Includelocaltranslate, ['Localtranslate[xyz]']),
-			(self.par.Includepathphase, ['Pathphase']),
-			(self.par.Includepathperiod, ['Pathperiod', 'Pathreverse']),
-		]:
-			self._applyParVals(switchpar, parnames, obj=obj, clearmissing=clearmissing)
+		for pg in self.pargroups:
+			pg.setVals(obj, clearmissing=clearmissing)
 
-	def _parValsDict(self, *parnames):
-		return {p.name: p.eval() for p in self.ownerComp.pars(*parnames)}
+	def BuildStateTable(self, dat, filtered=True):
+		dat.clear()
+		for pg in self.pargroups:
+			pg.addRows(dat, filtered=filtered)
 
-	def _applyParVals(self, switchpar, parnames, obj: Dict[str, Any], clearmissing: bool):
-		pars = {p.name: p for p in self.ownerComp.pars(*parnames)}
+	def GetActiveNames(self):
+		names = []
+		for pg in self.pargroups:
+			if pg.isactive:
+				names += pg.parnames
+		return names
+
+class _ParGroup:
+	def __init__(self, o, switchparname, *parnames):
+		self.switchpar = getattr(o.par, switchparname) if switchparname else None
+		self.parnames = list(parnames)
+		self.pars = o.pars(*parnames)
+
+	@property
+	def isactive(self):
+		return self.switchpar is None or self.switchpar
+
+	def getVals(self, filtered=False):
+		if filtered and not self.isactive:
+			return {}
+		return {p.name: p.eval() for p in self.pars}
+
+	def setVals(self, obj: Dict[str, Any], clearmissing=True):
 		matchedany = False
-		for p in pars:
+		for p in self.pars:
 			if p.name in obj:
 				p.val = obj[p.name]
 				matchedany = True
 		if matchedany:
-			switchpar.val = True
+			self.switchpar.val = True
 		elif clearmissing:
-			switchpar.val = False
+			self.switchpar.val = False
+
+	def addRows(self, dat, filtered=True):
+		if filtered and not self.isactive:
+			return
+		for p in self.pars:
+			dat.appendRow([
+				p.name,
+				p if p.style != 'Toggle' else int(p)
+			])
