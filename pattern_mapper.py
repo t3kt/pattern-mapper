@@ -1,3 +1,5 @@
+# NOTE: THIS IS MOSTLY OBSOLETE
+
 from typing import DefaultDict
 
 from pattern_model import SequenceStep, GroupInfo

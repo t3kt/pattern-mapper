@@ -59,6 +59,11 @@ class PatternLoader(ExtensionBase):
 
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
+		self._BuildGeometryFromSvg(sop, svgxml)
+		self._BuildGroups(sop)
+
+	@loggedmethod
+	def _BuildGeometryFromSvg(self, sop, svgxml):
 		self.SvgWidth.val = 0
 		self.SvgHeight.val = 0
 		sop.clear()
@@ -76,16 +81,20 @@ class PatternLoader(ExtensionBase):
 		scale = 1 / max(self.SvgWidth.val, self.SvgHeight.val)
 		offset = tdu.Vector(-self.SvgWidth.val / 2, -self.SvgHeight.val / 2, 0)
 
-		def _handleElem(elem, indexinparent, parentpath=''):
+		def _handleElem(elem : ET.Element, indexinparent, parentpath=''):
 			elemid = elem.get('id')
 			if elemid and (elemid == 'Background' or elemid.startswith('-')):
+				self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
 				return
 			if elem.get('display') == 'none':
+				self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
 				return
 			tagname = _localname(elem.tag)
 			if tagname == 'path':
+				# self._LogEvent('Handling path element: {}'.format(ET.tostring(elem)))
 				_handlePathElem(elem, parentpath=parentpath)
 			else:
+				# self._LogEvent('Handling group element: {}'.format(ET.tostring(elem)))
 				elemid = elemid or '_{}'.format(indexinparent)
 				if parentpath:
 					childparentpath = parentpath + '/' + elemid
@@ -130,8 +139,6 @@ class PatternLoader(ExtensionBase):
 				vertex.absRelDist[1] = distances[i] / totaldist
 
 		_handleElem(root, 0)
-
-		self._BuildGroups(sop)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -241,35 +248,6 @@ class PatternLoader(ExtensionBase):
 					' '.join(map(str, step.shapeindices)),
 				])
 
-	@loggedmethod
-	def AddInferredGroupAttrs(self, sop):
-		return
-		if not self.groups:
-			return
-		sop.primAttribs.create('sequenceIndex', 0)
-		shapeswithoutseqindices = set(range(sop.numPrims))
-		for group in self.groups:
-			self._LogEvent('group: {!r}'.format(group.groupname))
-			attrname = 'group_' + group.groupname
-			self._LogEvent('creating attribute: {!r}'.format(attrname))
-			sop.primAttribs.create(attrname, 0)
-			self._LogEvent('assigning values to {}'.format(attrname))
-			for shapeindex in group.shapeindices:
-				getattr(sop.prims[shapeindex], attrname)[0] = 1
-			if not shapeswithoutseqindices:
-				self._LogEvent('all shapes already have sequence indices')
-				continue
-			self._LogEvent('assigning sequence indices based on {}'.format(group.groupname))
-			for step in group.sequencesteps:
-				for shapeindex in step.shapeindices:
-					if shapeindex not in shapeswithoutseqindices:
-						self._LogEvent('skipping shape that already has index: {}'.format(shapeindex))
-						continue
-					shapeswithoutseqindices.remove(shapeindex)
-					sop.prims[shapeindex].sequenceIndex[0] = step.sequenceindex
-		self._LogEvent('Finished adding group attrs')
-
-
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
 	# is not in that group.
@@ -327,6 +305,22 @@ class PatternLoader(ExtensionBase):
 	@staticmethod
 	def FixFaceFlipping(sop):
 		fixFaceFlipping(sop)
+
+	def BuildPathLookupTable(self, chop, tablelength):
+		chop.clear()
+		shapes = self._rawShapes
+		shapecount = shapes.numPrims
+		chop.numSamples = tablelength
+		for shapeindex in range(shapecount):
+			xchan = chop.appendChan('shape{}:tx'.format(shapeindex))
+			ychan = chop.appendChan('shape{}:ty'.format(shapeindex))
+			zchan = chop.appendChan('shape{}:tz'.format(shapeindex))
+			prim = shapes.prims[shapeindex]
+			for i in range(tablelength):
+				pos = prim.eval(i / (tablelength - 1), 0)
+				xchan[i] = pos.x
+				ychan[i] = pos.y
+				zchan[i] = pos.z
 
 def _localname(fullname: str):
 	if '}' in fullname:
@@ -491,6 +485,8 @@ class _GroupsBuilder(LoggableSubComponent):
 
 	@loggedmethod
 	def _createGroupFromSpec(self, groupspec: GroupSpec):
+		if not groupspec.groupname or groupspec.groupname.startswith('-'):
+			return None
 		if groupspec.inferencetype or groupspec.inferredfromvalue:
 			raise Exception('Inference not yet supported for group specs {!r}'.format(groupspec))
 		groupspec.validate()
@@ -594,7 +590,6 @@ class _CartesianPredicate(_ShapePredicate):
 	def test(self, shape: ShapeInfo):
 		pos = tdu.Position(shape.center)
 		pos *= self.xform
-		print('CARTESIAN checking pos [{}]'.format(pos))
 		if self.xmin is not None and pos.x < self.xmin:
 			return False
 		if self.xmax is not None and pos.x > self.xmax:
@@ -625,7 +620,6 @@ class _PolarPredicate(_ShapePredicate):
 		pos = tdu.Position(shape.center)
 		pos *= self.xform
 		dist, theta = cartesiantopolar(pos.x, pos.y)
-		print('POLAR checking pos [{}] r: {}, theta: {}..'.format(pos, dist, theta))
 		if self.rmin is not None and dist < self.rmin:
 			return False
 		if self.rmax is not None and dist > self.rmax:

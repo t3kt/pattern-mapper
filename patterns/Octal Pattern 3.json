@@ -1,83 +1,122 @@
 {
-  "autosides": true,
+  "autosides": false,
   "groups": [
     {
-      "groupname": "topslice",
+      "groupname": "-topslice",
       "thetabound": "-47 48",
       "prerotate": -90
     },
     {
-      "groupname": "leftslice",
+      "groupname": "-leftslice",
       "thetabound": "-47 48",
       "prerotate": -180
     },
     {
-      "groupname": "bottomslice",
+      "groupname": "-bottomslice",
       "thetabound": "-47 48",
       "prerotate": -270
     },
     {
-      "groupname": "rightslice",
+      "groupname": "-rightslice",
       "thetabound": "-47 48"
     },
     {
-      "groupname": "toprightslice",
+      "groupname": "topArm",
+      "thetabound": "-20 20",
+      "prerotate": -90
+    },
+    {
+      "groupname": "leftArm",
+      "thetabound": "-20 20",
+      "prerotate": -180
+    },
+    {
+      "groupname": "bottomArm",
+      "thetabound": "-20 20",
+      "prerotate": -270
+    },
+    {
+      "groupname": "rightArm",
+      "thetabound": "-20 20"
+    },
+    {
+      "groupname": "-toprightslice",
       "thetabound": "-47 48",
       "prerotate": -45
     },
     {
-      "groupname": "topleftslice",
+      "groupname": "-topleftslice",
       "thetabound": "-47 48",
       "prerotate": -135
     },
     {
-      "groupname": "bottomleftslice",
+      "groupname": "-bottomleftslice",
       "thetabound": "-47 48",
       "prerotate": -225
     },
     {
-      "groupname": "bottomrightslice",
+      "groupname": "-bottomrightslice",
       "thetabound": "-47 48",
       "prerotate": -315
     },
     {
-      "groupname": "bluetop",
-      "basedon": "blue topslice",
+      "groupname": "topRightArm",
+      "thetabound": "-20 20",
+      "prerotate": -45
+    },
+    {
+      "groupname": "topLeftArm",
+      "thetabound": "-20 20",
+      "prerotate": -135
+    },
+    {
+      "groupname": "bottomLeftArm",
+      "thetabound": "-20 20",
+      "prerotate": -225
+    },
+    {
+      "groupname": "bottomRightArm",
+      "thetabound": "-20 20",
+      "prerotate": -315
+    },
+    {
+      "groupname": "blueTop",
+      "basedon": "blue topArm",
       "boolop": "and"
     },
     {
-      "groupname": "bluebottom",
-      "basedon": "blue bottomslice",
+      "groupname": "blueBottom",
+      "basedon": "blue bottomArm",
       "boolop": "and"
     },
     {
-      "groupname": "blueleft",
+      "groupname": "blueLeft",
       "basedon": "blue left",
       "boolop": "and"
     },
     {
-      "groupname": "blueright",
-      "basedon": "blue rightslice",
+      "groupname": "blueRight",
+      "basedon": "blue rightArm",
       "boolop": "and"
     },
     {
-      "groupname": "greentopright",
-      "basedon": "green toprightslice",
+      "groupname": "greenTopRight",
+      "basedon": "green topRightArm",
       "boolop": "and"
     },
     {
-      "groupname": "greentopleft",
-      "basedon": "green topleftslice",
+      "groupname": "greenTopLeft",
+      "basedon": "green topLeftArm",
       "boolop": "and"
     },
     {
-      "groupname": "greenbottomright",
-      "basedon": "green bottomrightslice",
+      "groupname": "greenBottomRight",
+      "basedon": "green bottomRightArm",
       "boolop": "and"
     },
     {
-      "groupname": "greenbottomleft",
-      "basedon": "green bottomleftslice",
+      "groupname": "greenBottomLeft",
+      "basedon": "green bottomLeftArm",
       "boolop": "and"
     }
   ]
