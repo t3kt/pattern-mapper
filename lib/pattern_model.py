@@ -228,8 +228,8 @@ def _parseValueList(val):
 def _formatValue(val, keepnone=False):
 	if isinstance(val, str):
 		return val
-	if val is None and not keepnone:
-		return '_'
+	if val is None:
+		return val if keepnone else '_'
 	if isinstance(val, float) and int(val) == val:
 		return str(int(val))
 	return str(val)
