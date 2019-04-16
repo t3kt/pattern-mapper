@@ -1,38 +1,53 @@
 {
-  "autosides": false,
+  "autosides": true,
   "groups": [
     {
-      "groupname": "top",
-      "prerotate": 45,
-      "xbound": "_ 0",
-      "ybound": "0 _"
+      "groupname": "topslice",
+      "thetabound": "-47 48",
+      "prerotate": -90
     },
     {
-      "groupname": "left",
-      "prerotate": 45,
-      "xbound": "_ 0",
-      "ybound": "_ 0"
+      "groupname": "leftslice",
+      "thetabound": "-47 48",
+      "prerotate": -180
     },
     {
-      "groupname": "bottom",
-      "prerotate": 45,
-      "xbound": "0 _",
-      "ybound": "_ 0"
+      "groupname": "bottomslice",
+      "thetabound": "-47 48",
+      "prerotate": -270
     },
     {
-      "groupname": "right",
-      "prerotate": 45,
-      "xbound": "0 _",
-      "ybound": "0 _"
+      "groupname": "rightslice",
+      "thetabound": "-47 48"
+    },
+    {
+      "groupname": "toprightslice",
+      "thetabound": "-47 48",
+      "prerotate": -45
+    },
+    {
+      "groupname": "topleftslice",
+      "thetabound": "-47 48",
+      "prerotate": -135
+    },
+    {
+      "groupname": "bottomleftslice",
+      "thetabound": "-47 48",
+      "prerotate": -225
+    },
+    {
+      "groupname": "bottomrightslice",
+      "thetabound": "-47 48",
+      "prerotate": -315
     },
     {
       "groupname": "bluetop",
-      "basedon": "blue top",
+      "basedon": "blue topslice",
       "boolop": "and"
     },
     {
       "groupname": "bluebottom",
-      "basedon": "blue bottom",
+      "basedon": "blue bottomslice",
       "boolop": "and"
     },
     {
@@ -42,7 +57,27 @@
     },
     {
       "groupname": "blueright",
-      "basedon": "blue right",
+      "basedon": "blue rightslice",
+      "boolop": "and"
+    },
+    {
+      "groupname": "greentopright",
+      "basedon": "green toprightslice",
+      "boolop": "and"
+    },
+    {
+      "groupname": "greentopleft",
+      "basedon": "green topleftslice",
+      "boolop": "and"
+    },
+    {
+      "groupname": "greenbottomright",
+      "basedon": "green bottomrightslice",
+      "boolop": "and"
+    },
+    {
+      "groupname": "greenbottomleft",
+      "basedon": "green bottomleftslice",
       "boolop": "and"
     }
   ]

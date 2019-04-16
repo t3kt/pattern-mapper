@@ -20,9 +20,9 @@ except ImportError:
 	from .common import ExtensionBase, LoggableSubComponent
 
 try:
-	from common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+	from common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar
 except ImportError:
-	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod
+	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar
 
 from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
 
@@ -203,6 +203,7 @@ class PatternLoader(ExtensionBase):
 			'inferencetype',
 			'inferredfromvalue',
 			'sequencelength',
+			'shapecount',
 			'shapes',
 		])
 		for groupinfo in self.groups:
@@ -212,6 +213,7 @@ class PatternLoader(ExtensionBase):
 				groupinfo.inferencetype or '',
 				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
 				len(groupinfo.sequencesteps),
+				len(groupinfo.shapeindices),
 				' '.join(map(str, groupinfo.shapeindices)),
 			])
 
@@ -301,14 +303,14 @@ class PatternLoader(ExtensionBase):
 		obj = json.loads(jsondat.text) if jsondat.text else {}
 
 		if obj.get('autosides'):
-			if not builder.hasGroup('top'):
-				builder.loadGroupSpecs([GroupSpec('top', ybound=(0, None))])
-			if not builder.hasGroup('bottom'):
-				builder.loadGroupSpecs([GroupSpec('bottom', ybound=(None, 0))])
+			if not builder.hasGroup('tophalf'):
+				builder.loadGroupSpecs([GroupSpec('tophalf', ybound=(0, None))])
+			if not builder.hasGroup('bottomhalf'):
+				builder.loadGroupSpecs([GroupSpec('bottomhalf', ybound=(None, 0))])
 			if not builder.hasGroup('left'):
-				builder.loadGroupSpecs([GroupSpec('left', xbound=(None, 0))])
+				builder.loadGroupSpecs([GroupSpec('lefthalf', xbound=(None, 0))])
 			if not builder.hasGroup('right'):
-				builder.loadGroupSpecs([GroupSpec('right', xbound=(0, None))])
+				builder.loadGroupSpecs([GroupSpec('righthalf', xbound=(0, None))])
 
 		groupspecs = GroupSpec.FromJsonDicts(obj.get('groups'))
 		if groupspecs:
@@ -541,24 +543,10 @@ class _GroupsBuilder(LoggableSubComponent):
 
 	@simpleloggedmethod
 	def _initBoundedGroup(self, group: GroupInfo, groupspec: GroupSpec):
-		xform = tdu.Matrix()
-		if groupspec.prerotate:
-			xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		xmin, xmax = groupspec.xbound or (None, None)
-		ymin, ymax = groupspec.ybound or (None, None)
+		predicate = _boundsPredicates(groupspec)
 		shapeindices = []
 		for shape in self.shapes:
-			pos = tdu.Position(shape.center)
-			pos *= xform
-			if xmin is not None and pos.x < xmin:
-				continue
-			if xmax is not None and pos.x > xmax:
-				continue
-			if ymin is not None and pos.y < ymin:
-				continue
-			if ymax is not None and pos.y > ymax:
-				continue
-			if shape.shapeindex not in shapeindices:
+			if predicate.test(shape) and shape.shapeindex not in shapeindices:
 				shapeindices.append(shape.shapeindex)
 		group.shapeindices = shapeindices
 		if not group.sequencesteps:
@@ -572,9 +560,7 @@ class _GroupsBuilder(LoggableSubComponent):
 			step.isdefault = True
 			step.shapeindices = list(shapeindices)
 		group.inferencetype = 'bounded'
-		description = 'x: {}, '.format([v if v is not None else '*' for v in (xmin, xmax)])
-		description += 'y: {}'.format([v if v is not None else '*' for v in (ymin, ymax)])
-		group.inferredfromvalue = description
+		group.inferredfromvalue = repr(predicate)
 
 	@loggedmethod
 	def _addGroup(self, group: GroupInfo):
@@ -584,6 +570,89 @@ class _GroupsBuilder(LoggableSubComponent):
 				print('ignoring duplicate group name {!r}'.format(group.groupname))
 			else:
 				self.groupsbyname[group.groupname] = group
+
+
+class _ShapePredicate:
+	def test(self, shape: ShapeInfo): raise NotImplementedError()
+
+class _CartesianPredicate(_ShapePredicate):
+	def __init__(self, groupspec: GroupSpec):
+		self.xform = tdu.Matrix()
+		self.prerotate = groupspec.prerotate
+		if groupspec.prerotate:
+			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
+		self.xmin, self.xmax = groupspec.xbound or (None, None)
+		self.ymin, self.ymax = groupspec.ybound or (None, None)
+
+	def __repr__(self):
+		desc = '(x: {} '.format([v if v is not None else '*' for v in (self.xmin, self.xmax)])
+		desc += 'y: {}'.format([v if v is not None else '*' for v in (self.ymin, self.ymax)])
+		if self.prerotate:
+			desc += ' rotated: {}'.format(self.prerotate)
+		return desc + ')'
+
+	def test(self, shape: ShapeInfo):
+		pos = tdu.Position(shape.center)
+		pos *= self.xform
+		print('CARTESIAN checking pos [{}]'.format(pos))
+		if self.xmin is not None and pos.x < self.xmin:
+			return False
+		if self.xmax is not None and pos.x > self.xmax:
+			return False
+		if self.ymin is not None and pos.y < self.ymin:
+			return False
+		if self.ymax is not None and pos.y > self.ymax:
+			return False
+		return True
+
+class _PolarPredicate(_ShapePredicate):
+	def __init__(self, groupspec: GroupSpec):
+		self.xform = tdu.Matrix()
+		self.prerotate = groupspec.prerotate
+		if groupspec.prerotate:
+			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
+		self.tmin, self.tmax = groupspec.thetabound or (None, None)
+		self.rmin, self.rmax = groupspec.distancebound or (None, None)
+
+	def __repr__(self):
+		desc = '(t: {} '.format([v if v is not None else '*' for v in (self.tmin, self.tmax)])
+		desc += 'r: {}'.format([v if v is not None else '*' for v in (self.rmin, self.rmax)])
+		if self.prerotate:
+			desc += ' rotated: {}'.format(self.prerotate)
+		return desc + ')'
+
+	def test(self, shape: ShapeInfo):
+		pos = tdu.Position(shape.center)
+		pos *= self.xform
+		dist, theta = cartesiantopolar(pos.x, pos.y)
+		print('POLAR checking pos [{}] r: {}, theta: {}..'.format(pos, dist, theta))
+		if self.rmin is not None and dist < self.rmin:
+			return False
+		if self.rmax is not None and dist > self.rmax:
+			return False
+		if self.tmin is not None and theta < self.tmin:
+			return False
+		if self.tmax is not None and theta > self.tmax:
+			return False
+		return True
+
+class _MultiPredicate(_ShapePredicate):
+	def __init__(self, *predicates: _ShapePredicate):
+		self.predicates = [p for p in predicates if p is not None]
+
+	def test(self, shape: ShapeInfo):
+		if not self.predicates:
+			return True
+		return any([p.test(shape) for p in self.predicates])
+
+	def __repr__(self):
+		return ' '.join([repr(p) for p in self.predicates])
+
+def _boundsPredicates(groupspec: GroupSpec):
+	return _MultiPredicate(
+		_CartesianPredicate(groupspec) if groupspec.xbound or groupspec.ybound else None,
+		_PolarPredicate(groupspec) if groupspec.distancebound or groupspec.thetabound else None,
+	)
 
 class _GroupCombiner(LoggableSubComponent):
 	def __init__(self, hostobj):

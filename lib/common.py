@@ -1,6 +1,7 @@
 from collections import defaultdict
 import datetime
 import json
+import math
 from typing import Dict, Iterable, List, Optional, Union
 import sys
 
@@ -303,3 +304,8 @@ class keydefaultdict(defaultdict):
 		else:
 			ret = self[key] = self.default_factory(key)
 			return ret
+
+def cartesiantopolar(x, y):
+	r = math.hypot(x, y)
+	t = math.degrees(math.atan2(y, x))
+	return r, t
