@@ -37,6 +37,11 @@ class ShapeSettingsEditor(ExtensionBase):
 			_ParGroup(o, 'Includepathphase', 'Pathphase'),
 			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
 		]
+		self.UpdateParStates()
+
+	def UpdateParStates(self):
+		for pg in self.pargroups:
+			pg.updateParsEnabled()
 
 	def GetState(self, filtered=True):
 		return cleandict(mergedicts(*[
@@ -69,6 +74,11 @@ class _ParGroup:
 		self.switchpar = getattr(o.par, switchparname) if switchparname else None
 		self.parnames = list(parnames)
 		self.pars = o.pars(*parnames)
+
+	def updateParsEnabled(self):
+		enabled = self.isactive
+		for par in self.pars:
+			par.enable = enabled
 
 	@property
 	def isactive(self):

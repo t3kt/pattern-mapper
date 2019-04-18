@@ -91,7 +91,7 @@
     },
     {
       "groupname": "blueLeft",
-      "basedon": "blue left",
+      "basedon": "blue leftArm",
       "boolop": "and"
     },
     {
