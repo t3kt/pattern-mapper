@@ -309,3 +309,49 @@ def cartesiantopolar(x, y):
 	r = math.hypot(x, y)
 	t = math.degrees(math.atan2(y, x))
 	return r, t
+
+NULL_PLACEHOLDER = '_'
+
+def parseValue(val):
+	if val is None or val == NULL_PLACEHOLDER:
+		return None
+	if val == '' or isinstance(val, (int, float)):
+		return val
+	try:
+		# noinspection PyTypeChecker
+		parsed = float(val)
+		if int(parsed) == parsed:
+			return int(parsed)
+		return parsed
+	except ValueError:
+		return val
+
+def parseValueList(val):
+	if val in (None, ''):
+		return []
+	if isinstance(val, str):
+		return [parseValue(v) for v in val.split(' ')]
+	if isinstance(val, int):
+		return [val]
+	if isinstance(val, (list, tuple)):
+		results = []
+		for part in val:
+			results.append(parseValue(part))
+		return results
+	raise Exception('Unsupported list value: {!r}'.format(val))
+
+
+def formatValue(val, keepnone=False):
+	if isinstance(val, str):
+		return val
+	if val is None:
+		return val if keepnone else NULL_PLACEHOLDER
+	if isinstance(val, float) and int(val) == val:
+		return str(int(val))
+	return str(val)
+
+
+def formatValueList(vals, keepnone=False):
+	if not vals:
+		return None
+	return ' '.join([formatValue(i, keepnone=keepnone) for i in vals])

@@ -260,7 +260,7 @@ class PatternLoader(ExtensionBase):
 		if not self.groups:
 			self._BuildGroups(sop=rawshapes)
 		for group in self.groups:
-			chan = chop.appendChan('groupseq_' + group.groupname)
+			chan = chop.appendChan('seq_' + group.groupname)
 			shapesteps = [-1] * numshapes
 			for step in group.sequencesteps:
 				for shapeindex in step.shapeindices:

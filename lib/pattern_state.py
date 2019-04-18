@@ -15,6 +15,11 @@ try:
 except ImportError:
 	from .common import cleandict, excludekeys, mergedicts
 
+try:
+	from common import parseValue, parseValueList, formatValue, formatValueList
+except ImportError:
+	from .common import parseValue, parseValueList, formatValue, formatValueList
+
 
 class ShapeSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -47,6 +52,10 @@ class ShapeSettingsEditor(ExtensionBase):
 		dat.clear()
 		for pg in self.pargroups:
 			pg.addRows(dat, filtered=filtered)
+
+	def ReadStateRows(self, dat, column=1, clearmissing=True):
+		for pg in self.pargroups:
+			pg.readRows(dat, column, clearmissing=clearmissing)
 
 	def GetActiveNames(self):
 		names = []
@@ -89,3 +98,12 @@ class _ParGroup:
 				p.name,
 				p if p.style != 'Toggle' else int(p)
 			])
+
+	def readRows(self, dat, column, clearmissing=True):
+		vals = {}
+		for p in self.pars:
+			cell = dat[p.name, column]
+			val = parseValue(cell.val) if cell is not None else None
+			if val is not None:
+				vals[p.name] = val
+		self.setVals(vals, clearmissing=clearmissing)

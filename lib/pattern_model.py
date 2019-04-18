@@ -1,7 +1,7 @@
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Iterable, List, Tuple, Union
+from typing import Any, Iterable, List, Tuple
 
 if False:
 	from ._stubs import *
@@ -10,6 +10,11 @@ try:
 	from common import cleandict, excludekeys, mergedicts, BaseDataObject
 except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, BaseDataObject
+
+try:
+	from common import parseValue, parseValueList, formatValue, formatValueList
+except ImportError:
+	from .common import parseValue, parseValueList, formatValue, formatValueList
 
 class ShapeInfo(BaseDataObject):
 	def __init__(
@@ -59,15 +64,15 @@ class SequenceStep(BaseDataObject):
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'sequenceindex': self.sequenceindex,
-			'shapeindices': _formatValueList(self.shapeindices),
+			'shapeindices': formatValueList(self.shapeindices),
 			'isdefault': self.isdefault,
-			'inferredfromvalue': _formatValue(self.inferredfromvalue, keepnone=True),
+			'inferredfromvalue': formatValue(self.inferredfromvalue, keepnone=True),
 		}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
-			shapeindices=_parseValueList(obj.get('shapeindices')),
+			shapeindices=parseValueList(obj.get('shapeindices')),
 			**excludekeys(obj, ['shapeindices'])
 		)
 
@@ -94,8 +99,8 @@ class GroupInfo(BaseDataObject):
 			'groupname': self.groupname,
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype,
-			'inferredfromvalue': _formatValue(self.inferredfromvalue, keepnone=True),
-			'shapeindices': _formatValueList(self.shapeindices),
+			'inferredfromvalue': formatValue(self.inferredfromvalue, keepnone=True),
+			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 		}))
 
@@ -103,7 +108,7 @@ class GroupInfo(BaseDataObject):
 	def FromJsonDict(cls, obj):
 		return cls(
 			sequencesteps=SequenceStep.FromJsonDicts(obj.get('sequencesteps')),
-			shapeindices=_parseValueList(obj.get('shapeindices')),
+			shapeindices=parseValueList(obj.get('shapeindices')),
 			**excludekeys(obj, ['sequencesteps', 'shapeindices'])
 		)
 
@@ -148,25 +153,25 @@ class GroupSpec(GroupInfo):
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(super().ToJsonDict(), {
-			'basedon': _formatValueList(self.basedon),
+			'basedon': formatValueList(self.basedon),
 			'boolop': self.boolop,
 			'prerotate': self.prerotate,
-			'xbound': _formatValueList(self.xbound),
-			'ybound': _formatValueList(self.ybound),
-			'thetabound': _formatValueList(self.thetabound),
-			'distancebound': _formatValueList(self.distancebound),
+			'xbound': formatValueList(self.xbound),
+			'ybound': formatValueList(self.ybound),
+			'thetabound': formatValueList(self.thetabound),
+			'distancebound': formatValueList(self.distancebound),
 		}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
 			sequencesteps=SequenceStep.FromJsonDicts(obj.get('sequencesteps')),
-			shapeindices=_parseValueList(obj.get('shapeindices')),
-			basedon=_parseValueList(obj.get('basedon')),
-			xbound=_parseValueList(obj.get('xbound')),
-			ybound=_parseValueList(obj.get('ybound')),
-			thetabound=_parseValueList(obj.get('thetabound')),
-			distancebound=_parseValueList(obj.get('distancebound')),
+			shapeindices=parseValueList(obj.get('shapeindices')),
+			basedon=parseValueList(obj.get('basedon')),
+			xbound=parseValueList(obj.get('xbound')),
+			ybound=parseValueList(obj.get('ybound')),
+			thetabound=parseValueList(obj.get('thetabound')),
+			distancebound=parseValueList(obj.get('distancebound')),
 			**excludekeys(obj, [
 				'sequencesteps', 'shapeindices',
 				'basedon',
@@ -197,44 +202,3 @@ class GroupSpec(GroupInfo):
 			types.append('bounded')
 		if len(types) > 1:
 			raise Exception('Group cannot has conflicting aspects ({}): {!r}'.format(types, self))
-
-def _parseValue(val):
-	if val is None or val == '_':
-		return None
-	if val == '' or isinstance(val, (int, float)):
-		return val
-	try:
-		parsed = float(val)
-		if int(parsed) == parsed:
-			return int(parsed)
-		return parsed
-	except ValueError:
-		return val
-
-def _parseValueList(val):
-	if val in (None, ''):
-		return []
-	if isinstance(val, str):
-		return [_parseValue(v) for v in val.split(' ')]
-	if isinstance(val, int):
-		return [val]
-	if isinstance(val, (list, tuple)):
-		results = []
-		for part in val:
-			results.append(_parseValue(part))
-		return results
-	raise Exception('Unsupported index list value: {!r}'.format(val))
-
-def _formatValue(val, keepnone=False):
-	if isinstance(val, str):
-		return val
-	if val is None:
-		return val if keepnone else '_'
-	if isinstance(val, float) and int(val) == val:
-		return str(int(val))
-	return str(val)
-
-def _formatValueList(vals):
-	if not vals:
-		return None
-	return ' '.join([_formatValue(i) for i in vals])
