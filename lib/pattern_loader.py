@@ -64,81 +64,10 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
-		self.SvgWidth.val = 0
-		self.SvgHeight.val = 0
-		sop.clear()
-		if not svgxml:
-			return
-		sop.primAttribs.create('shapeId', '')
-		sop.primAttribs.create('parentPath', '')
-		sop.primAttribs.create('Cd')
-		sop.primAttribs.create('shapeLength', 0.0)
-		# distance around path (absolute), distance around path (relative to shape length)
-		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
-		root = ET.fromstring(svgxml)
-		self.SvgWidth.val = float(root.get('width', 1))
-		self.SvgHeight.val = float(root.get('height', 1))
-		scale = 1 / max(self.SvgWidth.val, self.SvgHeight.val)
-		offset = tdu.Vector(-self.SvgWidth.val / 2, -self.SvgHeight.val / 2, 0)
-
-		def _handleElem(elem : ET.Element, indexinparent, parentpath=''):
-			elemid = elem.get('id')
-			if elemid and (elemid == 'Background' or elemid.startswith('-')):
-				self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
-				return
-			if elem.get('display') == 'none':
-				self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
-				return
-			tagname = _localname(elem.tag)
-			if tagname == 'path':
-				# self._LogEvent('Handling path element: {}'.format(ET.tostring(elem)))
-				_handlePathElem(elem, parentpath=parentpath)
-			else:
-				# self._LogEvent('Handling group element: {}'.format(ET.tostring(elem)))
-				elemid = elemid or '_{}'.format(indexinparent)
-				if parentpath:
-					childparentpath = parentpath + '/' + elemid
-				else:
-					childparentpath = elemid
-				for childindex, childelem in enumerate(list(elem)):
-					_handleElem(childelem, childindex, childparentpath)
-
-		def _handlePathElem(pathelem, parentpath):
-			rawpath = pathelem.get('d')
-			path = svgpath.parse_path(rawpath)
-			if len(path) < 2:
-				raise Exception('Unsupported path (too short) {}'.format(rawpath))
-			firstsegment = path[0]
-			if not isinstance(firstsegment, svgpath.Move):
-				raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
-			pathpoints = [_pathPoint(firstsegment.start)]
-			for segment in path[1:]:
-				if isinstance(segment, (svgpath.CubicBezier, svgpath.QuadraticBezier)):
-					self._LogEvent('WARNING: treating bezier as line {}'.format(rawpath))
-				elif not isinstance(segment, svgpath.Line):
-					raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
-						type(segment), rawpath))
-				pathpt = _pathPoint(segment.end)
-				pathpoints.append(pathpt)
-			# if pathpoints[-1] == pathpoints[0]:
-			# 	pathpoints.pop()
-			poly = sop.appendPoly(len(pathpoints), addPoints=True, closed=False)
-			totaldist = path.length()
-			distances = _segmentDistances(path, scale)
-			totaldist *= scale
-			poly.shapeLength[0] = totaldist
-			poly.shapeId[0] = pathelem.get('id', '')
-			poly.parentPath[0] = parentpath
-			_applyPathColor(poly, pathelem)
-			for i, pathpt in enumerate(pathpoints):
-				vertex = poly[i]
-				pos = (pathpt + offset) * scale
-				vertex.point.x = pos.x
-				vertex.point.y = pos.y
-				vertex.absRelDist[0] = distances[i]
-				vertex.absRelDist[1] = distances[i] / totaldist
-
-		_handleElem(root, 0)
+		parser = _SvgParser(self, sop)
+		parser.parse(svgxml)
+		self.SvgWidth.val = parser.svgwidth
+		self.SvgHeight.val = parser.svgheight
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -322,7 +251,93 @@ class PatternLoader(ExtensionBase):
 				ychan[i] = pos.y
 				zchan[i] = pos.z
 
-def _localname(fullname: str):
+
+class _SvgParser(LoggableSubComponent):
+	def __init__(self, hostobj, sop):
+		super().__init__(hostobj=hostobj, logprefix='SvgParser')
+		self.svgwidth = 0
+		self.svgheight = 0
+		self.sop = sop
+		self.scale = 1
+		self.offset = tdu.Vector(0, 0, 0)
+
+	def parse(self, svgxml):
+		sop = self.sop
+		sop.clear()
+		if not svgxml:
+			return
+		sop.primAttribs.create('shapeId', '')
+		sop.primAttribs.create('parentPath', '')
+		sop.primAttribs.create('Cd')
+		sop.primAttribs.create('shapeLength', 0.0)
+		# distance around path (absolute), distance around path (relative to shape length)
+		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
+		root = ET.fromstring(svgxml)
+		self.svgwidth = float(root.get('width', 1))
+		self.svgheight = float(root.get('height', 1))
+		self.scale = 1 / max(self.svgwidth, self.svgheight)
+		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
+		self._handleElem(root, 0)
+
+	def _handleElem(self, elem: ET.Element, indexinparent, parentpath=''):
+		elemid = elem.get('id')
+		if elemid and (elemid == 'Background' or elemid.startswith('-')):
+			self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
+			return
+		if elem.get('display') == 'none':
+			self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
+			return
+		tagname = _localName(elem.tag)
+		if tagname == 'path':
+			# self._LogEvent('Handling path element: {}'.format(ET.tostring(elem)))
+			self._handlePathElem(elem, parentpath=parentpath)
+		else:
+			# self._LogEvent('Handling group element: {}'.format(ET.tostring(elem)))
+			elemid = elemid or '_{}'.format(indexinparent)
+			if parentpath:
+				childparentpath = parentpath + '/' + elemid
+			else:
+				childparentpath = elemid
+			for childindex, childelem in enumerate(list(elem)):
+				self._handleElem(childelem, childindex, childparentpath)
+
+	def _handlePathElem(self, pathelem, parentpath):
+		rawpath = pathelem.get('d')
+		path = svgpath.parse_path(rawpath)
+		if len(path) < 2:
+			raise Exception('Unsupported path (too short) {}'.format(rawpath))
+		firstsegment = path[0]
+		if not isinstance(firstsegment, svgpath.Move):
+			raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
+		pathpoints = [_pathPoint(firstsegment.start)]
+		for segment in path[1:]:
+			if isinstance(segment, (svgpath.CubicBezier, svgpath.QuadraticBezier)):
+				self._LogEvent('WARNING: treating bezier as line {}'.format(rawpath))
+			elif not isinstance(segment, svgpath.Line):
+				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
+					type(segment), rawpath))
+			pathpt = _pathPoint(segment.end)
+			pathpoints.append(pathpt)
+		# if pathpoints[-1] == pathpoints[0]:
+		# 	pathpoints.pop()
+		poly = self.sop.appendPoly(len(pathpoints), addPoints=True, closed=False)
+		totaldist = path.length()
+		distances = _segmentDistances(path, self.scale)
+		totaldist *= self.scale
+		poly.shapeLength[0] = totaldist
+		poly.shapeId[0] = pathelem.get('id', '')
+		poly.parentPath[0] = parentpath
+		_applyPathColor(poly, pathelem)
+		for i, pathpt in enumerate(pathpoints):
+			vertex = poly[i]
+			pos = (pathpt + self.offset) * self.scale
+			vertex.point.x = pos.x
+			vertex.point.y = pos.y
+			vertex.absRelDist[0] = distances[i]
+			vertex.absRelDist[1] = distances[i] / totaldist
+
+
+def _localName(fullname: str):
 	if '}' in fullname:
 		return fullname.rsplit('}', maxsplit=1)[1]
 	elif ':' in fullname:
