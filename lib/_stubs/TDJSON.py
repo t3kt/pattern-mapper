@@ -53,16 +53,18 @@ def datToJSON(dat, orderedDict=True, showErrors=False):
 	"""
 	return textToJSON(dat.text, orderedDict, showErrors)
 
-def parameterToJSONPar(p, extraAttrs=None):
+def parameterToJSONPar(p, extraAttrs=None, forceAttrLists=False):
 	"""
 	Convert a parameter or tuplet to a jsonable python dictionary.
-	extraAttrs is a list or tuple of attribute names that are not normally
+	extraAttrs: a list or tuple of attribute names that are not normally
 		stored. For example, 'val' and 'order'.
+	forceAttrLists: If True, all attributes will be stored in a list with the
+		length of the tuplet
 	NOTE: a parameter that is a member of a multi-value tuplet will create a
 		JSON for the entire tuplet.
 	"""
 	parAttrs = ('name', 'label', 'page', 'style', 'size', 'default', 'enable',
-				'startSection', 'cloneImmune')
+				'startSection', 'cloneImmune', 'readOnly')
 	numAttrs = ('min', 'max', 'normMin', 'normMax', 'clampMin', 'clampMax')
 	# just grab the first parameter if it's a tuplet...
 	if isinstance(p, tuple):
@@ -83,7 +85,7 @@ def parameterToJSONPar(p, extraAttrs=None):
 	jDict = collections.OrderedDict()
 	# grab attrs
 	for attr in parAttrs:
-		if attr == 'page':
+		if attr == 'page' and p.isCustom:
 			jDict['page'] = p.page.name
 		elif attr == 'size':
 			if p.style in ('Int', 'Float'):
@@ -91,47 +93,62 @@ def parameterToJSONPar(p, extraAttrs=None):
 		elif attr == 'name':
 			jDict['name'] = p.tupletName
 		elif attr == 'menuSource':
-			jDict['menuSource'] = getattr(p,attr) or ''
+			jDict['menuSource'] = p.menuSource or ''
+		elif attr == 'mode':
+			jDict['mode'] = str(p.mode)
 		else:
-			jDict[attr] = getattr(p, attr)
+			try:
+				jDict[attr] = getattr(p, attr)
+			except:
+				pass
 	# deal with multi-value parameter stuff
-	if len(p.tuplet) > 1:
-		for attr in (numAttrs + ('default', 'val', 'expr', 'mode')):
+	if forceAttrLists or len(p.tuplet) > 1:
+		for attr in (numAttrs + ('default', 'val', 'expr', 'mode',
+								 'bindExpr')):
 			if attr not in numAttrs and attr not in parAttrs:
 				continue
 			attrList = []
 			for multiPar in p.tuplet:
-				attrList.append(getattr(multiPar, attr))
+				if attr == 'mode':
+					attrList.append(str(multiPar.mode))
+				else:
+					attrList.append(getattr(multiPar, attr))
 			# if we have any differing values, store all as list
-			if len(set(attrList)) > 1:
+			if forceAttrLists or len(set(attrList)) > 1:
 				jDict[attr] = attrList
 	return jDict
 
-def pageToJSONDict(page, extraAttrs=None):
+def pageToJSONDict(page, extraAttrs=None, forceAttrLists=False):
 	"""
 	Convert a page of parameters to a jsonable python dict.
 		Format: {parameter name: {parameter attributes, ...}, ...}
 	extraAttrs is a list or tuple of par attribute names that are not normally
 		stored. For example, 'val' and 'order'.
+	forceAttrLists: If True, all attributes will be stored in a list with the
+		length of the tuplet
 	"""
 	jPage = collections.OrderedDict()
 	for p in page.pars:
 		# make sure we only do first par in each tuplet
 		# and you must test by name otherwise it defaults to value tests
 		if p.name == p.tuplet[0].name:
-			jPage[p.tupletName] = parameterToJSONPar(p, extraAttrs)
+			jPage[p.tupletName] = parameterToJSONPar(p, extraAttrs,
+													 forceAttrLists)
 	return jPage
 
-def opToJSONOp(op, extraAttrs=None):
+def opToJSONOp(op, extraAttrs=None, forceAttrLists=False):
 	"""
 	Convert all custom parameter pages to a jsonable python dict. Format:
 		{page name: {parameter name: {parameter attributes, ...}, ...}, ...}
 	extraAttrs is a list or tuple of par attribute names that are not normally
 		stored. For example, 'val' and 'order'.
+	forceAttrLists: If True, all attributes will be stored in a list with the
+		length of the tuplet
 	"""
 	jOp = collections.OrderedDict()
 	for page in op.customPages:
-		jOp[page.name] = pageToJSONDict(page, extraAttrs)
+		jOp[page.name] = pageToJSONDict(page, extraAttrs,
+										forceAttrLists)
 	return jOp
 
 def addParameterFromJSONDict(comp, jsonDict, replace=True, setValues=True,
@@ -197,23 +214,46 @@ def addParameterFromJSONDict(comp, jsonDict, replace=True, setValues=True,
 		newPars[0].page = page
 
 	# set additional attributes if they're in parDict
-	listAttributes = {'default', 'min', 'max', 'normMin', 'normMax', 'clampMin',
-					  'clampMax', 'val', 'expr', 'mode'} # can have multi-vals
+	# can have multi-vals:
+	listAttributes = ('default', 'min', 'max', 'normMin', 'normMax', 'clampMin',
+					  'clampMax', 'val', 'expr', 'bindExpr', 'mode')
 	for index, newPar in enumerate(newPars):
 		# go through other attributes
-		for attr, value in jsonDict.items():
+		if setValues and not jsonDict.get('val'):
+			try:
+				try:
+					newPar.val = jsonDict['default']
+				except:
+					newPar.val = newPar.default
+			except:
+				if ignoreAttrErrors:
+					pass
+				else:
+					raise
+		for attr, value in list(jsonDict.items()) + \
+				([('mode', jsonDict['mode'])] if 'mode' in jsonDict else []):
 			if attr in ['style', 'name', 'label', 'size', 'page']:
 				continue
 			try:
 				# apply attributes that can contain an item or a list
 				if attr in listAttributes:
 					if isinstance(value, (list, tuple)):
-						setattr(newPar, attr, value[index])
+						if attr == 'mode':
+							setattr(newPar, attr,
+									getattr(ParMode, value[index]))
+						else:
+							try:
+								setattr(newPar, attr, value[index])
+							except:
+								debug(newPar, attr, value)
+					elif attr == 'mode':
+						setattr(newPar, attr, getattr(ParMode, value))
 					else:
 						setattr(newPar, attr, value)
 				# apply standard attributes
 				else:
 					setattr(newPar, attr, value)
+
 			except:
 				if ignoreAttrErrors:
 					pass
@@ -222,25 +262,17 @@ def addParameterFromJSONDict(comp, jsonDict, replace=True, setValues=True,
 		# default menu labels to menu names
 		if 'menuNames' in jsonDict and 'menuLabels' not in jsonDict:
 			newPar.menuLabels = jsonDict['menuNames']
-		if setValues and not jsonDict.get('val'):
-			try:
-				newPar.val = newPar.default
-			except:
-				if ignoreAttrErrors:
-					pass
-				else:
-					raise
-		if 'mode' in jsonDict:
-			newPar.mode = jsonDict['mode']
 	return newPars
 
 def addParametersFromJSONList(comp, jsonList, replace=True, setValues=True,
-							  destroyOthers=False):
+							  destroyOthers=False, newAtEnd=True):
 	"""
 	Add parameters to comp as defined in list of parameter JSON dicts.
 	If replace is False, will cause exception if the parameter already exists
 	If setValues is True, values will be set to parameter's defaults.
 	If destroyOthers is True, pars and pages not in jsonList will be destroyed
+	If newAtEnd is True, new parameters will be sorted to end of page. This
+		should generally be False if you are using 'order' attribute in JSON
 	"""
 	parNames = []
 	pageNames = set()
@@ -250,16 +282,19 @@ def addParametersFromJSONList(comp, jsonList, replace=True, setValues=True,
 		pageNames.add(newPars[0].page.name)
 	if destroyOthers:
 		destroyOtherPagesAndParameters(comp, pageNames, parNames)
-	sortNewPars(comp, pageNames, parNames)
+	if newAtEnd:
+		sortNewPars(comp, pageNames, parNames)
 	return parNames, pageNames
 
 def addParametersFromJSONDict(comp, jsonDict, replace=True, setValues=True,
-							  destroyOthers=False):
+							  destroyOthers=False, newAtEnd=True):
 	"""
 	Add parameters to comp as defined in dict of parameter JSON dicts.
 	If replace is False, will error out if the parameter already exists
 	If setValues is True, values will be set to parameter's defaults.
 	If destroyOthers is True, pars and pages not in jsonDict will be destroyed
+	If newAtEnd is True, new parameters will be sorted to end of page. This
+		should generally be False if you are using 'order' attribute in JSON
 	"""
 	parNames = []
 	pageNames = set()
@@ -269,27 +304,31 @@ def addParametersFromJSONDict(comp, jsonDict, replace=True, setValues=True,
 		pageNames.add(newPars[0].page.name)
 	if destroyOthers:
 		destroyOtherPagesAndParameters(comp, pageNames, parNames)
-	sortNewPars(comp, pageNames, parNames)
+	if newAtEnd:
+		sortNewPars(comp, pageNames, parNames)
 	return parNames, pageNames
 
 def addParametersFromJSONOp(comp, jsonOp, replace=True, setValues=True,
-							  destroyOthers=False):
+							  destroyOthers=False, newAtEnd=True):
 	"""
 	Add parameters to comp as defined in dict of page JSON dicts.
 	If replace is False, will error out if the parameter already exists
 	If setValues is True, values will be set to parameter's defaults.
 	If destroyOthers is True, pars and pages not in jsonOp will be destroyed
+	If newAtEnd is True, new parameters will be sorted to end of page. This
+		should generally be False if you are using 'order' attribute in JSON
 	"""
 	parNames = []
 	pageNames = set()
 	for jsonPage in jsonOp.values():
-		pars, pages = addParametersFromJSONDict(comp, jsonPage, replace,
-												setValues)
-		parNames += [p.name for p in pars]
-		pageNames.updage(pages)
+		newParNames, newPages = addParametersFromJSONDict(comp, jsonPage,
+										replace, setValues, newAtEnd=newAtEnd)
+		parNames += newParNames
+		pageNames.update(newPages)
 	if destroyOthers:
 		destroyOtherPagesAndParameters(comp, pageNames, parNames)
-	sortNewPars(comp, pageNames, parNames)
+	if newAtEnd:
+		sortNewPars(comp, pageNames, parNames)
 	return parNames, pageNames
 
 def destroyOtherPagesAndParameters(comp, pageNames, parNames):

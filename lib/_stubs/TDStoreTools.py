@@ -17,7 +17,7 @@
 
 # TDStoreTools
 
-from collections import MutableSet, MutableMapping, MutableSequence
+from collections.abc import MutableSet, MutableMapping, MutableSequence
 from abc import ABCMeta, abstractmethod
 from numbers import Number
 
@@ -69,6 +69,7 @@ class StorageManager(collections.MutableMapping):
 			self.storageDict = ownerComp.storage[dictName]
 		else:
 			self.storageDict = ownerComp.store(dictName, DependDict())
+		setattr(extension, '_storageDict', self.storageDict)
 		if storedItems is None:
 			storedItems = []
 		self._setItems(storedItems, sync=sync)
@@ -138,14 +139,19 @@ class StorageManager(collections.MutableMapping):
 		if not isinstance(key, str) or not key.isidentifier():
 			raise ValueError('Invalid identifier in stored items', key,
 							 self.ownerComp)
+		# def getter(s):
+		# 	return s.storage[self.dictName]
+		# 	debug(id(self.storageDict),
+		# 		  id(self.ownerComp.storage[self.dictName]))
+
 		if readOnly:
 			def setter(s, val):
 				raise AttributeError("Can't set attribute", key, val,
 									 self.ownerComp)
 		else:
 			def setter(s, val):
-				self[key] = val
-		prop = property(lambda s: self[key], setter)
+				s._storageDict[key] = val
+		prop = property(lambda s: s._storageDict[key], setter)
 		try:
 			setattr(self.extension.__class__, key, prop)
 		except:
@@ -244,6 +250,10 @@ class DependMixin:
 		return self.myItems
 
 	def __len__(self):
+		# try:
+		# 	debug(self.myItems)
+		# except:
+		# 	pass
 		self.myMainDep.val  # dummy for dependency
 		return len(self.myItems)
 
@@ -323,8 +333,7 @@ class DependDict(DependMixin, MutableMapping):
 				return
 			else:
 				self.myItems[key].modified()
-		else:
-			self.myMainDep.modified()
+		self.myMainDep.modified()
 		newv = makeDependable(self, item, raw)
 		self.myItems[key] = newv
 
@@ -341,6 +350,7 @@ class DependDict(DependMixin, MutableMapping):
 	# 	self.myItems.update(*args, **kwargs)
 
 	def __delitem__(self, key):
+		self.myMainDep.modified()
 		self.myItems[key].modified()
 		del self.myItems[key]
 
@@ -406,6 +416,7 @@ class DependList(DependMixin, MutableSequence):
 				return
 			else:
 				self.myItems[index].modified()
+		self.myMainDep.modified()
 		newv = makeDependable(self, item, raw)
 		self.myItems[index] = newv
 
@@ -423,8 +434,12 @@ class DependList(DependMixin, MutableSequence):
 	def __delitem__(self, index):
 		for i in range(index, len(self.myItems)):
 			self.myItems[i].modified()
+		self.myMainDep.modified()
 		del self.myItems[index]
 
+	# def pop(self, *args, **kwargs):
+	# 	self.myMainDep.modified()
+	# 	return self.myItems.pop(*args, **kwargs)
 
 class DependSet(DependMixin, MutableSet):
 	"""
@@ -466,6 +481,7 @@ class DependSet(DependMixin, MutableSet):
 		self.myItems.discard(item)
 
 	def update(self, *args, **kwargs):
+		self.myMainDep.modified()
 		self.myItems.update(*args, **kwargs)
 
 	def clear(self):

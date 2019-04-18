@@ -56,84 +56,134 @@ def sharedParent(op1, op2):
 			return op(checkPath)
 		checkPath = checkPath.rpartition('/')[0]
 
-def getShortcutPath(fromOp, toOp):
+def getShortcutPath(fromOp, toOp, toParName=None):
 	"""
-	Return a shortcut path expression from fromOp to toOp. This expression is
-	suitable for use in any OP parameter on fromOp.
-	Return value will be the first of:
-	1) op.<opshortcut>
-	2) me
-	3) parent.<parentshortcut>
-	4) parent(#)
-	5) op('./<path>')
-	6) op.opshortcut('<path>')
-	7) parent.parentshortcut('<path>')
-	8) parent(#).op('<path>')
-	9) op('<toOp.path>')
+	Return a shortcut path expression from fromOp to toOp or a parameter on
+	toOp. This expression is suitable for use in any OP parameter on fromOp.
+		OP portion of shortcut will be the first of:
+			me
+			iop.<iopshortcut> or ipar.<iopshortcut>.<parName>
+			op('/')
+			op('./<path>')  -  Direct child
+			op('<toOp.name>')  -  Direct sibling
+			parent.<parentshortcut>
+			parent.<parentshortcut>.op('<path>')
+			op.<opshortcut>
+			op.<opshortcut>.op('<path>')
+			parent(#)
+			parent(#).op('<path>')
+			op('<toOp.path>')
+
+
+	toParName: (string) if provided, the shortcut will be to that parameter on
+				toOp. If possible, the 'ipar' shortcut will be used.
+
 	"""
-	if hasattr(toOp.par, 'opshortcut') and toOp.par.opshortcut.eval():
-		return 'op.' + toOp.par.opshortcut.eval()
-	if toOp == op('/'):
-		return "op('/')"
-	if fromOp == toOp:
-		return 'me'
-	if parentLevel(toOp, fromOp):
-		if getattr(toOp.par, 'parentshortcut') \
-									and toOp.par.parentshortcut.eval().strip():
-			return 'parent.' + getattr(toOp.par, 'parentshortcut')
+
+	def rootChild(rootOp, root=''):
+		if rootOp == op('/'):
+			fromRoot = toOp.path
 		else:
-			return 'parent(' + str(parentLevel(toOp, fromOp)) + ')'
-	# if fromOp.parent() == toOp.parent():
-	# 	return "op('" + toOp.name + "')"
-	if parentLevel(fromOp, toOp):
-		return "op('./" + toOp.path[len(fromOp.path) + 1:] + "')"
+			fromRoot = toOp.path[len(rootOp.path) + 1:]
+		return root + "op('" + fromRoot + "')"
+
+	def parCheck(shortcutPath):
+		if toParName:
+			return shortcutPath +'.par.' + toParName
+		else:
+			return shortcutPath
+
+	if fromOp is None:
+		raise ValueError("getShortcutPath: invalid fromOp")
+	if toOp is None:
+		raise ValueError("getShortcutPath: invalid toOp")
+	# me
+	if fromOp == toOp:
+		return parCheck('me')
+	# parent.<parentshortcut>.op('<path>')
+	# search for iop/ipars
 	sanity = 100
-	searchOp = toOp
-	rootOp = None
-	# start with search for shared parent
+	searchOp = fromOp
 	while searchOp != op('/'):
 		sanity -= 1  # reduce sanity
 		if sanity == 0:
 			raise Exception("parentLevel search exceeded max depth",
 							fromOp, toOp)
 		searchOp = searchOp.parent()
-		parentShortcut = searchOp.par.parentshortcut.eval()
+		for iopPar in searchOp.pars('iop*'):
+			if iopPar.eval() == toOp:
+				shortcutParName = 'iopshortcut' + iopPar.name[3:]
+				shortcut = getattr(searchOp.par, shortcutParName).eval()
+				if toParName:
+					return'ipar.' + shortcut + '.' + toParName
+				else:
+					return 'iop.' + shortcut
+	# op('/')
+	if toOp == op('/'):
+		return parCheck("op('/')")
+	# op('./<path>')  -  Direct child
+	if parentLevel(fromOp, toOp) and fromOp != op('/'):
+		return parCheck("op('." + toOp.path[len(fromOp.path):] + "')")
+	# op('<toOp.name>')  -  Direct sibling
+	if fromOp.parent() == toOp.parent():
+		return parCheck("op('" + toOp.name + "')")
+	# parent.<parentshortcut>
+	if parentLevel(toOp, fromOp) and getattr(toOp.par, 'parentshortcut') \
+			and toOp.par.parentshortcut.eval().strip():
+		return parCheck('parent.' + toOp.par.parentshortcut)
+	# parent.<parentshortcut>.op('<path>')
+	# search for common shortcut parents
+	sanity = 100
+	searchOp = toOp
+	while searchOp != op('/'):
+		sanity -= 1  # reduce sanity
+		if sanity == 0:
+			raise Exception("parentLevel search exceeded max depth",
+							fromOp, toOp)
+		searchOp = searchOp.parent()
+		parentShortcut = searchOp.par.parentshortcut.eval().strip()
 		if parentShortcut:
 			if getattr(fromOp.parent, parentShortcut, None) == searchOp:
-				rootOp = searchOp
 				root = 'parent.' + parentShortcut + '.'
-				break
-	if not rootOp:
-		sanity = 100
-		searchOp = toOp
-		while searchOp != op('/'):
-			sanity -= 1 # reduce sanity
-			if sanity == 0:
-				raise Exception("parentLevel search exceeded max depth",
-								fromOp, toOp)
-			searchOp = searchOp.parent()
-			globalShortcut = searchOp.par.opshortcut.eval()
-			if globalShortcut:
-				rootOp = searchOp
-				root = 'op.' + globalShortcut + '.'
-				break
-			sharedParentLevel = parentLevel(searchOp, fromOp)
-			if sharedParentLevel is not None and \
-										fromOp.parent(sharedParentLevel) != op('/'):
-				rootOp = fromOp.parent(sharedParentLevel)
-				root = 'parent(' + str(sharedParentLevel) + ').' \
-													if sharedParentLevel > 1 else ''
-				break
-	if rootOp:
-		if rootOp == op('/'):
-			root = ''
-			fromRoot = toOp.path
-		else:
-			fromRoot = toOp.path[len(rootOp.path) + 1:]
-		path = root + "op('" + fromRoot + "')"
-	else:
-		path = "op('" + toOp.path + "')"
-	return path
+				return parCheck(rootChild(searchOp, root))
+	# op.<opshortcut>
+	if getattr(toOp.par, 'opshortcut', None) \
+			and toOp.par.opshortcut.eval().strip():
+		return parCheck('op.' + toOp.par.opshortcut.eval())
+	# parent.<parentshortcut>.op('<path>')
+	# search for common shortcut parents
+	sanity = 100
+	searchOp = toOp
+	while searchOp != op('/'):
+		sanity -= 1  # reduce sanity
+		if sanity == 0:
+			raise Exception("parentLevel search exceeded max depth",
+							fromOp, toOp)
+		searchOp = searchOp.parent()
+		opShortcut = searchOp.par.opshortcut.eval().strip()
+		if opShortcut:
+			root = 'op.' + opShortcut + '.'
+			return parCheck(rootChild(searchOp, root))
+	# parent(#)
+	if parentLevel(toOp, fromOp):
+		level = parentLevel(toOp, fromOp)
+		return parCheck('parent(' + (str(level) if level > 1 else '') + ')')
+	# parent(#).op('<path>')
+	# search for common parents
+	sanity = 100
+	searchOp = toOp
+	while searchOp != op('/'):
+		sanity -= 1  # reduce sanity
+		if sanity == 0:
+			raise Exception("parentLevel search exceeded max depth",
+							fromOp, toOp)
+		searchOp = searchOp.parent()
+		level = parentLevel(searchOp, fromOp)
+		if level:
+			root = 'parent(' + (str(level) if level > 1 else '') + ').'
+			return parCheck(rootChild(searchOp, root))
+	# op('<toOp.path>')
+	return parCheck("op('" + toOp.path + "')")
 
 menuObject = collections.namedtuple('menuObject', ['menuNames', 'menuLabels'])
 
@@ -234,7 +284,7 @@ def arrangeNode(node, position='bottom', spacing=20):
 		raise ValueError ('Invalid arrangeNode position', position)
 
 def createProperty(classInstance, name, value=None, attributeName=None,
-						 readOnly=False, dependable=False):
+						 readOnly=False, dependable=True):
 	"""
 	Use this method to add a property (called name) that accesses
 	an attribute (called attributeName). attributeName defaults to '_' + name.
@@ -446,7 +496,7 @@ def replaceOp(dest, source=None):
 	return newDest
 
 def getParInfo(sourceOp, pattern='*', names=None,
-			   						includeCustom=True, includeNonCustom=True):
+			   				includeCustom=True, includeNonCustom=True):
 	"""
 	Returns parInfo dict for sourceOp. Filtered in the following order:
 	pattern is a pattern match string
@@ -454,36 +504,66 @@ def getParInfo(sourceOp, pattern='*', names=None,
 	includeCustom to include custom parameters
 	includeNonCustom to include non-custom parameters
 
-	parInfo is {<parName>:(parVal, parExpr, parMode string)...}
+	parInfo is {<parName>:(par.val, par.expr, par.mode string, par.bindExpr,
+							par.default)...}
 	"""
 	parInfo = {}
 	for p in sourceOp.pars(pattern):
 		if (names is None or p.name in names) and \
 				((p.isCustom and includeCustom) or \
 										(not p.isCustom and includeNonCustom)):
-			parInfo[p.name] = [p.val, p.expr if p.expr else '', str(p.mode)]
+			parInfo[p.name] = [p.val, p.expr if p.expr else '', str(p.mode),
+							   p.bindExpr, p.default]
 	return parInfo
 
-def applyParInfo(targetOp, parInfo):
+def applyParDefaults(targetOp, parInfo):
+	"""
+	Attempt to apply par defaults from parInfo dict to targetOp. If application
+		fails, no exception will be raised!
+
+	parInfo is {<parName>:(par.val, par.expr, par.mode string, par.bindExpr,
+							par.default)...}
+	"""
+	for p in targetOp.pars():
+		if p.name in parInfo:
+			info = parInfo[p.name]
+			default = info[4] if len(info) > 4 else None
+			if default is not None:
+				try:
+					p.default = default
+				except:
+					pass
+
+def applyParInfo(targetOp, parInfo, setDefaults=False):
 	"""
 	Attempt to apply par values, expressions, and modes from parInfo dict to
 	targetOp. If application fails, no exception will be raised!
 
-	parInfo is {<parName>:(parVal, parExpr, parMode string)...}
+	parInfo is {<parName>:(par.val, par.expr, par.mode string, par.bindExpr,
+							par.default)...}
+	setDefaults: if True, set the par.default as well
 	"""
+	if setDefaults:
+		applyParDefaults(targetOp, parInfo)
 	for p in targetOp.pars():
 		if p.name in parInfo:
 			# this dance is to maintain mode and priority of value.
 			# otherwise bad things happen when an expression value
 			# is a constant.
-			val = parInfo[p.name][0]
-			expr = parInfo[p.name][1] if parInfo[p.name][1] is not None else ''
-			mode = parInfo[p.name][2]
+			info = parInfo[p.name]
+			val = info[0]
+			expr = info[1] if info[1] is not None else ''
+			mode = info[2]
+			bindExpr = info[3] if len(info) > 3 else ''
 			if type(mode) == str:
-				mode = getattr(ParMode, parInfo[p.name][2])
+				mode = getattr(ParMode, info[2])
 			if mode == ParMode.CONSTANT:
 				try:
 					p.expr = expr
+				except:
+					pass
+				try:
+					p.bindExpr = bindExpr
 				except:
 					pass
 				try:
@@ -497,13 +577,35 @@ def applyParInfo(targetOp, parInfo):
 				except:
 					pass
 				try:
+					p.bindExpr = bindExpr
+				except:
+					pass
+				try:
 					p.expr = expr
+				except:
+					pass
+				p.mode = mode
+			elif mode == ParMode.BIND:
+				try:
+					p.val = val
+				except:
+					pass
+				try:
+					p.expr = expr
+				except:
+					pass
+				try:
+					p.bindExpr = bindExpr
 				except:
 					pass
 				p.mode = mode
 			else:
 				try:
 					p.val = val
+				except:
+					pass
+				try:
+					p.bindExpr = bindExpr
 				except:
 					pass
 				try:
@@ -634,3 +736,24 @@ def editExtensionOP(extOP):
 	elif isinstance(extOP, COMP):
 		op.TDDialogs.op('CompEditor').Connect(extOP)
 		op.TDDialogs.op('CompEditor').openViewer()
+
+def bindChain(par):
+	"""
+	Return a list of parameters, starting with par, followed by its bind master,
+	if available, followed by it's master's master if available etc.
+	:param par: the parameter to start the chain search
+	:return: list of [par, par's bind master, ...]
+	"""
+	chain = [par]
+	try:
+		master = par.owner.evalExpression(par.bindExpr)
+	except:
+		master = None
+	while master:
+		chain.append(master)
+		try:
+			master = master.owner.evalExpression(master.bindExpr)
+		except:
+			master = None
+	return chain
+
