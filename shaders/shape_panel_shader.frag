@@ -1,15 +1,11 @@
+#include "shape_shader_pixel_common"
+
 uniform sampler2D sPointPositionalTexture;
 uniform sampler2D sFaceTexture;
 
 in Vertex
 {
-	vec4 color;
-	float alpha;
-	vec3 worldSpacePos;
-	vec2 texCoord0;
-	vec2 texCoord1;
-	vec2 faceTexCoord;
-	flat int shapeIndex;
+	VertexAttrs attrs;
 } iVert;
 
 out vec4 fragColor;
@@ -17,17 +13,17 @@ void main()
 {
 	TDCheckDiscard();
 	
-    vec4 color = iVert.color;
-    
-    vec4 positionalColor = texture(sPointPositionalTexture, iVert.texCoord1);
-    
-    color = mix(color, positionalColor, positionalColor.a);
-    
-    vec4 faceColor = texture(sFaceTexture, iVert.faceTexCoord); 
-    color = mix(color, faceColor, faceColor.a);
-    color.a *= iVert.alpha;
-    
-    TDAlphaTest(color.a);
-    fragColor = TDOutputSwizzle(color);
+	vec4 color = iVert.attrs.color;
+
+	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
+
+	color = mix(color, positionalColor, positionalColor.a);
+
+	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord);
+	color = mix(color, faceColor, faceColor.a);
+	color.a *= iVert.attrs.alpha;
+
+	TDAlphaTest(color.a);
+	fragColor = TDOutputSwizzle(color);
 }
 
