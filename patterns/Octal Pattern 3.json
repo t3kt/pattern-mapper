@@ -3,80 +3,80 @@
   "groups": [
     {
       "groupname": "-topslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -90
     },
     {
       "groupname": "-leftslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -180
     },
     {
       "groupname": "-bottomslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -270
     },
     {
       "groupname": "-rightslice",
-      "thetabound": "-47 48"
+      "anglebound": "-47 48"
     },
     {
       "groupname": "topArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -90
     },
     {
       "groupname": "leftArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -180
     },
     {
       "groupname": "bottomArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -270
     },
     {
       "groupname": "rightArm",
-      "thetabound": "-20 20"
+      "anglebound": "-20 20"
     },
     {
       "groupname": "-toprightslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -45
     },
     {
       "groupname": "-topleftslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -135
     },
     {
       "groupname": "-bottomleftslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -225
     },
     {
       "groupname": "-bottomrightslice",
-      "thetabound": "-47 48",
+      "anglebound": "-47 48",
       "prerotate": -315
     },
     {
       "groupname": "topRightArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -45
     },
     {
       "groupname": "topLeftArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -135
     },
     {
       "groupname": "bottomLeftArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -225
     },
     {
       "groupname": "bottomRightArm",
-      "thetabound": "-20 20",
+      "anglebound": "-20 20",
       "prerotate": -315
     },
     {

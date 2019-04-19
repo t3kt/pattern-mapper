@@ -621,11 +621,11 @@ class _PolarPredicate(_ShapePredicate):
 		self.prerotate = groupspec.prerotate
 		if groupspec.prerotate:
 			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		self.tmin, self.tmax = groupspec.thetabound or (None, None)
+		self.amin, self.amax = groupspec.anglebound or (None, None)
 		self.rmin, self.rmax = groupspec.distancebound or (None, None)
 
 	def __repr__(self):
-		desc = '(t: {} '.format([v if v is not None else '*' for v in (self.tmin, self.tmax)])
+		desc = '(t: {} '.format([v if v is not None else '*' for v in (self.amin, self.amax)])
 		desc += 'r: {}'.format([v if v is not None else '*' for v in (self.rmin, self.rmax)])
 		if self.prerotate:
 			desc += ' rotated: {}'.format(self.prerotate)
@@ -634,14 +634,14 @@ class _PolarPredicate(_ShapePredicate):
 	def test(self, shape: ShapeInfo):
 		pos = tdu.Position(shape.center)
 		pos *= self.xform
-		dist, theta = cartesiantopolar(pos.x, pos.y)
+		dist, angle = cartesiantopolar(pos.x, pos.y)
 		if self.rmin is not None and dist < self.rmin:
 			return False
 		if self.rmax is not None and dist > self.rmax:
 			return False
-		if self.tmin is not None and theta < self.tmin:
+		if self.amin is not None and angle < self.amin:
 			return False
-		if self.tmax is not None and theta > self.tmax:
+		if self.amax is not None and angle > self.amax:
 			return False
 		return True
 
@@ -660,7 +660,7 @@ class _MultiPredicate(_ShapePredicate):
 def _boundsPredicates(groupspec: GroupSpec):
 	return _MultiPredicate(
 		_CartesianPredicate(groupspec) if groupspec.xbound or groupspec.ybound else None,
-		_PolarPredicate(groupspec) if groupspec.distancebound or groupspec.thetabound else None,
+		_PolarPredicate(groupspec) if groupspec.distancebound or groupspec.anglebound else None,
 	)
 
 class _GroupCombiner(LoggableSubComponent):

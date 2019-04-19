@@ -139,7 +139,7 @@ class GroupSpec(GroupInfo):
 			prerotate: float=None,
 			xbound: Iterable=None,
 			ybound: Iterable=None,
-			thetabound: Iterable=None,
+			anglebound: Iterable=None,
 			distancebound: Iterable=None,
 			**attrs):
 		super().__init__(groupname=groupname, **attrs)
@@ -148,7 +148,7 @@ class GroupSpec(GroupInfo):
 		self.prerotate = prerotate
 		self.xbound = list(xbound) if xbound else None
 		self.ybound = list(ybound) if ybound else None
-		self.thetabound = list(thetabound) if thetabound else None
+		self.anglebound = list(anglebound) if anglebound else None
 		self.distancebound = list(distancebound) if distancebound else None
 
 	def ToJsonDict(self):
@@ -158,7 +158,7 @@ class GroupSpec(GroupInfo):
 			'prerotate': self.prerotate,
 			'xbound': formatValueList(self.xbound),
 			'ybound': formatValueList(self.ybound),
-			'thetabound': formatValueList(self.thetabound),
+			'anglebound': formatValueList(self.anglebound),
 			'distancebound': formatValueList(self.distancebound),
 		}))
 
@@ -170,13 +170,13 @@ class GroupSpec(GroupInfo):
 			basedon=parseValueList(obj.get('basedon')),
 			xbound=parseValueList(obj.get('xbound')),
 			ybound=parseValueList(obj.get('ybound')),
-			thetabound=parseValueList(obj.get('thetabound')),
+			anglebound=parseValueList(obj.get('anglebound')),
 			distancebound=parseValueList(obj.get('distancebound')),
 			**excludekeys(obj, [
 				'sequencesteps', 'shapeindices',
 				'basedon',
 				'xbound', 'ybound',
-				'thetabound', 'distancebound',
+				'anglebound', 'distancebound',
 			])
 		)
 
@@ -190,7 +190,7 @@ class GroupSpec(GroupInfo):
 
 	@property
 	def isbounded(self):
-		return bool(self.xbound or self.ybound or self.thetabound or self.distancebound)
+		return bool(self.xbound or self.ybound or self.anglebound or self.distancebound)
 
 	def validate(self):
 		types = []
