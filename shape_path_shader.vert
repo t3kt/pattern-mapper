@@ -48,7 +48,7 @@ void main()
 	vec4 phaseAndPeriod = texelFetch(bPhasePeriod, shapeIndex);
 	oVert.phase = phaseAndPeriod.r + uPhaseOffset;
 	oVert.period = phaseAndPeriod.g;
-	vec3 localScale = texelFetch(bLocalScales, shapeIndex).xyz;
+	vec4 localScale = texelFetch(bLocalScales, shapeIndex);
 	
 	
 	// First deform the vertex and normal
@@ -56,10 +56,9 @@ void main()
 	vec4 worldSpacePos = TDDeform(P);
 	
 	
-//	worldSpacePos.xyz -= centerPos;
-//	worldSpacePos.xyz *= localScale;
-//	worldSpacePos.xyz += centerPos;
-	//worldSpacePos.xyz = mix(worldSpacePos.xyz, centerPos, 0.5);
+	worldSpacePos.xyz -= centerPos;
+	worldSpacePos.xyz *= localScale.xyz * localScale.w;
+	worldSpacePos.xyz += centerPos;
 	
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
 	gl_Position = TDWorldToProj(worldSpacePos, uvUnwrapCoord);
