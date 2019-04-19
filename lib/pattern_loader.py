@@ -289,10 +289,8 @@ class _SvgParser(LoggableSubComponent):
 			return
 		tagname = _localName(elem.tag)
 		if tagname == 'path':
-			# self._LogEvent('Handling path element: {}'.format(ET.tostring(elem)))
 			self._handlePathElem(elem, parentpath=parentpath)
 		else:
-			# self._LogEvent('Handling group element: {}'.format(ET.tostring(elem)))
 			elemid = elemid or '_{}'.format(indexinparent)
 			if parentpath:
 				childparentpath = parentpath + '/' + elemid
@@ -707,8 +705,6 @@ class _GroupCombiner(LoggableSubComponent):
 					shapeindices=list(sorted(stepindices))))
 			resultgroup.sequencesteps = resultsteps
 			resultgroup.shapeindices = list(sorted(set(finalallstepindices)))
-		self._LogEvent('.. shapeindices: {}'.format(resultgroup.shapeindices))
-		self._LogEvent('.. steps: {}'.format(resultgroup.sequencesteps))
 
 	@loggedmethod
 	def _combineIndexSets(self, indexsets: List[Set[int]], boolop: str):
@@ -721,5 +717,4 @@ class _GroupCombiner(LoggableSubComponent):
 			combinedindices = combinedindices.union(*combinedindices[1:])
 		else:
 			return set()
-		self._LogEvent('result: {}'.format(combinedindices))
 		return combinedindices
