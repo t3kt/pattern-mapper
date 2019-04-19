@@ -492,12 +492,12 @@ class _GroupsBuilder(LoggableSubComponent):
 	@loggedmethod
 	def loadGroupSpecs(self, groupspecs: List[GroupSpec]):
 		for groupspec in groupspecs:
-			group = self._createGroupFromSpec(groupspec)
-			if group:
+			groups = self._createGroupsFromSpec(groupspec) or []
+			for group in groups:
 				self._addGroup(group)
 
 	@loggedmethod
-	def _createGroupFromSpec(self, groupspec: GroupSpec):
+	def _createGroupsFromSpec(self, groupspec: GroupSpec):
 		if not groupspec.groupname or groupspec.groupname.startswith('-'):
 			return None
 		if groupspec.inferencetype or groupspec.inferredfromvalue:
@@ -521,7 +521,7 @@ class _GroupsBuilder(LoggableSubComponent):
 			self._LogEvent('Skipping group due to error: {}'.format(e))
 			return None
 
-		return group
+		return [group]
 
 	@simpleloggedmethod
 	def _initManualGroup(self, group: GroupInfo, groupspec: GroupSpec):
@@ -576,10 +576,27 @@ class _GroupsBuilder(LoggableSubComponent):
 		self.grouplist.append(group)
 		if group.groupname:
 			if group.groupname in self.groupsbyname:
-				print('ignoring duplicate group name {!r}'.format(group.groupname))
+				self._LogEvent('ignoring duplicate group name {!r}'.format(group.groupname))
 			else:
 				self.groupsbyname[group.groupname] = group
 
+
+class _ValueRange:
+	def __init__(self, valrange):
+		self.low, self.high = valrange or (None, None)
+
+	def contains(self, val):
+		if self.low is not None and val < self.low:
+			return False
+		if self.high is not None and val > self.high:
+			return False
+		return True
+
+	def __repr__(self):
+		return '..'.join([
+			str(v) if v is not None else '*'
+			for v in (self.low, self.high)
+		])
 
 class _ShapePredicate:
 	def test(self, shape: ShapeInfo): raise NotImplementedError()
@@ -590,12 +607,11 @@ class _CartesianPredicate(_ShapePredicate):
 		self.prerotate = groupspec.prerotate
 		if groupspec.prerotate:
 			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		self.xmin, self.xmax = groupspec.xbound or (None, None)
-		self.ymin, self.ymax = groupspec.ybound or (None, None)
+		self.xtest = _ValueRange(groupspec.xbound)
+		self.ytest = _ValueRange(groupspec.ybound)
 
 	def __repr__(self):
-		desc = '(x: {} '.format([v if v is not None else '*' for v in (self.xmin, self.xmax)])
-		desc += 'y: {}'.format([v if v is not None else '*' for v in (self.ymin, self.ymax)])
+		desc = '(x: {} y: {}'.format(self.xtest, self.ytest)
 		if self.prerotate:
 			desc += ' rotated: {}'.format(self.prerotate)
 		return desc + ')'
@@ -603,15 +619,7 @@ class _CartesianPredicate(_ShapePredicate):
 	def test(self, shape: ShapeInfo):
 		pos = tdu.Position(shape.center)
 		pos *= self.xform
-		if self.xmin is not None and pos.x < self.xmin:
-			return False
-		if self.xmax is not None and pos.x > self.xmax:
-			return False
-		if self.ymin is not None and pos.y < self.ymin:
-			return False
-		if self.ymax is not None and pos.y > self.ymax:
-			return False
-		return True
+		return self.xtest.contains(pos.x) and self.ytest.contains(pos.y)
 
 class _PolarPredicate(_ShapePredicate):
 	def __init__(self, groupspec: GroupSpec):
@@ -619,12 +627,11 @@ class _PolarPredicate(_ShapePredicate):
 		self.prerotate = groupspec.prerotate
 		if groupspec.prerotate:
 			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		self.amin, self.amax = groupspec.anglebound or (None, None)
-		self.rmin, self.rmax = groupspec.distancebound or (None, None)
+		self.angletest = _ValueRange(groupspec.anglebound)
+		self.disttest = _ValueRange(groupspec.distancebound)
 
 	def __repr__(self):
-		desc = '(t: {} '.format([v if v is not None else '*' for v in (self.amin, self.amax)])
-		desc += 'r: {}'.format([v if v is not None else '*' for v in (self.rmin, self.rmax)])
+		desc = '(angle: {} dist: {}'.format(self.angletest, self.disttest)
 		if self.prerotate:
 			desc += ' rotated: {}'.format(self.prerotate)
 		return desc + ')'
@@ -633,15 +640,7 @@ class _PolarPredicate(_ShapePredicate):
 		pos = tdu.Position(shape.center)
 		pos *= self.xform
 		dist, angle = cartesiantopolar(pos.x, pos.y)
-		if self.rmin is not None and dist < self.rmin:
-			return False
-		if self.rmax is not None and dist > self.rmax:
-			return False
-		if self.amin is not None and angle < self.amin:
-			return False
-		if self.amax is not None and angle > self.amax:
-			return False
-		return True
+		return self.disttest.contains(dist) and self.angletest.contains(angle)
 
 class _MultiPredicate(_ShapePredicate):
 	def __init__(self, *predicates: _ShapePredicate):
