@@ -224,6 +224,9 @@ class PatternLoader(ExtensionBase):
 			builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
 
+		for o in self.ownerComp.ops('build_group_table', 'build_sequence_step_table'):
+			o.cook(force=True)
+
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
 		for prim in sop.prims:
