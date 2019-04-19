@@ -27,15 +27,18 @@ class ShapeSettingsEditor(ExtensionBase):
 		self.par = ownerComp.par
 		o = ownerComp
 		self.pargroups = [
-			_ParGroup(o, None, 'Pathalpha'),
+			_ParGroup(o, 'Includepathalpha', 'Pathalpha'),
 			_ParGroup(o, 'Includepathoncolor', 'Pathoncolor[rgba]'),
 			_ParGroup(o, 'Includepathoffcolor', 'Pathoffcolor[rgba]'),
+			_ParGroup(o, 'Includepathphase', 'Pathphase'),
+			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
+
+			_ParGroup(o, 'Includepanelalpha', 'Panelalpha'),
 			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
+
 			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]'),
 			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
 			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
-			_ParGroup(o, 'Includepathphase', 'Pathphase'),
-			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
 		]
 		self.UpdateParStates()
 

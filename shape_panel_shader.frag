@@ -4,6 +4,7 @@ uniform sampler2D sFaceTexture;
 in Vertex
 {
 	vec4 color;
+	float alpha;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec2 texCoord1;
@@ -24,6 +25,7 @@ void main()
     
     vec4 faceColor = texture(sFaceTexture, iVert.faceTexCoord); 
     color = mix(color, faceColor, faceColor.a);
+    color.a *= iVert.alpha;
     
     TDAlphaTest(color.a);
     fragColor = TDOutputSwizzle(color);

@@ -2,6 +2,7 @@ uniform int uShapeCount;
 uniform float uPhaseOffset;
 uniform samplerBuffer bOnColors;
 uniform samplerBuffer bOffColors;
+uniform samplerBuffer bAlphas;
 uniform samplerBuffer bPhasePeriod;
 uniform samplerBuffer bLocalScales;
 
@@ -11,6 +12,7 @@ in vec3 centerPos;
 out Vertex
 {
 	vec4 color;
+	float alpha;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec2 texCoord1;
@@ -41,6 +43,8 @@ void main()
 	oVert.shapeIndex = shapeIndex;
 	oVert.onColor = texelFetch(bOnColors, shapeIndex);
 	oVert.offColor = texelFetch(bOffColors, shapeIndex);
+	oVert.alpha = texelFetch(bAlphas, shapeIndex).r;
+	
 	vec4 phaseAndPeriod = texelFetch(bPhasePeriod, shapeIndex);
 	oVert.phase = phaseAndPeriod.r + uPhaseOffset;
 	oVert.period = phaseAndPeriod.g;

@@ -4,6 +4,7 @@ uniform sampler2D sPointPositionalTexture;
 in Vertex
 {
 	vec4 color;
+	float alpha;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec2 texCoord1;
@@ -27,6 +28,7 @@ void main()
     vec4 positionalColor = texture(sPointPositionalTexture, iVert.texCoord1);
     
     color = mix(color, positionalColor, positionalColor.a);
+    color.a *= iVert.alpha;
     
     TDAlphaTest(color.a);
     fragColor = TDOutputSwizzle(color);
