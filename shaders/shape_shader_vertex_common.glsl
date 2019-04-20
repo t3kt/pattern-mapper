@@ -7,6 +7,7 @@ uniform samplerBuffer bAlphas;
 uniform samplerBuffer bColors;
 uniform samplerBuffer bLocalScales;
 uniform samplerBuffer bLocalRotates;
+uniform samplerBuffer bLocalTranslates;
 
 in int shapeIndex;
 in vec3 centerPos;
@@ -40,6 +41,7 @@ VertexAttrs loadVertexAttrs() {
 
 	vec4 localScale = texelFetch(bLocalScales, shapeIndex);
 	vec3 localRotate = radians(texelFetch(bLocalRotates, shapeIndex).xyz * 360);
+	vec3 localTranslate = texelFetch(bLocalTranslates, shapeIndex).xyz;
 
 	// First deform the vertex and normal
 	// TDDeform always returns values in world space
@@ -48,6 +50,7 @@ VertexAttrs loadVertexAttrs() {
 	worldSpacePos.xyz -= centerPos;
 	worldSpacePos.xyz *= localScale.xyz * localScale.w;
 	worldSpacePos *= rotationX(localRotate.x) * rotationY(localRotate.y) * rotationZ(localRotate.z);
+	worldSpacePos.xyz += localTranslate;
 	worldSpacePos.xyz += centerPos;
 
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
