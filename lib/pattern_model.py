@@ -21,6 +21,7 @@ class ShapeInfo(BaseDataObject):
 			self,
 			shapeindex: int,
 			shapename: str,
+			shapepath: str=None,
 			parentpath: str=None,
 			color: Tuple=None,
 			center: Tuple=None,
@@ -29,6 +30,7 @@ class ShapeInfo(BaseDataObject):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
 		self.shapename = shapename
+		self.shapepath = shapepath
 		self.parentpath = parentpath
 		self.color = color
 		self.center = center
@@ -44,6 +46,7 @@ class ShapeInfo(BaseDataObject):
 		return cleandict(mergedicts(self.attrs, {
 			'shapeindex': self.shapeindex,
 			'shapename': self.shapename,
+			'shapepath': self.shapepath,
 			'parentpath': self.parentpath,
 			'color': self.color,
 			'center': self.center,

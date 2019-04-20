@@ -186,8 +186,9 @@ class PatternLoader(ExtensionBase):
 	def BuildShapeAttrTable(self, dat):
 		dat.clear()
 		dat.appendRow([
-			'shapeindex', 'shapename', 'parentpath',
+			'shapeindex', 'shapename', 'shapepath', 'parentpath',
 			'colorr', 'colorg', 'colorb',
+			'colorh', 'colors', 'colorv',
 			'centerx', 'centery', 'centerz',
 			'centerangle', 'centerdist',
 			'shapelength',
@@ -197,11 +198,16 @@ class PatternLoader(ExtensionBase):
 			dat.appendRow([])
 			dat[r, 'shapeindex'] = shape.shapeindex
 			dat[r, 'shapename'] = shape.shapename or ''
+			dat[r, 'shapepath'] = shape.shapepath or ''
 			dat[r, 'parentpath'] = shape.parentpath or ''
 			color = shape.color or [0, 0, 0]
 			dat[r, 'colorr'] = formatValue(color[0])
 			dat[r, 'colorg'] = formatValue(color[1])
 			dat[r, 'colorb'] = formatValue(color[2])
+			hsvcolor = shape.hsvcolor or [0, 0, 0]
+			dat[r, 'colorh'] = formatValue(hsvcolor[0])
+			dat[r, 'colors'] = formatValue(hsvcolor[1])
+			dat[r, 'colorv'] = formatValue(hsvcolor[2])
 			if shape.center:
 				dat[r, 'centerx'] = formatValue(shape.center[0])
 				dat[r, 'centery'] = formatValue(shape.center[1])
@@ -310,11 +316,24 @@ class _SvgParser(LoggableSubComponent):
 		self.svgheight = float(root.get('height', 1))
 		self.scale = 1 / max(self.svgwidth, self.svgheight)
 		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
-		self._handleElem(root, 0)
+		self._handleElem(root, 0, namestack=[])
 
-	def _handleElem(self, elem: ET.Element, indexinparent, parentpath=''):
+	@staticmethod
+	def _elemName(elem: ET.Element, indexinparent: int):
+		tagname = _localName(elem.tag)
 		elemid = elem.get('id')
-		if elemid and (elemid == 'Background' or elemid.startswith('-')):
+		if tagname == 'svg':
+			suffix = ''
+		elif elemid:
+			suffix = '[id={}]'.format(elemid)
+		else:
+			suffix = '[{}]'.format(indexinparent)
+		return tagname + suffix
+
+	def _handleElem(self, elem: ET.Element, indexinparent: int, namestack: List[str]):
+		elemname = self._elemName(elem, indexinparent)
+		elemid = elem.get('id', '')
+		if elemid == 'Background' or elemid.startswith('-'):
 			self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
 			return
 		if elem.get('display') == 'none':
@@ -322,17 +341,13 @@ class _SvgParser(LoggableSubComponent):
 			return
 		tagname = _localName(elem.tag)
 		if tagname == 'path':
-			self._handlePathElem(elem, parentpath=parentpath)
+			self._handlePathElem(elem, elemname=elemname, namestack=namestack)
 		else:
-			elemid = elemid or '_{}'.format(indexinparent)
-			if parentpath:
-				childparentpath = parentpath + '/' + elemid
-			else:
-				childparentpath = elemid
+			childnamestack = namestack + [elemname]
 			for childindex, childelem in enumerate(list(elem)):
-				self._handleElem(childelem, childindex, childparentpath)
+				self._handleElem(childelem, childindex, namestack=childnamestack)
 
-	def _handlePathElem(self, pathelem, parentpath):
+	def _handlePathElem(self, pathelem, elemname: str, namestack: List[str]):
 		rawpath = pathelem.get('d')
 		path = svgpath.parse_path(rawpath)
 		if len(path) < 2:
@@ -358,7 +373,8 @@ class _SvgParser(LoggableSubComponent):
 		shape = ShapeInfo(
 			shapeindex=poly.index,
 			shapename=pathelem.get('id', None),
-			parentpath=parentpath,
+			shapepath='/'.join(namestack + [elemname]),
+			parentpath='/'.join(namestack),
 			color=_getPathElementColor(pathelem),
 			shapelength=totaldist,
 		)
@@ -434,25 +450,32 @@ class _InferredGroupExtractor:
 	Each unique pair of hue and saturation defines a group of all the matching shapes.
 	Within each group, value (as in HSV value) defines the sequence ordering.
 	"""
-	def __init__(self):
+	def __init__(self, roundingdigits=None):
 		# list of shapes keyed by (hue, saturation)
 		self.shapesbyhuesat = defaultdict(list)  # type: DefaultDict[Tuple, List[ShapeInfo]]
 		self.groups = []  # type: List[GroupInfo]
+		self.roundingdigits = roundingdigits  # type: int
 
 	def load(self, shapes: List[ShapeInfo]):
 		for shape in shapes:
-			self._loadshape(shape)
+			self._loadShape(shape)
 		for huesat, shapes in self.shapesbyhuesat.items():
-			self._addgroup(huesat, shapes)
+			self._addGroup(huesat, shapes)
 		return self.groups
 
-	def _loadshape(self, shape: ShapeInfo):
+	def _loadShape(self, shape: ShapeInfo):
 		hsvcolor = shape.hsvcolor
 		if not hsvcolor:
 			return
-		self.shapesbyhuesat[(hsvcolor[0], hsvcolor[1])].append(shape)
+		key = self._prepareKey(hsvcolor[0], hsvcolor[1])
+		self.shapesbyhuesat[key].append(shape)
 
-	def _addgroup(self, huesat, shapes: List[ShapeInfo]):
+	def _prepareKey(self, *vals):
+		if self.roundingdigits is None:
+			return tuple(vals)
+		return tuple(round(v, self.roundingdigits) for v in vals)
+
+	def _addGroup(self, huesat, shapes: List[ShapeInfo]):
 		shapesbyvalue = defaultdict(list)  # type: DefaultDict[float, List[ShapeInfo]]
 		shapeindices = [shape.shapeindex for shape in shapes]
 		pathparts = _longestCommonPrefix([shape.parentpath.split('/') for shape in shapes])
@@ -461,12 +484,18 @@ class _InferredGroupExtractor:
 			cleanedpathparts = [p for p in pathparts if p and not p.startswith('_')]
 			if cleanedpathparts:
 				name = cleanedpathparts[-1]
-		if not name:
+		if name:
+			if '[' in name and name.endswith(']'):
+				name = name.split('[')[1]
+				name = name[:-1]
+				if name.startswith('id='):
+					name = name[3:]
+		else:
 			groupindex = len(self.groups)
 			name = '_{}'.format(groupindex)
 		group = GroupInfo(
 			groupname=name,
-			grouppath='/'.join(pathparts),
+			grouppath='/'.join(pathparts + [name]),
 			inferencetype='HS:V',
 			inferredfromvalue=huesat,
 			shapeindices=list(shapeindices),
@@ -492,7 +521,7 @@ class _InferredGroupExtractor:
 
 def _longestCommonPrefix(strs):
 	if not strs:
-		return ""
+		return []
 	for i, letter_group in enumerate(zip(*strs)):
 		# ["flower","flow","flight"]
 		# print(i,letter_group,set(letter_group))
@@ -514,7 +543,7 @@ class _GroupsBuilder(LoggableSubComponent):
 
 	@loggedmethod
 	def loadImplicitGroups(self):
-		implicitgroups = _InferredGroupExtractor().load(self.shapes)
+		implicitgroups = _InferredGroupExtractor(roundingdigits=4).load(self.shapes)
 		for group in implicitgroups:
 			self._addGroup(group)
 
