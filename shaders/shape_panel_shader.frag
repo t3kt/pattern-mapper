@@ -15,12 +15,11 @@ void main()
 	
 	vec4 color = iVert.attrs.color;
 
-	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
+//	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
+//	color = mix(color, positionalColor, positionalColor.a);
 
-	color = mix(color, positionalColor, positionalColor.a);
-
-	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord);
-	color = mix(color, faceColor, faceColor.a);
+//	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord);
+//	color = mix(color, faceColor, faceColor.a);
 	color.a *= iVert.attrs.alpha;
 
 	TDAlphaTest(color.a);
