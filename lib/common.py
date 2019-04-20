@@ -355,3 +355,20 @@ def formatValueList(vals, nonevalue=NULL_PLACEHOLDER):
 	if not vals:
 		return None
 	return ' '.join([formatValue(i, nonevalue=nonevalue) for i in vals])
+
+class ValueRange:
+	def __init__(self, valrange):
+		self.low, self.high = valrange or (None, None)
+
+	def contains(self, val):
+		if self.low is not None and val < self.low:
+			return False
+		if self.high is not None and val > self.high:
+			return False
+		return True
+
+	def __repr__(self):
+		return '..'.join([
+			str(v) if v is not None else '*'
+			for v in (self.low, self.high)
+		])

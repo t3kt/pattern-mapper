@@ -1,7 +1,9 @@
+from abc import ABC
+
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -208,3 +210,41 @@ class GroupSpec(GroupInfo):
 			types.append('bounded')
 		if len(types) > 1:
 			raise Exception('Group cannot has conflicting aspects ({}): {!r}'.format(types, self))
+
+_ValueListSpec = Union[str, List[Union[str, float]]]
+
+class GroupGenSpec(BaseDataObject, ABC):
+	def __init__(
+			self,
+			groupname=None,
+			suffixes: _ValueListSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.groupname = groupname
+		self.suffixes = suffixes
+
+class BoxBoundGroupGenSpec(GroupGenSpec):
+	def __init__(
+			self,
+			xmin: _ValueListSpec=None,
+			xmax: _ValueListSpec=None,
+			ymin: _ValueListSpec=None,
+			ymax: _ValueListSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.xmin = xmin
+		self.xmax = xmax
+		self.ymin = ymin
+		self.ymax = ymax
+
+class PatternSettings(BaseDataObject):
+	def __init__(
+			self,
+			groupgens: List[GroupGenSpec]=None,
+			normalizescale: bool=None,
+			defaultshapestate: Dict[str, Any]=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.groupgens = list(groupgens or [])
+		self.normalizescale = normalizescale
+		self.defaultshapestate = dict(defaultshapestate or {})

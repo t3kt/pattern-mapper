@@ -25,9 +25,9 @@ except ImportError:
 	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar
 
 try:
-	from common import parseValue, parseValueList, formatValue, formatValueList
+	from common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList
+	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
 from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
 
@@ -638,24 +638,6 @@ class _GroupsBuilder(LoggableSubComponent):
 			else:
 				self.groupsbyname[group.groupname] = group
 
-
-class _ValueRange:
-	def __init__(self, valrange):
-		self.low, self.high = valrange or (None, None)
-
-	def contains(self, val):
-		if self.low is not None and val < self.low:
-			return False
-		if self.high is not None and val > self.high:
-			return False
-		return True
-
-	def __repr__(self):
-		return '..'.join([
-			str(v) if v is not None else '*'
-			for v in (self.low, self.high)
-		])
-
 class _ShapePredicate:
 	def test(self, shape: ShapeInfo): raise NotImplementedError()
 
@@ -665,8 +647,8 @@ class _CartesianPredicate(_ShapePredicate):
 		self.prerotate = groupspec.prerotate
 		if groupspec.prerotate:
 			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		self.xtest = _ValueRange(groupspec.xbound)
-		self.ytest = _ValueRange(groupspec.ybound)
+		self.xtest = ValueRange(groupspec.xbound)
+		self.ytest = ValueRange(groupspec.ybound)
 
 	def __repr__(self):
 		desc = '(x: {} y: {}'.format(self.xtest, self.ytest)
@@ -685,8 +667,8 @@ class _PolarPredicate(_ShapePredicate):
 		self.prerotate = groupspec.prerotate
 		if groupspec.prerotate:
 			self.xform.rotate(0, 0, groupspec.prerotate, pivot=(0, 0, 0))
-		self.angletest = _ValueRange(groupspec.anglebound)
-		self.disttest = _ValueRange(groupspec.distancebound)
+		self.angletest = ValueRange(groupspec.anglebound)
+		self.disttest = ValueRange(groupspec.distancebound)
 
 	def __repr__(self):
 		desc = '(angle: {} dist: {}'.format(self.angletest, self.disttest)
