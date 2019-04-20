@@ -39,8 +39,8 @@ VertexAttrs loadVertexAttrs() {
 	attrs.color = texelFetch(bColors, shapeIndex);
 	attrs.alpha = texelFetch(bAlphas, shapeIndex).r;
 
-	vec4 localScale = texelFetch(bLocalScales, shapeIndex);
-	vec3 localRotate = radians(texelFetch(bLocalRotates, shapeIndex).xyz * 360);
+	vec3 localScale = texelFetch(bLocalScales, shapeIndex).xyz;
+	vec3 localRotate = radians(texelFetch(bLocalRotates, shapeIndex).xyz);
 	vec3 localTranslate = texelFetch(bLocalTranslates, shapeIndex).xyz;
 
 	// First deform the vertex and normal
@@ -48,7 +48,7 @@ VertexAttrs loadVertexAttrs() {
 	vec4 worldSpacePos = TDDeform(P);
 
 	worldSpacePos.xyz -= centerPos;
-	worldSpacePos.xyz *= localScale.xyz * localScale.w;
+	worldSpacePos.xyz *= localScale;
 	worldSpacePos *= rotationX(localRotate.x) * rotationY(localRotate.y) * rotationZ(localRotate.z);
 	worldSpacePos.xyz += localTranslate;
 	worldSpacePos.xyz += centerPos;
