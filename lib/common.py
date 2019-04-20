@@ -341,17 +341,17 @@ def parseValueList(val):
 	raise Exception('Unsupported list value: {!r}'.format(val))
 
 
-def formatValue(val, keepnone=False):
+def formatValue(val, nonevalue=NULL_PLACEHOLDER):
 	if isinstance(val, str):
 		return val
 	if val is None:
-		return val if keepnone else NULL_PLACEHOLDER
+		return nonevalue
 	if isinstance(val, float) and int(val) == val:
 		return str(int(val))
 	return str(val)
 
 
-def formatValueList(vals, keepnone=False):
+def formatValueList(vals, nonevalue=NULL_PLACEHOLDER):
 	if not vals:
 		return None
-	return ' '.join([formatValue(i, keepnone=keepnone) for i in vals])
+	return ' '.join([formatValue(i, nonevalue=nonevalue) for i in vals])

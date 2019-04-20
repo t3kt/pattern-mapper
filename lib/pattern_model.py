@@ -24,6 +24,7 @@ class ShapeInfo(BaseDataObject):
 			parentpath: str=None,
 			color: Tuple=None,
 			center: Tuple=None,
+			shapelength: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
@@ -31,6 +32,7 @@ class ShapeInfo(BaseDataObject):
 		self.parentpath = parentpath
 		self.color = color
 		self.center = center
+		self.shapelength = shapelength
 
 	@property
 	def hsvcolor(self):
@@ -45,6 +47,7 @@ class ShapeInfo(BaseDataObject):
 			'parentpath': self.parentpath,
 			'color': self.color,
 			'center': self.center,
+			'shapelength': self.shapelength,
 		}))
 
 class SequenceStep(BaseDataObject):
@@ -66,7 +69,7 @@ class SequenceStep(BaseDataObject):
 			'sequenceindex': self.sequenceindex,
 			'shapeindices': formatValueList(self.shapeindices),
 			'isdefault': self.isdefault,
-			'inferredfromvalue': formatValue(self.inferredfromvalue, keepnone=True),
+			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
 		}))
 
 	@classmethod
@@ -99,7 +102,7 @@ class GroupInfo(BaseDataObject):
 			'groupname': self.groupname,
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype,
-			'inferredfromvalue': formatValue(self.inferredfromvalue, keepnone=True),
+			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
 			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 		}))

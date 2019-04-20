@@ -24,6 +24,11 @@ try:
 except ImportError:
 	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar
 
+try:
+	from common import parseValue, parseValueList, formatValue, formatValueList
+except ImportError:
+	from .common import parseValue, parseValueList, formatValue, formatValueList
+
 from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
 
 remap = tdu.remap
@@ -33,6 +38,7 @@ class PatternLoader(ExtensionBase):
 		super().__init__(ownerComp)
 		self.SvgWidth = tdu.Dependency(1)
 		self.SvgHeight = tdu.Dependency(1)
+		self.shapes = []  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 
 	def op(self, path):
@@ -60,7 +66,7 @@ class PatternLoader(ExtensionBase):
 	@simpleloggedmethod
 	def BuildGeometryFromSvg(self, sop, svgxml):
 		self._BuildGeometryFromSvg(sop, svgxml)
-		self._BuildGroups(sop)
+		self._BuildGroups()
 
 	@loggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
@@ -68,6 +74,10 @@ class PatternLoader(ExtensionBase):
 		parser.parse(svgxml)
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
+		self.shapes = parser.shapes
+		self.groups = []
+		for o in self.ownerComp.ops('build_shape_attr_table'):
+			o.cook(force=True)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -87,12 +97,7 @@ class PatternLoader(ExtensionBase):
 			# 	attribs=primattrs)
 			# for some reason using getattr() on points/prims/vertices/etc causes TD to crash
 			# so they need to be hard-coded
-			_copyAttrVals(toattr=poly.shapeId, fromattr=srcpoly.shapeId)
-			_copyAttrVals(toattr=poly.parentPath, fromattr=srcpoly.parentPath)
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
-			_copyAttrVals(toattr=poly.shapeLength, fromattr=srcpoly.shapeLength)
-			_copyAttrVals(toattr=poly.polarCenter, fromattr=srcpoly.polarCenter)
-			_copyAttrVals(toattr=poly.centerPos_prim, fromattr=srcpoly.centerPos_prim)
 			for vertex in poly:
 				srcvertex = srcpoly[vertex.index]
 				vertex.point.x = srcvertex.point.x
@@ -131,7 +136,7 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def BuildGroupTable(self, dat):
 		if not self.groups:
-			self._BuildGroups(sop=self._rawShapes)
+			self._BuildGroups()
 		dat.clear()
 		dat.appendRow([
 			'groupname',
@@ -177,17 +182,45 @@ class PatternLoader(ExtensionBase):
 					' '.join(map(str, step.shapeindices)),
 				])
 
+	@loggedmethod
+	def BuildShapeAttrTable(self, dat):
+		dat.clear()
+		dat.appendRow([
+			'shapeindex', 'shapename', 'parentpath',
+			'colorr', 'colorg', 'colorb',
+			'centerx', 'centery', 'centerz',
+			'centerangle', 'centerdist',
+			'shapelength',
+		])
+		for shape in self.shapes:
+			r = dat.numRows
+			dat.appendRow([])
+			dat[r, 'shapeindex'] = shape.shapeindex
+			dat[r, 'shapename'] = shape.shapename or ''
+			dat[r, 'parentpath'] = shape.parentpath or ''
+			color = shape.color or [0, 0, 0]
+			dat[r, 'colorr'] = formatValue(color[0])
+			dat[r, 'colorg'] = formatValue(color[1])
+			dat[r, 'colorb'] = formatValue(color[2])
+			if shape.center:
+				dat[r, 'centerx'] = formatValue(shape.center[0])
+				dat[r, 'centery'] = formatValue(shape.center[1])
+				dat[r, 'centerz'] = formatValue(shape.center[2])
+				distance, angle = cartesiantopolar(shape.center[0], shape.center[1])
+				dat[r, 'centerangle'] = formatValue(angle)
+				dat[r, 'centerdist'] = formatValue(distance)
+			dat[r, 'shapelength'] = formatValue(shape.shapelength, nonevalue='')
+
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
 	# is not in that group.
 	@loggedmethod
 	def BuildShapeGroupSequenceIndices(self, chop):
 		chop.clear()
-		rawshapes = self._rawShapes
-		numshapes = rawshapes.numPrims
+		numshapes = len(self.shapes)
 		chop.numSamples = numshapes
 		if not self.groups:
-			self._BuildGroups(sop=rawshapes)
+			self._BuildGroups()
 		for group in self.groups:
 			chan = chop.appendChan('seq_' + group.groupname)
 			shapesteps = [-1] * numshapes
@@ -199,9 +232,8 @@ class PatternLoader(ExtensionBase):
 				chan[shapeindex] = shapesteps[shapeindex]
 
 	@loggedmethod
-	def _BuildGroups(self, sop):
-		shapes = _shapeInfosFromPolys(sop.prims)
-		builder = _GroupsBuilder(self, shapes)
+	def _BuildGroups(self):
+		builder = _GroupsBuilder(self, self.shapes)
 		builder.loadImplicitGroups()
 
 		jsondat = self.op('load_json_file')
@@ -263,16 +295,14 @@ class _SvgParser(LoggableSubComponent):
 		self.sop = sop
 		self.scale = 1
 		self.offset = tdu.Vector(0, 0, 0)
+		self.shapes = []  # type: List[ShapeInfo]
 
 	def parse(self, svgxml):
 		sop = self.sop
 		sop.clear()
 		if not svgxml:
 			return
-		sop.primAttribs.create('shapeId', '')
-		sop.primAttribs.create('parentPath', '')
 		sop.primAttribs.create('Cd')
-		sop.primAttribs.create('shapeLength', 0.0)
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
 		root = ET.fromstring(svgxml)
@@ -325,10 +355,20 @@ class _SvgParser(LoggableSubComponent):
 		totaldist = path.length()
 		distances = _segmentDistances(path, self.scale)
 		totaldist *= self.scale
-		poly.shapeLength[0] = totaldist
-		poly.shapeId[0] = pathelem.get('id', '')
-		poly.parentPath[0] = parentpath
-		_applyPathColor(poly, pathelem)
+		shape = ShapeInfo(
+			shapeindex=poly.index,
+			shapename=pathelem.get('id', None),
+			parentpath=parentpath,
+			color=_getPathElementColor(pathelem),
+			shapelength=totaldist,
+		)
+		if shape.color:
+			poly.Cd[0] = shape.color[0] / 255.0
+			poly.Cd[1] = shape.color[1] / 255.0
+			poly.Cd[2] = shape.color[2] / 255.0
+		else:
+			poly.Cd[0] = poly.Cd[1] = poly.Cd[2] = 1
+		poly.Cd[3] = 1
 		for i, pathpt in enumerate(pathpoints):
 			vertex = poly[i]
 			pos = (pathpt + self.offset) * self.scale
@@ -336,6 +376,8 @@ class _SvgParser(LoggableSubComponent):
 			vertex.point.y = pos.y
 			vertex.absRelDist[0] = distances[i]
 			vertex.absRelDist[1] = distances[i] / totaldist
+		shape.center = poly.center.x, poly.center.y, poly.center.z
+		self.shapes.append(shape)
 
 
 def _localName(fullname: str):
@@ -367,17 +409,13 @@ def _setAttrDataFromTuple(attrdata, values):
 	for i in range(len(values)):
 		attrdata[i] = values[i]
 
-def _applyPathColor(poly, pathelem):
+def _getPathElementColor(pathelem):
 	if 'stroke' in pathelem.attrib:
-		rgb = hextorgb(pathelem.attrib['stroke'])
+		return hextorgb(pathelem.attrib['stroke'])
 	elif 'fill' in pathelem.attrib:
-		rgb = hextorgb(pathelem.attrib['fill'])
+		return hextorgb(pathelem.attrib['fill'])
 	else:
-		rgb = (255, 255, 255)
-	poly.Cd[0] = rgb[0] / 255.0
-	poly.Cd[1] = rgb[1] / 255.0
-	poly.Cd[2] = rgb[2] / 255.0
-	poly.Cd[3] = 1
+		return None
 
 def _segmentDistances(path: svgpath.Path, scale):
 	distsofar = 0
@@ -389,18 +427,6 @@ def _segmentDistances(path: svgpath.Path, scale):
 
 def _pathPoint(pathpt: complex):
 	return tdu.Position(pathpt.real, pathpt.imag, 0)
-
-def _shapeInfosFromPolys(polys):
-	return [
-		ShapeInfo(
-			shapeindex=poly.index,
-			shapename=poly.shapeId[0],
-			parentpath=poly.parentPath[0],
-			color=(round(255 * poly.Cd[0]), round(255 * poly.Cd[1]), round(255 * poly.Cd[2])),
-			center=(poly.center.x, poly.center.y, poly.center.z),
-		)
-		for poly in polys
-	]
 
 class _InferredGroupExtractor:
 	"""
