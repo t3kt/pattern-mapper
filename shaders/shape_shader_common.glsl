@@ -2,7 +2,6 @@
 
 struct VertexAttrs {
 	vec4 color;
-	float alpha;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec2 texCoord1;
@@ -29,4 +28,20 @@ mat4 rotationZ( in float angle ) {
 			 		sin(angle),		cos(angle),		0,	0,
 							0,				0,		1,	0,
 							0,				0,		0,	1);
+}
+
+mat4 rotationXYZ(in vec3 r) {
+	return rotationX(r.x) * rotationY(r.y) * rotationZ(r.z);
+}
+
+void scaleRotateTranslate(
+		inout vec4 pos,
+		in vec3 scale,
+		in vec3 rotate,
+		in vec3 translate,
+		in vec3 pivot) {
+	pos.xyz -= pivot;
+	pos.xyz *= scale;
+	pos *= rotationXYZ(rotate);
+	pos.xyz += translate + pivot;
 }

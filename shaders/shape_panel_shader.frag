@@ -20,7 +20,6 @@ void main()
 
 //	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord);
 //	color = mix(color, faceColor, faceColor.a);
-	color.a *= iVert.attrs.alpha;
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

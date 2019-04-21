@@ -98,6 +98,7 @@ class PatternLoader(ExtensionBase):
 			# for some reason using getattr() on points/prims/vertices/etc causes TD to crash
 			# so they need to be hard-coded
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
+			poly.shapeIndex[0] = srcpoly.shapeIndex[0]
 			for vertex in poly:
 				srcvertex = srcpoly[vertex.index]
 				vertex.point.x = srcvertex.point.x

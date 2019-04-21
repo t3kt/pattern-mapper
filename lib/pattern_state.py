@@ -39,6 +39,10 @@ class ShapeSettingsEditor(ExtensionBase):
 			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]', 'Localuniformscale'),
 			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
 			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
+
+			_ParGroup(o, 'Includeglobalscale', 'Globalscale[xyz]', 'Globaluniformscale'),
+			_ParGroup(o, 'Includeglobalrotate', 'Globalrotate[xyz]'),
+			_ParGroup(o, 'Includeglobaltranslate', 'Globaltranslate[xyz]'),
 		]
 		self.UpdateParStates()
 

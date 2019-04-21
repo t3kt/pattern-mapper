@@ -25,7 +25,6 @@ void main()
 	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
 
 	color = mix(color, positionalColor, positionalColor.a);
-	color.a *= iVert.attrs.alpha;
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

@@ -26,7 +26,6 @@ void main()
 	oVert.phase = phaseAndPeriod.r + uPhaseOffset;
 	oVert.period = phaseAndPeriod.g;
 
-
 	// This is here to ensure we only execute lighting etc. code
 	// when we need it. If picking is active we don't need lighting, so
 	// this entire block of code will be ommited from the compile.
