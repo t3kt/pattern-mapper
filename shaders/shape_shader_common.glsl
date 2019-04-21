@@ -42,6 +42,6 @@ void scaleRotateTranslate(
 		in vec3 pivot) {
 	pos.xyz -= pivot;
 	pos.xyz *= scale;
-	pos *= rotationXYZ(rotate);
+	pos *= rotationXYZ(radians(rotate));
 	pos.xyz += translate + pivot;
 }

@@ -4,12 +4,8 @@
 
 uniform int uShapeCount;
 uniform samplerBuffer bColors;
-uniform samplerBuffer bLocalScales;
-uniform samplerBuffer bLocalRotates;
-uniform samplerBuffer bLocalTranslates;
-uniform samplerBuffer bGlobalScales;
-uniform samplerBuffer bGlobalRotates;
-uniform samplerBuffer bGlobalTranslates;
+
+uniform sampler2D sTransforms;
 
 in vec3 centerPos;
 
@@ -39,12 +35,13 @@ VertexAttrs loadVertexAttrs() {
 	attrs.shapeIndex = shapeIndex;
 	attrs.color = texelFetch(bColors, shapeIndex);
 
-	vec3 localScale = texelFetch(bLocalScales, shapeIndex).xyz;
-	vec3 localRotate = radians(texelFetch(bLocalRotates, shapeIndex).xyz);
-	vec3 localTranslate = texelFetch(bLocalTranslates, shapeIndex).xyz;
-	vec3 globalScale = texelFetch(bGlobalScales, shapeIndex).xyz;
-	vec3 globalRotate = radians(texelFetch(bGlobalRotates, shapeIndex).xyz);
-	vec3 globalTranslate = texelFetch(bGlobalTranslates, shapeIndex).xyz;
+	vec3 localScale = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0).xyz;
+	vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
+	vec3 localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
+
+	vec3 globalScale = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0).xyz;
+	vec3 globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
+	vec3 globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
 
 	// First deform the vertex and normal
 	// TDDeform always returns values in world space
@@ -52,12 +49,12 @@ VertexAttrs loadVertexAttrs() {
 
 	scaleRotateTranslate(
 		worldSpacePos,
-		localScale, localRotate, localTranslate,
-		centerPos);
-	scaleRotateTranslate(
-		worldSpacePos,
 		globalScale, globalRotate, globalTranslate,
 		vec3(0));
+	scaleRotateTranslate(
+		worldSpacePos,
+		localScale, localRotate, localTranslate,
+		centerPos);
 
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
 	gl_Position = TDWorldToProj(worldSpacePos, uvUnwrapCoord);
