@@ -71,7 +71,10 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
 		parser = _SvgParser(self, sop)
-		parser.parse(svgxml)
+		parser.parse(
+			svgxml,
+			recenter=self.ownerComp.par.Recenter,
+			rescale=self.ownerComp.par.Rescale)
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
 		self.shapes = parser.shapes
@@ -86,15 +89,8 @@ class PatternLoader(ExtensionBase):
 			sop.prims[0].destroy()
 		while len(sop.points):
 			sop.points[0].destroy()
-		# primattrs = list(sop.primAttribs)
-		# vertattrs = list(sop.vertexAttribs)
-		# pointattrs = list(sop.pointAttribs)
 		for srcpoly in insop.prims:
 			poly = sop.appendPoly(len(srcpoly) - 1, addPoints=True, closed=True)
-			# self._copyGeoAttribs(
-			# 	fromobj=srcpoly,
-			# 	toobj=poly,
-			# 	attribs=primattrs)
 			# for some reason using getattr() on points/prims/vertices/etc causes TD to crash
 			# so they need to be hard-coded
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
@@ -107,32 +103,6 @@ class PatternLoader(ExtensionBase):
 				_copyAttrVals(toattr=vertex.absRelDist, fromattr=srcvertex.absRelDist)
 				_copyAttrVals(toattr=vertex.uv, fromattr=srcvertex.uv)
 				_copyAttrVals(toattr=vertex.centerPos, fromattr=srcvertex.centerPos)
-				# _copyAttrVals(toattr=vertex.centerPos)
-				# _copyAttrVals(toattr=vertex.)
-				# self._copyGeoAttribs(
-				# 	fromobj=srcvertex,
-				# 	toobj=vertex,
-				# 	attribs=vertattrs)
-				# self._copyGeoAttribs(
-				# 	fromobj=srcvertex.point,
-				# 	toobj=vertex.point,
-				# 	attribs=pointattrs)
-
-	@loggedmethod
-	def _copyGeoAttribs(self, toobj, fromobj, attribs: List['td.Attribute']):
-		for attrib in attribs:
-			# if attrib.name not in []:
-			# 	self._LogEvent('skipping attribute {}'.format(attrib))
-			# 	continue
-			# else:
-			# 	self._LogEvent('copying attribute {}'.format(attrib))
-			# self._LogEvent('  from has it: {}'.format(hasattr(fromobj, attrib.name)))
-			# todata = getattr(toobj, attrib.name)
-			# fromdata = getattr(fromobj, attrib.name, attrib.default)
-			# for i in range(attrib.size):
-			# 	todata[i] = fromdata[i]
-			# _copyAttrVals(toattr=todata, fromattr=fromdata)
-			pass
 
 	@loggedmethod
 	def BuildGroupTable(self, dat):
@@ -304,7 +274,7 @@ class _SvgParser(LoggableSubComponent):
 		self.offset = tdu.Vector(0, 0, 0)
 		self.shapes = []  # type: List[ShapeInfo]
 
-	def parse(self, svgxml):
+	def parse(self, svgxml, recenter=True, rescale=True):
 		sop = self.sop
 		sop.clear()
 		if not svgxml:
@@ -318,6 +288,24 @@ class _SvgParser(LoggableSubComponent):
 		self.scale = 1 / max(self.svgwidth, self.svgheight)
 		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
 		self._handleElem(root, 0, namestack=[])
+		self._postProcessCoords(recenter=recenter, rescale=rescale)
+
+	def _postProcessCoords(self, recenter=True, rescale=True):
+		if recenter:
+			offset = -self.sop.center
+			for point in self.sop.points:
+				point.x += offset.x
+				point.y += offset.y
+				point.z += offset.z
+		if rescale:
+			scale = 1 / max(self.sop.size.x, self.sop.size.y, self.sop.size.z)
+			for point in self.sop.points:
+				point.x *= scale
+				point.y *= scale
+				point.z *= scale
+		for shape in self.shapes:
+			poly = self.sop.prims[shape.shapeindex]
+			shape.center = poly.center.x, poly.center.y, poly.center.z
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):
@@ -393,7 +381,6 @@ class _SvgParser(LoggableSubComponent):
 			vertex.point.y = pos.y
 			vertex.absRelDist[0] = distances[i]
 			vertex.absRelDist[1] = distances[i] / totaldist
-		shape.center = poly.center.x, poly.center.y, poly.center.z
 		self.shapes.append(shape)
 
 
