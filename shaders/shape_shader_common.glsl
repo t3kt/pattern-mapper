@@ -1,11 +1,13 @@
 // shape_shader_common.glsl
 
 struct VertexAttrs {
-	vec4 color;
+	flat vec4 color;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
-	vec2 texCoord1;
-	vec2 faceTexCoord;
+	vec3 faceTexCoord;
+	vec3 globalTexCoord;
+	flat float localTexLevel;
+	flat float globalTexLevel;
 	flat int shapeIndex;
 };
 

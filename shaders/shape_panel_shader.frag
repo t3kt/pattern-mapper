@@ -13,13 +13,15 @@ void main()
 {
 	TDCheckDiscard();
 	
-	vec4 color = iVert.attrs.color;
+	vec4 color = vec4(1);
 
-//	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
-//	color = mix(color, positionalColor, positionalColor.a);
+	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.globalTexCoord.st);
+	color = mix(color, positionalColor, iVert.attrs.globalTexLevel);
 
-//	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord);
-//	color = mix(color, faceColor, faceColor.a);
+	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord.st);
+	color = mix(color, faceColor, iVert.attrs.localTexLevel);
+
+	color *= iVert.attrs.color;
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

@@ -22,9 +22,11 @@ void main()
 	phase = mod(phase, 1.0);
 	vec4 color = mix(iVert.offColor, iVert.onColor, phase);
 
-	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.texCoord1);
+//	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.globalTexCoord.st);
+//	color = mix(color, positionalColor, iVert.attrs.globalTexLevel);
 
-	color = mix(color, positionalColor, positionalColor.a);
+//	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord.st);
+//	color = mix(color, faceColor, iVert.attrs.localTexLevel);
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

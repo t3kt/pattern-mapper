@@ -6,6 +6,7 @@ uniform int uShapeCount;
 uniform samplerBuffer bColors;
 
 uniform sampler2D sTransforms;
+uniform sampler2D sPanelTexParams;
 
 in vec3 centerPos;
 
@@ -20,20 +21,28 @@ VertexAttrs loadVertexAttrs() {
 		vec3 texcoord = TDInstanceTexCoord(uv[0]);
 		attrs.texCoord0.st = texcoord.st;
 	}
+	int shapeIndex = getShapeIndex(attrs.texCoord0.y);
 
 	{ // Avoid duplicate variable defs
 		vec3 texcoord = TDInstanceTexCoord(uv[1]);
-		attrs.texCoord1.st = texcoord.st;
+		attrs.globalTexCoord = texcoord;
 	}
 
 	{ // Avoid duplicate variable defs
 		vec3 texcoord = TDInstanceTexCoord(uv[2]);
-		attrs.faceTexCoord.st = texcoord.st;
+		attrs.faceTexCoord = texcoord;
 	}
 
-	int shapeIndex = getShapeIndex(attrs.texCoord0.y);
 	attrs.shapeIndex = shapeIndex;
 	attrs.color = texelFetch(bColors, shapeIndex);
+
+	vec4 localOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 0), 0);
+	vec4 globalOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 1), 0);
+
+	attrs.faceTexCoord += localOffsetAndLevel.xyz;
+	attrs.localTexLevel = localOffsetAndLevel.w;
+	attrs.globalTexCoord += globalOffsetAndLevel.xyz;
+	attrs.globalTexLevel = globalOffsetAndLevel.w;
 
 	vec3 localScale = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0).xyz;
 	vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;

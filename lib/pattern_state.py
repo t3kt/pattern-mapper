@@ -36,6 +36,11 @@ class ShapeSettingsEditor(ExtensionBase):
 			_ParGroup(o, 'Includepanelalpha', 'Panelalpha'),
 			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
 
+			_ParGroup(o, 'Includepanelglobaltexlevel', 'Panelglobaltexlevel'),
+			_ParGroup(o, 'Includepanelglobaluvoffset', 'Panelglobaluvoffset[uvw]'),
+			_ParGroup(o, 'Includepanellocaltexlevel', 'Panellocaltexlevel'),
+			_ParGroup(o, 'Includepanellocaluvoffset', 'Panellocaluvoffset[uvw]'),
+
 			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]', 'Localuniformscale'),
 			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
 			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
