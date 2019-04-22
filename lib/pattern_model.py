@@ -223,7 +223,44 @@ class GroupGenSpec(BaseDataObject, ABC):
 		self.groupname = groupname
 		self.suffixes = suffixes
 
-class BoxBoundGroupGenSpec(GroupGenSpec):
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'groupname': self.groupname,
+			'suffixes': self.suffixes,
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		gentypes = []
+		if _hasany(obj, 'xmin', 'xmax', 'ymin', 'ymax'):
+			gentypes.append(BoxBoundGroupGenSpec)
+		if _hasany(obj, 'anglemin', 'anglemax', 'distancemin', 'distancemax'):
+			gentypes.append(PolarBoundGroupGenSpec)
+		if 'groups' in obj and _hasany(obj, 'withgroups', 'combine'):
+			gentypes.append(CombinationGroupGenSpec)
+		if not gentypes:
+			raise Exception('Unsupported group gen spec: {}'.format(obj))
+		if len(gentypes) > 1:
+			raise Exception('Multiple conflicting group gen types: {}'.format(gentypes))
+		return gentypes[0].FromJsonDict(obj)
+
+def _hasany(obj, *keys):
+	return obj and any(k in obj for k in keys)
+
+class PositionalGroupSpec(GroupGenSpec, ABC):
+	def __init__(
+			self,
+			prerotate: _ValueListSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.prerotate = prerotate
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'prerotate': self.prerotate,
+		}))
+
+class BoxBoundGroupGenSpec(PositionalGroupSpec):
 	def __init__(
 			self,
 			xmin: _ValueListSpec=None,
@@ -237,14 +274,89 @@ class BoxBoundGroupGenSpec(GroupGenSpec):
 		self.ymin = ymin
 		self.ymax = ymax
 
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'xmin': self.xmin, 'xmax': self.xmax,
+			'ymin': self.ymin, 'ymax': self.ymax,
+		}))
+
+class PolarBoundGroupGenSpec(PositionalGroupSpec):
+	def __init__(
+			self,
+			anglemin: _ValueListSpec=None,
+			anglemax: _ValueListSpec=None,
+			distancemin: _ValueListSpec=None,
+			distancemax: _ValueListSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.anglemin = anglemin
+		self.anglemax = anglemax
+		self.distancemin = distancemin
+		self.distancemax = distancemax
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'anglemin': self.anglemin, 'anglemax': self.anglemax,
+			'distancemin': self.distancemin, 'distancemax': self.distancemax,
+		}))
+
+class CombinerOpNames:
+	OR = 'or'
+	AND = 'and'
+	PERMUTE = 'permute'
+	aliases = {
+		AND: AND,
+		'&': AND,
+		OR: OR,
+		'|': OR,
+		PERMUTE: PERMUTE,
+		'x': PERMUTE,
+	}
+
+class CombinationGroupGenSpec(GroupGenSpec):
+	def __init__(
+			self,
+			groups: _ValueListSpec=None,
+			withgroups: _ValueListSpec=None,
+			combine: str=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.groups = groups
+		self.withgroups = withgroups
+		self.combine = combine
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'groups': self.groups,
+			'withgroups': self.withgroups,
+			'combine': self.combine,
+		}))
+
 class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
 			groupgens: List[GroupGenSpec]=None,
-			normalizescale: bool=None,
+			rescale: bool=None,
+			recenter: bool=None,
 			defaultshapestate: Dict[str, Any]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupgens = list(groupgens or [])
-		self.normalizescale = normalizescale
+		self.rescale = rescale
+		self.recenter = recenter
 		self.defaultshapestate = dict(defaultshapestate or {})
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'groupgens': GroupGenSpec.ToJsonDicts(self.groupgens),
+			'rescale': self.rescale,
+			'recenter': self.recenter,
+			'defaultshapestate': cleandict(self.defaultshapestate),
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			groupgens=GroupGenSpec.FromJsonDicts(obj.get('groupgens')),
+			**excludekeys(obj, ['groupgens'])
+		)

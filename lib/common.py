@@ -4,6 +4,7 @@ import json
 import math
 from typing import Dict, Iterable, List, Optional, Union
 import sys
+import itertools
 
 print('common.py loading...')
 
@@ -312,8 +313,8 @@ def cartesiantopolar(x, y):
 
 NULL_PLACEHOLDER = '_'
 
-def parseValue(val):
-	if val is None or val == NULL_PLACEHOLDER:
+def parseValue(val, nonevalue=NULL_PLACEHOLDER):
+	if val is None or val == nonevalue:
 		return None
 	if val == '' or isinstance(val, (int, float)):
 		return val
@@ -372,3 +373,77 @@ class ValueRange:
 			str(v) if v is not None else '*'
 			for v in (self.low, self.high)
 		])
+
+class ValueRangeSequence:
+	def __init__(self, lows: 'ValueSequence', highs: 'ValueSequence'):
+		self.lows = lows
+		self.highs = highs
+
+	@classmethod
+	def FromSpecs(
+			cls,
+			lowspec, highspec,
+			parse=None,
+			cyclic=True,
+			lowbackup=None, highbackup=None):
+		return cls(
+			ValueSequence.FromSpec(lowspec, parse=parse, cyclic=cyclic, backup=lowbackup),
+			ValueSequence.FromSpec(highspec, parse=parse, cyclic=cyclic, backup=highbackup),
+		)
+
+	def contains(self, val, index: int):
+		low = self.lows[index]
+		high = self.highs[index]
+		if low is not None and val < low:
+			return False
+		if high is not None and val < high:
+			return False
+		return True
+
+	def __str__(self):
+		return '{} .. {}'.format(self.lows, self.highs)
+
+class ValueSequence:
+	def __init__(self, vals, cyclic, backup=None):
+		self.vals = list(vals or [])
+		self.cyclic = cyclic
+		self.backup = backup
+
+	@classmethod
+	def FromSpec(cls, spec, parse=None, cyclic=True, backup=None):
+		if spec in (None, ''):
+			vals = []
+		elif isinstance(spec, str):
+			vals = spec.split()
+		elif isinstance(spec, (list, tuple)):
+			vals = spec
+		else:
+			vals = [spec]
+		if parse is None:
+			parse = parseValue
+		return cls(map(parse, vals), cyclic=cyclic, backup=backup)
+
+	def __len__(self): return len(self.vals)
+	def __iter__(self): return iter(self.vals)
+	def __bool__(self): return bool(self.vals)
+
+	def __getitem__(self, index):
+		if not self.vals:
+			return None
+		if len(self.vals) > 0 and (0 >= index < len(self.vals)):
+			return self.vals[index]
+		if self.cyclic:
+			return self.vals[index % len(self.vals)]
+		elif callable(self.backup):
+			return self.backup(index)
+		else:
+			return self.backup
+
+	def permuteWith(self, otherseq: 'ValueSequence', n=None):
+		if n is None:
+			n = max(len(self), len(otherseq))
+		for i in range(n):
+			yield self[i], otherseq[i]
+
+	def __str__(self):
+		return '({})'.format(' '.join(map(str, self.vals)))
