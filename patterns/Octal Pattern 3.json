@@ -118,6 +118,15 @@
       "groupname": "greenBottomLeft",
       "basedon": "green bottomLeftArm",
       "boolop": "and"
+    },
+    {
+      "groupname": "mediumRange",
+      "distancebound": "_ .3"
+    },
+    {
+      "groupname": "blueInner",
+      "basedon": "blue mediumRange",
+      "boolop": "and"
     }
   ]
 }
