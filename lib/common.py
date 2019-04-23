@@ -400,6 +400,9 @@ class ValueRangeSequence:
 			return False
 		return True
 
+	def __len__(self):
+		return max(len(self.lows), len(self.highs))
+
 	def __str__(self):
 		return '{} .. {}'.format(self.lows, self.highs)
 

@@ -236,7 +236,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			gentypes.append(BoxBoundGroupGenSpec)
 		if _hasany(obj, 'anglemin', 'anglemax', 'distancemin', 'distancemax'):
 			gentypes.append(PolarBoundGroupGenSpec)
-		if 'groups' in obj and _hasany(obj, 'withgroups', 'combine'):
+		if 'groups' in obj and _hasany(obj, 'withgroups', 'boolop', 'permute'):
 			gentypes.append(CombinationGroupGenSpec)
 		if not gentypes:
 			raise Exception('Unsupported group gen spec: {}'.format(obj))
@@ -280,6 +280,9 @@ class BoxBoundGroupGenSpec(PositionalGroupSpec):
 			'ymin': self.ymin, 'ymax': self.ymax,
 		}))
 
+	@classmethod
+	def FromJsonDict(cls, obj): return cls(**obj)
+
 class PolarBoundGroupGenSpec(PositionalGroupSpec):
 	def __init__(
 			self,
@@ -300,37 +303,33 @@ class PolarBoundGroupGenSpec(PositionalGroupSpec):
 			'distancemin': self.distancemin, 'distancemax': self.distancemax,
 		}))
 
-class CombinerOpNames:
-	OR = 'or'
-	AND = 'and'
-	PERMUTE = 'permute'
-	aliases = {
-		AND: AND,
-		'&': AND,
-		OR: OR,
-		'|': OR,
-		PERMUTE: PERMUTE,
-		'x': PERMUTE,
-	}
+	@classmethod
+	def FromJsonDict(cls, obj): return cls(**obj)
 
 class CombinationGroupGenSpec(GroupGenSpec):
 	def __init__(
 			self,
 			groups: _ValueListSpec=None,
 			withgroups: _ValueListSpec=None,
-			combine: str=None,
+			boolop: str=None,
+			permute: bool=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = groups
 		self.withgroups = withgroups
-		self.combine = combine
+		self.boolop = boolop
+		self.permute = permute
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(super().ToJsonDict(), {
 			'groups': self.groups,
 			'withgroups': self.withgroups,
-			'combine': self.combine,
+			'boolop': self.boolop,
+			'permute': self.permute,
 		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj): return cls(**obj)
 
 class PatternSettings(BaseDataObject):
 	def __init__(

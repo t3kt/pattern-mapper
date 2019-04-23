@@ -29,7 +29,8 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo
+from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo, PatternSettings
+from pattern_groups import GenerateGroups
 
 remap = tdu.remap
 
@@ -217,6 +218,7 @@ class PatternLoader(ExtensionBase):
 		jsondat.clear()
 		jsondat.par.loadonstartpulse.pulse()
 		obj = json.loads(jsondat.text) if jsondat.text else {}
+		patternsettings = PatternSettings.FromJsonDict(obj)
 
 		if obj.get('autosides'):
 			if not builder.hasGroup('tophalf'):
@@ -232,6 +234,15 @@ class PatternLoader(ExtensionBase):
 		if groupspecs:
 			builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
+
+		generatedgroups = GenerateGroups(
+			hostobj=self,
+			shapes=self.shapes,
+			existinggroups=self.groups,
+			patternsettings=patternsettings,
+		)
+		self._LogEvent('Generated {} groups'.format(len(generatedgroups)))
+		self.groups += generatedgroups
 
 		for o in self.ownerComp.ops('build_group_table', 'build_sequence_step_table'):
 			o.cook(force=True)
