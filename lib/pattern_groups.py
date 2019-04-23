@@ -24,27 +24,33 @@ class _ShapePredicate:
 	def filter(self, shapes: List[ShapeInfo], index: int):
 		return [s for s in shapes if self.test(s, index)]
 
+	def describeAtIndex(self, index) -> str:
+		raise NotImplementedError()
+
 	def __len__(self):
 		return 1
 
-def _parseRotateAsMatrix(val):
-	val = parseValue(val)
-	xform = tdu.Matrix()
-	if val:
-		xform.rotate(0, 0, val, pivot=(0, 0, 0))
-	return xform
+# def _parseRotateAsMatrix(val):
+# 	val = parseValue(val)
+# 	xform = tdu.Matrix()
+# 	if val:
+# 		xform.rotate(0, 0, val, pivot=(0, 0, 0))
+# 	return xform
 
 class _PositionalPredicate(_ShapePredicate, ABC):
 	def __init__(self, groupspec: PositionalGroupSpec):
 		self.prerotates = ValueSequence.FromSpec(
 			groupspec.prerotate,
-			parse=_parseRotateAsMatrix,
-			cyclic=True)
+			parse=float,
+			cyclic=True,
+			backup=0)
 
 	def test(self, shape: ShapeInfo, index: int):
 		pos = tdu.Position(shape.center)
-		xform = self.prerotates[index]
-		if xform is not None:
+		prerotate = self.prerotates[index]
+		if prerotate is not None:
+			xform = tdu.Matrix()
+			xform.rotate(0, 0, prerotate, pivot=(0, 0, 0))
 			pos *= xform
 		return self._testPosition(pos, index)
 
@@ -67,8 +73,14 @@ class _CartesianPredicate(_PositionalPredicate):
 			desc += ' rotate: {}'.format(self.prerotates)
 		return desc + ')'
 
+	def describeAtIndex(self, index):
+		desc = '(x: {} y: {}'.format(self.xranges[index], self.yranges[index])
+		if self.prerotates:
+			desc += ' rotate: {}'.format(self.prerotates[index])
+		return desc + ')'
+
 	def __len__(self):
-		return max(len(self.xranges), len(self.yranges))
+		return max(len(self.xranges), len(self.yranges), len(self.prerotates))
 
 	def _testPosition(self, pos: tdu.Position, index: int):
 		return self.xranges.contains(pos.x, index) and self.yranges.contains(pos.y, index)
@@ -89,8 +101,16 @@ class _PolarPredicate(_PositionalPredicate):
 			desc += ' rotate: {}'.format(self.prerotates)
 		return desc + ')'
 
+	def describeAtIndex(self, index):
+		desc = '(angle: {} dist: {}'.format(
+			self.angleranges.describeAtIndex(index),
+			self.distanceranges.describeAtIndex(index))
+		if self.prerotates:
+			desc += ' rotate: {}'.format(self.prerotates[index])
+		return desc + ')'
+
 	def __len__(self):
-		return max(len(self.angleranges), len(self.distanceranges))
+		return max(len(self.angleranges), len(self.distanceranges), len(self.prerotates))
 
 	def _testPosition(self, pos: tdu.Position, index: int):
 		dist, angle = cartesiantopolar(pos.x, pos.y)
@@ -133,21 +153,28 @@ class GroupGenContext:
 			if shapeindex in group.shapeindices
 		]
 
-def GenerateGroups(
-		hostobj,
-		shapes: List[ShapeInfo],
-		existinggroups: List[GroupInfo],
-		patternsettings: PatternSettings):
-	context = GroupGenContext(shapes)
-	context.addGroups(existinggroups)
-	generators = GroupGenerator.FromSpecs(hostobj, patternsettings.groupgens)
-	for generator in generators:
-		generator.generateGroups(context)
-	return [
-		group
-		for group in context.groups
-		if group not in existinggroups
-	]
+	def __repr__(self):
+		return 'GroupGenContext({} groups, {} shapes)'.format(len(self.groups), len(self.shapes))
+
+class GroupGenerators(LoggableSubComponent):
+	def __init__(
+			self, hostobj,
+			shapes: List[ShapeInfo],
+			existinggroups: List[GroupInfo]):
+		super().__init__(hostobj=hostobj, logprefix='GroupGens')
+		self.context = GroupGenContext(shapes)
+		self.context.addGroups(existinggroups or [])
+
+	@loggedmethod
+	def runGenerators(self, patternsettings: PatternSettings):
+		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=patternsettings.groupgens)
+		self._LogEvent('Starting with {} groups'.format(len(self.context.groups)))
+		self._LogEvent('Loaded {} group generators'.format(len(generators)))
+		for generator in generators:
+			self._LogEvent('   {}'.format(generator))
+			generator.generateGroups(self.context)
+		self._LogEvent('Ended with {} groups'.format(len(self.context.groups)))
+		return self.context.groups
 
 class GroupGenerator(LoggableSubComponent, ABC):
 	def __init__(self, hostobj, groupspec: GroupGenSpec, logprefix: str=None):
@@ -202,11 +229,18 @@ class _PredicateGroupGenerator(GroupGenerator):
 			groupspec=groupspec)
 		self.predicate = predicate
 
+	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):
 		groups = []
 		n = len(self.predicate)
+		self._LogEvent('Predicate: {} (len: {})'.format(self.predicate, n))
 		for i in range(n):
-			groupshapes = self.predicate.filter(context.shapes, i)
+			self._LogEvent(' [{}] predicate: {}'.format(i, self.predicate.describeAtIndex(i)))
+			groupshapes = []
+			for shape in context.shapes:
+				if self.predicate.test(shape, i):
+					groupshapes.append(shape)
+			self._LogEvent('  found {} shapes'.format(len(groupshapes)))
 			if not groupshapes:
 				continue
 			groupshapeindices = [s.shapeindex for s in groupshapes]
@@ -214,6 +248,7 @@ class _PredicateGroupGenerator(GroupGenerator):
 				groupname=self._getName(i),
 				shapeindices=groupshapeindices,
 				sequencesteps=[SequenceStep(shapeindices=groupshapeindices,isdefault=True)])
+			self._LogEvent('  produced group: {}'.format(group))
 			groups.append(group)
 		if len(groups) == 1 and self.suffixes is None:
 			groups[0].groupname = self._getName(0, issolo=True)
@@ -251,6 +286,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 		self.boolop = BoolOpNames.aliases.get(groupspec.boolop) or BoolOpNames.AND
 		self.permute = groupspec.permute
 
+	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):
 		if self.permute:
 			groups = self._generatePermutations(context)
@@ -260,6 +296,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
 
+	@loggedmethod
 	def _generatePermutations(self, context: GroupGenContext) -> List[GroupInfo]:
 		groups = []
 		index = 0
@@ -273,6 +310,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 				index += 1
 		return groups
 
+	@loggedmethod
 	def _generateBooleanGroups(self, context: GroupGenContext) -> List[GroupInfo]:
 		groups = []
 		index = 0

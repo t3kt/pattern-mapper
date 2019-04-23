@@ -30,7 +30,7 @@ except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
 from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo, PatternSettings
-from pattern_groups import GenerateGroups
+from pattern_groups import GroupGenerators
 
 remap = tdu.remap
 
@@ -235,14 +235,11 @@ class PatternLoader(ExtensionBase):
 			builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
 
-		generatedgroups = GenerateGroups(
+		generators = GroupGenerators(
 			hostobj=self,
 			shapes=self.shapes,
-			existinggroups=self.groups,
-			patternsettings=patternsettings,
-		)
-		self._LogEvent('Generated {} groups'.format(len(generatedgroups)))
-		self.groups += generatedgroups
+			existinggroups=self.groups)
+		self.groups = generators.runGenerators(patternsettings)
 
 		for o in self.ownerComp.ops('build_group_table', 'build_sequence_step_table'):
 			o.cook(force=True)
@@ -550,6 +547,7 @@ class _GroupsBuilder(LoggableSubComponent):
 	def loadGroupSpecs(self, groupspecs: List[GroupSpec]):
 		for groupspec in groupspecs:
 			groups = self._createGroupsFromSpec(groupspec) or []
+			self._LogEvent('spec: {}, groups: {}'.format(groupspec, groups))
 			for group in groups:
 				self._addGroup(group)
 

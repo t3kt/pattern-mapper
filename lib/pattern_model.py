@@ -224,7 +224,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 		self.suffixes = suffixes
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(super().ToJsonDict(), {
+		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
 			'suffixes': self.suffixes,
 		}))
@@ -346,7 +346,7 @@ class PatternSettings(BaseDataObject):
 		self.defaultshapestate = dict(defaultshapestate or {})
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(super().ToJsonDict(), {
+		return cleandict(mergedicts(self.attrs, {
 			'groupgens': GroupGenSpec.ToJsonDicts(self.groupgens),
 			'rescale': self.rescale,
 			'recenter': self.recenter,

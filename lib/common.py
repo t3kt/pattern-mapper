@@ -406,6 +406,11 @@ class ValueRangeSequence:
 	def __str__(self):
 		return '{} .. {}'.format(self.lows, self.highs)
 
+	def describeAtIndex(self, index: int):
+		return '{} .. {}'.format(
+			formatValue(self.lows[index], nonevalue='*'),
+			formatValue(self.highs[index], nonevalue='*'))
+
 class ValueSequence:
 	def __init__(self, vals, cyclic, backup=None):
 		self.vals = list(vals or [])
