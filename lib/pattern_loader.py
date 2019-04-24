@@ -742,8 +742,8 @@ class _GroupCombiner(LoggableSubComponent):
 			resultgroup.sequencesteps = resultsteps
 			resultgroup.shapeindices = list(sorted(set(finalallstepindices)))
 
-	@loggedmethod
-	def _combineIndexSets(self, indexsets: List[Set[int]], boolop: str):
+	@staticmethod
+	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
 		if not indexsets:
 			return set()
 		combinedindices = set(indexsets[0])

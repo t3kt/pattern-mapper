@@ -396,7 +396,7 @@ class ValueRangeSequence:
 		high = self.highs[index]
 		if low is not None and val < low:
 			return False
-		if high is not None and val < high:
+		if high is not None and val > high:
 			return False
 		return True
 
@@ -438,7 +438,7 @@ class ValueSequence:
 	def __getitem__(self, index):
 		if not self.vals:
 			return None
-		if len(self.vals) > 0 and (0 >= index < len(self.vals)):
+		if 0 <= index < len(self.vals):
 			return self.vals[index]
 		if self.cyclic:
 			return self.vals[index % len(self.vals)]
@@ -455,3 +455,7 @@ class ValueSequence:
 
 	def __str__(self):
 		return '({})'.format(' '.join(map(str, self.vals)))
+
+	def __repr__(self):
+		return '{}(vals={!r}, cyclic={!r})'.format(
+			type(self).__name__, self.vals, self.cyclic)

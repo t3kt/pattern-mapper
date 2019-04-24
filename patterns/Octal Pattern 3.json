@@ -2,25 +2,6 @@
   "autosides": false,
   "groups": [
     {
-      "groupname": "-topslice",
-      "anglebound": "-47 48",
-      "prerotate": -90
-    },
-    {
-      "groupname": "-leftslice",
-      "anglebound": "-47 48",
-      "prerotate": -180
-    },
-    {
-      "groupname": "-bottomslice",
-      "anglebound": "-47 48",
-      "prerotate": -270
-    },
-    {
-      "groupname": "-rightslice",
-      "anglebound": "-47 48"
-    },
-    {
       "groupname": "topArm",
       "anglebound": "-20 20",
       "prerotate": -90
@@ -38,26 +19,6 @@
     {
       "groupname": "rightArm",
       "anglebound": "-20 20"
-    },
-    {
-      "groupname": "-toprightslice",
-      "anglebound": "-47 48",
-      "prerotate": -45
-    },
-    {
-      "groupname": "-topleftslice",
-      "anglebound": "-47 48",
-      "prerotate": -135
-    },
-    {
-      "groupname": "-bottomleftslice",
-      "anglebound": "-47 48",
-      "prerotate": -225
-    },
-    {
-      "groupname": "-bottomrightslice",
-      "anglebound": "-47 48",
-      "prerotate": -315
     },
     {
       "groupname": "topRightArm",
@@ -78,54 +39,32 @@
       "groupname": "bottomRightArm",
       "anglebound": "-20 20",
       "prerotate": -315
+    }
+  ],
+  "groupgens": [
+    {
+      "suffixes": "armTopX armLeftX armBottomX armRightX",
+      "anglemin": "-20",
+      "anglemax": "20",
+      "prerotate": "0 -90 -180 -270"
     },
     {
-      "groupname": "blueTop",
-      "basedon": "blue topArm",
+      "groups": "green",
+      "withgroups": "bottomLeftArm bottomRightArm topRightArm topLeftArm",
       "boolop": "and"
     },
     {
-      "groupname": "blueBottom",
-      "basedon": "blue bottomArm",
+      "groups": "blue",
+      "withgroups": "bottomArm leftArm topArm rightArm",
       "boolop": "and"
     },
     {
-      "groupname": "blueLeft",
-      "basedon": "blue leftArm",
-      "boolop": "and"
+      "groupname": "inner",
+      "distancemax": ".3"
     },
     {
-      "groupname": "blueRight",
-      "basedon": "blue rightArm",
-      "boolop": "and"
-    },
-    {
-      "groupname": "greenTopRight",
-      "basedon": "green topRightArm",
-      "boolop": "and"
-    },
-    {
-      "groupname": "greenTopLeft",
-      "basedon": "green topLeftArm",
-      "boolop": "and"
-    },
-    {
-      "groupname": "greenBottomRight",
-      "basedon": "green bottomRightArm",
-      "boolop": "and"
-    },
-    {
-      "groupname": "greenBottomLeft",
-      "basedon": "green bottomLeftArm",
-      "boolop": "and"
-    },
-    {
-      "groupname": "mediumRange",
-      "distancebound": "_ .3"
-    },
-    {
-      "groupname": "blueInner",
-      "basedon": "blue mediumRange",
+      "groups": "blue",
+      "withgroups": "inner",
       "boolop": "and"
     }
   ]

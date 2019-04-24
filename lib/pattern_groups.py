@@ -179,12 +179,12 @@ class GroupGenerators(LoggableSubComponent):
 class GroupGenerator(LoggableSubComponent, ABC):
 	def __init__(self, hostobj, groupspec: GroupGenSpec, logprefix: str=None):
 		super().__init__(hostobj=hostobj, logprefix=logprefix or 'GroupGen')
-		# self.basedongroups = ValueSequence(groupspec.basedon, cyclic=True)
+		# self.basedongroups = ValueSequence.FromSpec(groupspec.basedon, cyclic=True)
 		self.basename = groupspec.groupname
 		if not groupspec.suffixes:
 			self.suffixes = None
 		else:
-			self.suffixes = ValueSequence(groupspec.suffixes, cyclic=False, backup=lambda i: i)
+			self.suffixes = ValueSequence.FromSpec(groupspec.suffixes, cyclic=False, backup=lambda i: i)
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -195,7 +195,9 @@ class GroupGenerator(LoggableSubComponent, ABC):
 				suffix = 0
 		else:
 			suffix = self.suffixes[index]
-		return self.basename + str(suffix)
+		if self.basename:
+			return self.basename + str(suffix)
+		return str(suffix)
 
 	def generateGroups(self, context: GroupGenContext):
 		raise NotImplementedError()
@@ -254,6 +256,10 @@ class _PredicateGroupGenerator(GroupGenerator):
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
 
+	def __repr__(self):
+		return '{}(basename: {!r}, suffixes: {!r}, predicate: {!r})'.format(
+			type(self).__name__, self.basename, self.suffixes, self.predicate)
+
 class _BoxBoundGroupGenerator(_PredicateGroupGenerator):
 	def __init__(self, hostobj, groupspec: BoxBoundGroupGenSpec):
 		super().__init__(
@@ -278,13 +284,18 @@ class _CombinationGroupGenerator(GroupGenerator):
 			hostobj=hostobj,
 			logprefix='ComboGroupGen',
 			groupspec=groupspec)
-		self.groups1 = ValueSequence(groupspec.groups, cyclic=True)
+		self.groups1 = ValueSequence.FromSpec(groupspec.groups, cyclic=True)
 		if groupspec.withgroups is None:
 			self.groups2 = self.groups1
 		else:
-			self.groups2 = ValueSequence(groupspec.withgroups, cyclic=True)
+			self.groups2 = ValueSequence.FromSpec(groupspec.withgroups, cyclic=True)
 		self.boolop = BoolOpNames.aliases.get(groupspec.boolop) or BoolOpNames.AND
 		self.permute = groupspec.permute
+
+	def __repr__(self):
+		return '{}(basename: {!r}, suffixes: {!r}, groups1: {!r}, groups2: {!r}, boolop: {!r}, permute: {!r})'.format(
+			type(self).__name__, self.basename, self.suffixes,
+			self.groups1, self.groups2, self.boolop, self.permute)
 
 	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):
@@ -341,8 +352,10 @@ class _CombinationGroupGenerator(GroupGenerator):
 		combiner.addGroup(group2)
 		if self.suffixes:
 			groupname = self._getName(index, False)
-		else:
+		elif self.basename:
 			groupname = self.basename + '_' + groupname1 + '_' + groupname2
+		else:
+			groupname = groupname1 + '_' + groupname2
 		resultgroup = GroupInfo(groupname)
 		combiner.buildInto(resultgroup, boolop=self.boolop)
 		return resultgroup
@@ -392,8 +405,8 @@ class _GroupCombiner(LoggableSubComponent):
 			resultgroup.sequencesteps = resultsteps
 			resultgroup.shapeindices = list(sorted(set(finalallstepindices)))
 
-	@loggedmethod
-	def _combineIndexSets(self, indexsets: List[Set[int]], boolop: str):
+	@staticmethod
+	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
 		if not indexsets:
 			return set()
 		combinedindices = set(indexsets[0])
