@@ -153,6 +153,11 @@ class GroupGenContext:
 			if shapeindex in group.shapeindices
 		]
 
+	def getShape(self, shapeindex: int):
+		if shapeindex < 0 or shapeindex >= len(self.shapes):
+			return None
+		return self.shapes[shapeindex]
+
 	def __repr__(self):
 		return 'GroupGenContext({} groups, {} shapes)'.format(len(self.groups), len(self.shapes))
 

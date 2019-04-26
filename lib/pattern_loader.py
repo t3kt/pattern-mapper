@@ -220,19 +220,6 @@ class PatternLoader(ExtensionBase):
 		obj = json.loads(jsondat.text) if jsondat.text else {}
 		patternsettings = PatternSettings.FromJsonDict(obj)
 
-		if obj.get('autosides'):
-			if not builder.hasGroup('tophalf'):
-				builder.loadGroupSpecs([GroupSpec('tophalf', ybound=(0, None))])
-			if not builder.hasGroup('bottomhalf'):
-				builder.loadGroupSpecs([GroupSpec('bottomhalf', ybound=(None, 0))])
-			if not builder.hasGroup('left'):
-				builder.loadGroupSpecs([GroupSpec('lefthalf', xbound=(None, 0))])
-			if not builder.hasGroup('right'):
-				builder.loadGroupSpecs([GroupSpec('righthalf', xbound=(0, None))])
-
-		groupspecs = GroupSpec.FromJsonDicts(obj.get('groups'))
-		if groupspecs:
-			builder.loadGroupSpecs(groupspecs)
 		self.groups = builder.grouplist
 
 		generators = GroupGenerators(

@@ -1,52 +1,17 @@
 {
   "autosides": false,
-  "groups": [
-    {
-      "groupname": "topArm",
-      "anglebound": "-20 20",
-      "prerotate": -90
-    },
-    {
-      "groupname": "leftArm",
-      "anglebound": "-20 20",
-      "prerotate": -180
-    },
-    {
-      "groupname": "bottomArm",
-      "anglebound": "-20 20",
-      "prerotate": -270
-    },
-    {
-      "groupname": "rightArm",
-      "anglebound": "-20 20"
-    },
-    {
-      "groupname": "topRightArm",
-      "anglebound": "-20 20",
-      "prerotate": -45
-    },
-    {
-      "groupname": "topLeftArm",
-      "anglebound": "-20 20",
-      "prerotate": -135
-    },
-    {
-      "groupname": "bottomLeftArm",
-      "anglebound": "-20 20",
-      "prerotate": -225
-    },
-    {
-      "groupname": "bottomRightArm",
-      "anglebound": "-20 20",
-      "prerotate": -315
-    }
-  ],
   "groupgens": [
     {
-      "suffixes": "armTopX armLeftX armBottomX armRightX",
+      "suffixes": "rightArm topArm leftArm bottomArm",
       "anglemin": "-20",
       "anglemax": "20",
       "prerotate": "0 -90 -180 -270"
+    },
+    {
+      "suffixes": "topRightArm topLeftArm bottomLeftArm bottomRightArm",
+      "anglemin": "-20",
+      "anglemax": "20",
+      "prerotate": "-45 -135 -225 -315"
     },
     {
       "groups": "green",
