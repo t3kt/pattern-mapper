@@ -3,7 +3,7 @@
 #include "shape_shader_common"
 
 uniform int uShapeCount;
-uniform samplerBuffer bColors;
+uniform sampler2D sColors;
 
 uniform sampler2D sTransforms;
 uniform sampler2D sPanelTexParams;
@@ -34,7 +34,7 @@ VertexAttrs loadVertexAttrs() {
 	}
 
 	attrs.shapeIndex = shapeIndex;
-	attrs.color = texelFetch(bColors, shapeIndex);
+	attrs.color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
 
 	vec4 localOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 0), 0);
 	vec4 globalOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 1), 0);
@@ -76,7 +76,7 @@ VertexAttrs loadVertexAttrs() {
 #ifndef TD_PICKING_ACTIVE
 
 	attrs.worldSpacePos.xyz = worldSpacePos.xyz;
-	attrs.color = TDInstanceColor(Cd);
+//	attrs.color *= TDInstanceColor(Cd);
 
 #else // TD_PICKING_ACTIVE
 
