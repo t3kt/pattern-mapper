@@ -257,8 +257,9 @@ class _PathGroupGenerator(GroupGenerator):
 			self,
 			hostobj,
 			groupspec: PathGroupGenSpec):
-		super().__init__(hostobj=hostobj, groupspec=groupspec)
+		super().__init__(hostobj=hostobj, groupspec=groupspec, logprefix='PathGroupGen')
 		self.pathpatterns = ValueSequence.FromSpec(groupspec.paths, cyclic=False)
+		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
 
 	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):

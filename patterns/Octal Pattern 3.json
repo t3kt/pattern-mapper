@@ -38,6 +38,26 @@
       "groups": "blue",
       "withgroups": "inner",
       "boolop": "and"
+    },
+    {
+      "groupname": "blue_PATH",
+      "paths": "^svg/g\\[id=blue\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "teal_PATH",
+      "paths": "^svg/g\\[id=teal\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "red_PATH",
+      "paths": "^svg/g\\[id=red\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "green_PATH",
+      "paths": "^svg/g\\[id=green\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
     }
   ]
 }

@@ -312,9 +312,13 @@ class GroupGenSpec(BaseDataObject, ABC):
 		if len(gentypes) > 1:
 			raise Exception('Multiple conflicting group gen types: {}'.format(gentypes))
 		t = gentypes[0]
-		if t.FromJsonDict is GroupGenSpec.FromJsonDict:
-			raise Exception('Class does not have a specialized FromJsonDict: {}'.format(t))
-		return t.FromJsonDict(obj)
+		return t._SpecFromJsonDict(obj)
+
+	@classmethod
+	def _SpecFromJsonDict(cls, obj):
+		return cls(
+			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
+			**excludekeys(obj, ['sequenceby']))
 
 def _hasany(obj, *keys):
 	return obj and any(k in obj for k in keys)
@@ -365,12 +369,6 @@ class BoxBoundGroupGenSpec(PositionalGroupGenSpec):
 			'ymin': self.ymin, 'ymax': self.ymax,
 		}))
 
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(
-			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
-			**excludekeys(obj, ['sequenceby']))
-
 class PolarBoundGroupGenSpec(PositionalGroupGenSpec):
 	def __init__(
 			self,
@@ -390,12 +388,6 @@ class PolarBoundGroupGenSpec(PositionalGroupGenSpec):
 			'anglemin': self.anglemin, 'anglemax': self.anglemax,
 			'distancemin': self.distancemin, 'distancemax': self.distancemax,
 		}))
-
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(
-			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
-			**excludekeys(obj, ['sequenceby']))
 
 class CombinationGroupGenSpec(GroupGenSpec):
 	def __init__(
@@ -418,12 +410,6 @@ class CombinationGroupGenSpec(GroupGenSpec):
 			'boolop': self.boolop,
 			'permute': self.permute,
 		}))
-
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(
-			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
-			**excludekeys(obj, ['sequenceby']))
 
 class PatternSettings(BaseDataObject):
 	def __init__(
