@@ -5,7 +5,8 @@ if False:
 
 from pattern_model import *
 from abc import ABC
-from typing import List, Set, Dict
+from typing import Any, List, Set, Dict, Callable, DefaultDict
+from collections import defaultdict
 
 try:
 	from common import LoggableSubComponent, cartesiantopolar, loggedmethod
@@ -190,6 +191,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			self.suffixes = None
 		else:
 			self.suffixes = ValueSequence.FromSpec(groupspec.suffixes, cyclic=False, backup=lambda i: i)
+		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -203,6 +205,22 @@ class GroupGenerator(LoggableSubComponent, ABC):
 		if self.basename:
 			return self.basename + str(suffix)
 		return str(suffix)
+
+	def _createGroup(
+			self,
+			groupname: str,
+			context: GroupGenContext,
+			shapeindices: List[int]=None,
+			autosequence=False):
+		if autosequence and shapeindices:
+			steps = self.sequencer.sequenceShapes(shapeindices, context)
+		else:
+			steps = None
+		group = GroupInfo(
+			groupname,
+			shapeindices=shapeindices,
+			sequencesteps=steps)
+		return group
 
 	def generateGroups(self, context: GroupGenContext):
 		raise NotImplementedError()
@@ -251,10 +269,11 @@ class _PredicateGroupGenerator(GroupGenerator):
 			if not groupshapes:
 				continue
 			groupshapeindices = [s.shapeindex for s in groupshapes]
-			group = GroupInfo(
+			group = self._createGroup(
 				groupname=self._getName(i),
 				shapeindices=groupshapeindices,
-				sequencesteps=[SequenceStep(shapeindices=groupshapeindices,isdefault=True)])
+				context=context,
+				autosequence=True)
 			self._LogEvent('  produced group: {}'.format(group))
 			groups.append(group)
 		if len(groups) == 1 and self.suffixes is None:
@@ -361,7 +380,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 			groupname = self.basename + '_' + groupname1 + '_' + groupname2
 		else:
 			groupname = groupname1 + '_' + groupname2
-		resultgroup = GroupInfo(groupname)
+		resultgroup = self._createGroup(groupname, context=context, autosequence=False)
 		combiner.buildInto(resultgroup, boolop=self.boolop)
 		return resultgroup
 
@@ -422,3 +441,94 @@ class _GroupCombiner(LoggableSubComponent):
 		else:
 			return set()
 		return combinedindices
+
+class _ShapeSequencer(ABC):
+	def sequenceShapes(
+			self,
+			shapeindices: List[int],
+			context: GroupGenContext) -> List[SequenceStep]:
+		raise NotImplementedError()
+
+	@staticmethod
+	def _createDefaultStep(shapeindices: List[int]):
+		return SequenceStep(
+			isdefault=True,
+			shapeindices=shapeindices
+		)
+
+	@classmethod
+	def FromSpec(cls, groupspec: GroupGenSpec, hostobj):
+		if not groupspec.sequenceby:
+			return _NoOpShapeSequencer()
+		return _AttributeShapeSequencer(hostobj=hostobj, seqbyspec=groupspec.sequenceby)
+
+class _NoOpShapeSequencer(_ShapeSequencer):
+	def sequenceShapes(
+			self,
+			shapeindices: List[int],
+			context: GroupGenContext):
+		return [self._createDefaultStep(shapeindices)]
+
+class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
+	def __init__(
+			self, hostobj,
+			seqbyspec: SequenceBySpec):
+		part = SequenceByTypes.aliases.get(seqbyspec.attr)
+		LoggableSubComponent.__init__(
+			self, hostobj=hostobj, logprefix='AttrShapeSeq[{}]'.format(part))
+		if part in SequenceByTypes.rgb:
+			index = SequenceByTypes.rgb.index(part)
+			self.accessor = lambda s: s.color[index] if s.color else None
+		elif part in SequenceByTypes.hsv:
+			index = SequenceByTypes.hsv.index(part)
+			self.accessor = lambda s: s.hsvcolor[index] if s.color else None
+		elif part == SequenceByTypes.distance:
+			self.accessor = lambda s: cartesiantopolar(s.center[0], s.center[1])[0]
+		else:
+			raise Exception('Unsupported attribute: {!r}'.format(seqbyspec.attr))
+		self.rounddigits = seqbyspec.rounddigits
+		self.reverse = seqbyspec.reverse
+		self.shapesbykey = defaultdict(list)  # type: DefaultDict[Any, List[ShapeInfo]]
+		self.unkeyedshapes = []  # type: List[ShapeInfo]
+
+	def _getKey(self, shape: ShapeInfo):
+		val = self.accessor(shape)
+		if val is None:
+			return None
+		if self.rounddigits is not None:
+			return round(val, self.rounddigits)
+		return val
+
+	def _registerShape(self, shape: ShapeInfo):
+		key = self._getKey(shape)
+		if key is None:
+			self.unkeyedshapes.append(shape)
+		else:
+			self.shapesbykey[key].append(shape)
+
+	def sequenceShapes(
+			self,
+			shapeindices: List[int],
+			context: GroupGenContext):
+		if not shapeindices:
+			return []
+		for shapeindex in shapeindices:
+			shape = context.getShape(shapeindex)
+			if shape:
+				self._registerShape(shape)
+		if self.unkeyedshapes:
+			self._LogEvent('Group has {} shapes without the required key, putting all shapes in a single default step'.format(
+				len(self.unkeyedshapes)))
+			return [self._createDefaultStep(shapeindices)]
+		steps = []
+		stepkeys = list(sorted(self.shapesbykey.keys()))
+		if self.reverse:
+			stepkeys.reverse()
+		for stepindex, stepkey in enumerate(stepkeys):
+			steps.append(SequenceStep(
+				sequenceindex=stepindex,
+				shapeindices=[s.shapeindex for s in self.shapesbykey[stepkey]],
+				inferredfromvalue=stepkey,
+				isdefault=len(stepkeys) == 1,
+			))
+		return steps

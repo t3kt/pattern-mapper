@@ -138,6 +138,59 @@ class BoolOpNames:
 		'|': OR,
 	}
 
+class SequenceByTypes:
+	red = 'r'
+	green = 'g'
+	blue = 'b'
+	# alpha = 'a'
+	hue = 'h'
+	saturation = 's'
+	value = 'v'
+	# structure = 'structure'
+	x = 'x'
+	y = 'y'
+	distance = 'distance'
+
+	aliases = {
+		'r': red, 'red': red,
+		'g': green, 'green': green,
+		'b': blue, 'blue': blue,
+		# 'a': alpha, 'alpha': alpha,
+		'h': hue, 'hue': hue,
+		's': saturation, 'sat': saturation, 'saturation': saturation,
+		'v': value, 'value': value,
+		# 'structure': structure,
+		'd': distance, 'dist': distance, 'distance': distance,
+	}
+
+	rgb = red, green, blue
+	hsv = hue, saturation, value
+
+class SequenceBySpec(BaseDataObject):
+	def __init__(
+			self,
+			attr: str,
+			rounddigits: int=None,
+			reverse: bool=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.attr = attr
+		self.rounddigits = rounddigits
+		self.reverse = reverse
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'attr': self.attr,
+			'rounddigits': self.rounddigits,
+			'reverse': self.reverse,
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		if isinstance(obj, str):
+			return cls(attr=obj)
+		return cls(**obj)
+
 class GroupSpec(GroupInfo):
 	def __init__(
 			self,
@@ -218,15 +271,18 @@ class GroupGenSpec(BaseDataObject, ABC):
 			self,
 			groupname=None,
 			suffixes: _ValueListSpec=None,
+			sequenceby: SequenceBySpec=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
 		self.suffixes = suffixes
+		self.sequenceby = sequenceby
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
 			'suffixes': self.suffixes,
+			'sequenceby': self.sequenceby.ToJsonDict() if self.sequenceby else None,
 		}))
 
 	@classmethod
@@ -242,7 +298,10 @@ class GroupGenSpec(BaseDataObject, ABC):
 			raise Exception('Unsupported group gen spec: {}'.format(obj))
 		if len(gentypes) > 1:
 			raise Exception('Multiple conflicting group gen types: {}'.format(gentypes))
-		return gentypes[0].FromJsonDict(obj)
+		t = gentypes[0]
+		if t.FromJsonDict is GroupGenSpec.FromJsonDict:
+			raise Exception('Class does not have a specialized FromJsonDict: {}'.format(t))
+		return t.FromJsonDict(obj)
 
 def _hasany(obj, *keys):
 	return obj and any(k in obj for k in keys)
@@ -281,7 +340,10 @@ class BoxBoundGroupGenSpec(PositionalGroupSpec):
 		}))
 
 	@classmethod
-	def FromJsonDict(cls, obj): return cls(**obj)
+	def FromJsonDict(cls, obj):
+		return cls(
+			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
+			**excludekeys(obj, ['sequenceby']))
 
 class PolarBoundGroupGenSpec(PositionalGroupSpec):
 	def __init__(
@@ -304,7 +366,10 @@ class PolarBoundGroupGenSpec(PositionalGroupSpec):
 		}))
 
 	@classmethod
-	def FromJsonDict(cls, obj): return cls(**obj)
+	def FromJsonDict(cls, obj):
+		return cls(
+			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
+			**excludekeys(obj, ['sequenceby']))
 
 class CombinationGroupGenSpec(GroupGenSpec):
 	def __init__(
@@ -329,7 +394,10 @@ class CombinationGroupGenSpec(GroupGenSpec):
 		}))
 
 	@classmethod
-	def FromJsonDict(cls, obj): return cls(**obj)
+	def FromJsonDict(cls, obj):
+		return cls(
+			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
+			**excludekeys(obj, ['sequenceby']))
 
 class PatternSettings(BaseDataObject):
 	def __init__(
