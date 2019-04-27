@@ -5,8 +5,9 @@ if False:
 
 from pattern_model import *
 from abc import ABC
-from typing import Any, List, Set, Dict, Callable, DefaultDict
+from typing import Any, List, Set, Dict, DefaultDict
 from collections import defaultdict
+import re
 
 try:
 	from common import LoggableSubComponent, cartesiantopolar, loggedmethod
@@ -39,7 +40,7 @@ class _ShapePredicate:
 # 	return xform
 
 class _PositionalPredicate(_ShapePredicate, ABC):
-	def __init__(self, groupspec: PositionalGroupSpec):
+	def __init__(self, groupspec: PositionalGroupGenSpec):
 		self.prerotates = ValueSequence.FromSpec(
 			groupspec.prerotate,
 			parse=float,
@@ -191,7 +192,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			self.suffixes = None
 		else:
 			self.suffixes = ValueSequence.FromSpec(groupspec.suffixes, cyclic=False, backup=lambda i: i)
-		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
+		self.sequencer = None  # type: _ShapeSequencer
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -212,7 +213,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			context: GroupGenContext,
 			shapeindices: List[int]=None,
 			autosequence=False):
-		if autosequence and shapeindices:
+		if autosequence and shapeindices and self.sequencer:
 			steps = self.sequencer.sequenceShapes(shapeindices, context)
 		else:
 			steps = None
@@ -233,6 +234,8 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			return _PolarBoundGroupGenerator(hostobj, groupspec)
 		elif isinstance(groupspec, CombinationGroupGenSpec):
 			return _CombinationGroupGenerator(hostobj, groupspec)
+		elif isinstance(groupspec, PathGroupGenSpec):
+			return _PathGroupGenerator(hostobj, groupspec)
 		else:
 			raise Exception('Unsupported group gen spec: {} (type: {})'.format(
 				groupspec, type(groupspec)))
@@ -240,6 +243,46 @@ class GroupGenerator(LoggableSubComponent, ABC):
 	@classmethod
 	def FromSpecs(cls, hostobj, groupspecs: List[GroupGenSpec]):
 		return [cls.FromSpec(hostobj, groupspec) for groupspec in groupspecs]
+
+class _PathGroupGenerator(GroupGenerator):
+	def __init__(
+			self,
+			hostobj,
+			groupspec: PathGroupGenSpec):
+		super().__init__(hostobj=hostobj, groupspec=groupspec)
+		self.pathpatterns = ValueSequence.FromSpec(groupspec.paths, cyclic=False)
+
+	@loggedmethod
+	def generateGroups(self, context: GroupGenContext):
+		groups = []
+		n = len(self.pathpatterns)
+		self._LogEvent('Paths (len: {})'.format(n))
+		for i in range(n):
+			pathpattern = self.pathpatterns[i]
+			self._LogEvent(' [{}] pattern: {!r}'.format(i, pathpattern))
+			shapeindices = [
+				shape.shapeindex
+				for shape in context.shapes
+				if re.match(pathpattern, shape.shapepath)
+			]
+			self._LogEvent('  found {} shapes'.format(len(shapeindices)))
+			if not shapeindices:
+				continue
+			group = self._createGroup(
+				self._getName(i),
+				shapeindices=shapeindices,
+				context=context,
+				autosequence=True,
+			)
+			self._LogEvent('  produced group: {}'.format(group))
+			groups.append(group)
+		if len(groups) == 1 and self.suffixes is None:
+			groups[0].groupname = self._getName(0, issolo=True)
+		context.addGroups(groups)
+
+	def __repr__(self):
+		return '{}(basename: {!r}, suffixes: {!r}, paths: {!r})'.format(
+			type(self).__name__, self.basename, self.suffixes, self.pathpatterns)
 
 class _PredicateGroupGenerator(GroupGenerator):
 	def __init__(
@@ -253,6 +296,7 @@ class _PredicateGroupGenerator(GroupGenerator):
 			logprefix=logprefix,
 			groupspec=groupspec)
 		self.predicate = predicate
+		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
 
 	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):

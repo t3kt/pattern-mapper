@@ -296,6 +296,8 @@ class GroupGenSpec(BaseDataObject, ABC):
 			gentypes.append(PolarBoundGroupGenSpec)
 		if 'groups' in obj and _hasany(obj, 'withgroups', 'boolop', 'permute'):
 			gentypes.append(CombinationGroupGenSpec)
+		if 'paths' in obj:
+			gentypes.append(PathGroupGenSpec)
 		if not gentypes:
 			raise Exception('Unsupported group gen spec: {}'.format(obj))
 		if len(gentypes) > 1:
@@ -308,7 +310,20 @@ class GroupGenSpec(BaseDataObject, ABC):
 def _hasany(obj, *keys):
 	return obj and any(k in obj for k in keys)
 
-class PositionalGroupSpec(GroupGenSpec, ABC):
+class PathGroupGenSpec(GroupGenSpec):
+	def __init__(
+			self,
+			paths: _ValueListSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.paths = paths
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'path': self.paths,
+		}))
+
+class PositionalGroupGenSpec(GroupGenSpec, ABC):
 	def __init__(
 			self,
 			prerotate: _ValueListSpec=None,
@@ -321,7 +336,7 @@ class PositionalGroupSpec(GroupGenSpec, ABC):
 			'prerotate': self.prerotate,
 		}))
 
-class BoxBoundGroupGenSpec(PositionalGroupSpec):
+class BoxBoundGroupGenSpec(PositionalGroupGenSpec):
 	def __init__(
 			self,
 			xmin: _ValueListSpec=None,
@@ -347,7 +362,7 @@ class BoxBoundGroupGenSpec(PositionalGroupSpec):
 			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
 			**excludekeys(obj, ['sequenceby']))
 
-class PolarBoundGroupGenSpec(PositionalGroupSpec):
+class PolarBoundGroupGenSpec(PositionalGroupGenSpec):
 	def __init__(
 			self,
 			anglemin: _ValueListSpec=None,
