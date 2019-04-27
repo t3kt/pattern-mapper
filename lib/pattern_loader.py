@@ -225,8 +225,9 @@ class PatternLoader(ExtensionBase):
 		generators = GroupGenerators(
 			hostobj=self,
 			shapes=self.shapes,
-			existinggroups=self.groups)
-		self.groups = generators.runGenerators(patternsettings)
+			existinggroups=self.groups,
+			patternsettings=patternsettings)
+		self.groups = generators.runGenerators()
 
 		for o in self.ownerComp.ops('build_group_table', 'build_sequence_step_table'):
 			o.cook(force=True)

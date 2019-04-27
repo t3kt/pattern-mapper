@@ -93,6 +93,7 @@ class GroupInfo(BaseDataObject):
 			inferredfromvalue: Any=None,
 			shapeindices: List[int]=None,
 			sequencesteps: List[SequenceStep]=None,
+			temporary: bool=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
@@ -101,6 +102,7 @@ class GroupInfo(BaseDataObject):
 		self.inferredfromvalue = inferredfromvalue
 		self.shapeindices = list(shapeindices or [])
 		self.sequencesteps = list(sequencesteps or [])
+		self.temporary = temporary
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -110,6 +112,7 @@ class GroupInfo(BaseDataObject):
 			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
 			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
+			'temporary': self.temporary,
 		}))
 
 	@classmethod
@@ -271,20 +274,26 @@ _ValueListSpec = Union[str, List[Union[str, float]]]
 class GroupGenSpec(BaseDataObject, ABC):
 	def __init__(
 			self,
-			groupname=None,
+			groupname: str=None,
 			suffixes: _ValueListSpec=None,
 			sequenceby: SequenceBySpec=None,
+			temporary: bool=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
 		self.suffixes = suffixes
 		self.sequenceby = sequenceby
+		if temporary is None and groupname and groupname.startswith('.'):
+			self.temporary = True
+		else:
+			self.temporary = temporary
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
 			'suffixes': self.suffixes,
 			'sequenceby': self.sequenceby.ToJsonDict() if self.sequenceby else None,
+			'temporary': self.temporary,
 		}))
 
 	@classmethod

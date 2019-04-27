@@ -167,21 +167,27 @@ class GroupGenerators(LoggableSubComponent):
 	def __init__(
 			self, hostobj,
 			shapes: List[ShapeInfo],
-			existinggroups: List[GroupInfo]):
+			existinggroups: List[GroupInfo],
+			patternsettings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='GroupGens')
 		self.context = GroupGenContext(shapes)
 		self.context.addGroups(existinggroups or [])
+		self.patternsettings = patternsettings
 
 	@loggedmethod
-	def runGenerators(self, patternsettings: PatternSettings):
-		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=patternsettings.groupgens)
+	def runGenerators(self):
+		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groupgens)
 		self._LogEvent('Starting with {} groups'.format(len(self.context.groups)))
 		self._LogEvent('Loaded {} group generators'.format(len(generators)))
 		for generator in generators:
 			self._LogEvent('   {}'.format(generator))
 			generator.generateGroups(self.context)
 		self._LogEvent('Ended with {} groups'.format(len(self.context.groups)))
-		return self.context.groups
+		return [
+			group
+			for group in self.context.groups
+			if not group.temporary
+		]
 
 class GroupGenerator(LoggableSubComponent, ABC):
 	def __init__(self, hostobj, groupspec: GroupGenSpec, logprefix: str=None):
@@ -193,6 +199,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 		else:
 			self.suffixes = ValueSequence.FromSpec(groupspec.suffixes, cyclic=False, backup=lambda i: i)
 		self.sequencer = None  # type: _ShapeSequencer
+		self.temporary = groupspec.temporary
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -220,7 +227,8 @@ class GroupGenerator(LoggableSubComponent, ABC):
 		group = GroupInfo(
 			groupname,
 			shapeindices=shapeindices,
-			sequencesteps=steps)
+			sequencesteps=steps,
+			temporary=self.temporary)
 		return group
 
 	def generateGroups(self, context: GroupGenContext):

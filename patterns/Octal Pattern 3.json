@@ -31,7 +31,8 @@
     },
     {
       "groupname": "inner",
-      "distancemax": ".3"
+      "distancemax": ".3",
+      "temporary": true
     },
     {
       "groups": "blue",
