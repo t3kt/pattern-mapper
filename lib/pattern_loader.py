@@ -212,13 +212,15 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def _BuildGroups(self):
 		builder = _GroupsBuilder(self, self.shapes)
-		builder.loadImplicitGroups()
 
 		jsondat = self.op('load_json_file')
 		jsondat.clear()
 		jsondat.par.loadonstartpulse.pulse()
 		obj = json.loads(jsondat.text) if jsondat.text else {}
 		patternsettings = PatternSettings.FromJsonDict(obj)
+
+		if patternsettings.autogroup:
+			builder.loadImplicitGroups()
 
 		self.groups = builder.grouplist
 

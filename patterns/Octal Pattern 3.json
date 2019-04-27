@@ -1,5 +1,26 @@
 {
+  "autogroup": false,
   "groupgens": [
+    {
+      "groupname": "blue",
+      "paths": "^svg/g\\[id=blue\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "teal",
+      "paths": "^svg/g\\[id=teal\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "red",
+      "paths": "^svg/g\\[id=red\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
+    {
+      "groupname": "green",
+      "paths": "^svg/g\\[id=green\\]/.*",
+      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+    },
     {
       "suffixes": "rightArm topArm leftArm bottomArm",
       "anglemin": "-20",
@@ -38,26 +59,6 @@
       "groups": "blue",
       "withgroups": "inner",
       "boolop": "and"
-    },
-    {
-      "groupname": "blue_PATH",
-      "paths": "^svg/g\\[id=blue\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
-    },
-    {
-      "groupname": "teal_PATH",
-      "paths": "^svg/g\\[id=teal\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
-    },
-    {
-      "groupname": "red_PATH",
-      "paths": "^svg/g\\[id=red\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
-    },
-    {
-      "groupname": "green_PATH",
-      "paths": "^svg/g\\[id=green\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
     }
   ]
 }

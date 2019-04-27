@@ -415,6 +415,7 @@ class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
 			groupgens: List[GroupGenSpec]=None,
+			autogroup: bool=True,
 			rescale: bool=None,
 			recenter: bool=None,
 			defaultshapestate: Dict[str, Any]=None,
@@ -424,9 +425,11 @@ class PatternSettings(BaseDataObject):
 		self.rescale = rescale
 		self.recenter = recenter
 		self.defaultshapestate = dict(defaultshapestate or {})
+		self.autogroup = autogroup
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
+			'autogroup': self.autogroup,
 			'groupgens': GroupGenSpec.ToJsonDicts(self.groupgens),
 			'rescale': self.rescale,
 			'recenter': self.recenter,
