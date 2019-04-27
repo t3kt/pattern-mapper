@@ -566,6 +566,8 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 			self,
 			shapeindices: List[int],
 			context: GroupGenContext):
+		self.shapesbykey.clear()
+		self.unkeyedshapes.clear()
 		if not shapeindices:
 			return []
 		for shapeindex in shapeindices:
