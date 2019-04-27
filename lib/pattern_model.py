@@ -161,10 +161,12 @@ class SequenceByTypes:
 		'v': value, 'value': value,
 		# 'structure': structure,
 		'd': distance, 'dist': distance, 'distance': distance,
+		'x': x, 'y': y,
 	}
 
 	rgb = red, green, blue
 	hsv = hue, saturation, value
+	xy = x, y
 
 class SequenceBySpec(BaseDataObject):
 	def __init__(

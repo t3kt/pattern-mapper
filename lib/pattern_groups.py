@@ -484,6 +484,9 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 			self.accessor = lambda s: s.hsvcolor[index] if s.color else None
 		elif part == SequenceByTypes.distance:
 			self.accessor = lambda s: cartesiantopolar(s.center[0], s.center[1])[0]
+		elif part in SequenceByTypes.xy:
+			index = SequenceByTypes.xy.index(part)
+			self.accessor = lambda s: s.center[index]
 		else:
 			raise Exception('Unsupported attribute: {!r}'.format(seqbyspec.attr))
 		self.rounddigits = seqbyspec.rounddigits
