@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -131,16 +131,6 @@ class GroupInfo(BaseDataObject):
 			return True
 		return not self.sequencesteps[0].isdefault
 
-class BoolOpNames:
-	OR = 'or'
-	AND = 'and'
-	aliases = {
-		AND: AND,
-		'&': AND,
-		OR: OR,
-		'|': OR,
-	}
-
 class SequenceByTypes:
 	red = 'r'
 	green = 'g'
@@ -195,79 +185,6 @@ class SequenceBySpec(BaseDataObject):
 		if isinstance(obj, str):
 			return cls(attr=obj)
 		return cls(**obj)
-
-class GroupSpec(GroupInfo):
-	def __init__(
-			self,
-			groupname,
-			basedon: List[str]=None,
-			boolop: str=None,
-			prerotate: float=None,
-			xbound: Iterable=None,
-			ybound: Iterable=None,
-			anglebound: Iterable=None,
-			distancebound: Iterable=None,
-			**attrs):
-		super().__init__(groupname=groupname, **attrs)
-		self.basedon = list(basedon or [])
-		self.boolop = BoolOpNames.aliases.get(boolop) or boolop
-		self.prerotate = prerotate
-		self.xbound = list(xbound) if xbound else None
-		self.ybound = list(ybound) if ybound else None
-		self.anglebound = list(anglebound) if anglebound else None
-		self.distancebound = list(distancebound) if distancebound else None
-
-	def ToJsonDict(self):
-		return cleandict(mergedicts(super().ToJsonDict(), {
-			'basedon': formatValueList(self.basedon),
-			'boolop': self.boolop,
-			'prerotate': self.prerotate,
-			'xbound': formatValueList(self.xbound),
-			'ybound': formatValueList(self.ybound),
-			'anglebound': formatValueList(self.anglebound),
-			'distancebound': formatValueList(self.distancebound),
-		}))
-
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(
-			sequencesteps=SequenceStep.FromJsonDicts(obj.get('sequencesteps')),
-			shapeindices=parseValueList(obj.get('shapeindices')),
-			basedon=parseValueList(obj.get('basedon')),
-			xbound=parseValueList(obj.get('xbound')),
-			ybound=parseValueList(obj.get('ybound')),
-			anglebound=parseValueList(obj.get('anglebound')),
-			distancebound=parseValueList(obj.get('distancebound')),
-			**excludekeys(obj, [
-				'sequencesteps', 'shapeindices',
-				'basedon',
-				'xbound', 'ybound',
-				'anglebound', 'distancebound',
-			])
-		)
-
-	@property
-	def ismanual(self):
-		return bool(self.sequencesteps or self.shapeindices)
-
-	@property
-	def iscombination(self):
-		return bool(self.basedon or self.boolop)
-
-	@property
-	def isbounded(self):
-		return bool(self.xbound or self.ybound or self.anglebound or self.distancebound)
-
-	def validate(self):
-		types = []
-		if self.ismanual:
-			types.append('manual')
-		if self.iscombination:
-			types.append('combination')
-		if self.isbounded:
-			types.append('bounded')
-		if len(types) > 1:
-			raise Exception('Group cannot has conflicting aspects ({}): {!r}'.format(types, self))
 
 _ValueListSpec = Union[str, List[Union[str, float]]]
 

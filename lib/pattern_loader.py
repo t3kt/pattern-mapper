@@ -1,9 +1,8 @@
 print('pattern_loader.py loading...')
 
-from collections import defaultdict
 import json
 import xml.etree.ElementTree as ET
-from typing import DefaultDict, Dict, List, Set, Tuple
+from typing import List
 
 if False:
 	from ._stubs import *
@@ -29,7 +28,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import BoolOpNames, GroupInfo, GroupSpec, SequenceStep, ShapeInfo, PatternSettings
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings
 from pattern_groups import GroupGenerators
 
 remap = tdu.remap
