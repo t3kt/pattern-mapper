@@ -10,9 +10,9 @@ from collections import defaultdict
 import re
 
 try:
-	from common import LoggableSubComponent, cartesiantopolar, loggedmethod
+	from common import LoggableSubComponent, cartesiantopolar, loggedmethod, longestcommonprefix
 except ImportError:
-	from .common import LoggableSubComponent, cartesiantopolar, loggedmethod
+	from .common import LoggableSubComponent, cartesiantopolar, loggedmethod, longestcommonprefix
 
 try:
 	from common import parseValue, formatValue, ValueRange, ValueSequence, ValueRangeSequence
@@ -175,6 +175,13 @@ class GroupGenerators(LoggableSubComponent):
 		self.patternsettings = patternsettings
 
 	@loggedmethod
+	def extractInferredGroups(self, roundingdigits=2):
+		extractor = _InferredGroupExtractor(roundingdigits=roundingdigits)
+		inferredgroups = extractor.load(self.context.shapes)
+		self._LogEvent('Found {} inferred groups'.format(len(inferredgroups)))
+		self.context.addGroups(inferredgroups)
+
+	@loggedmethod
 	def runGenerators(self):
 		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groupgens)
 		self._LogEvent('Starting with {} groups'.format(len(self.context.groups)))
@@ -183,6 +190,8 @@ class GroupGenerators(LoggableSubComponent):
 			self._LogEvent('   {}'.format(generator))
 			generator.generateGroups(self.context)
 		self._LogEvent('Ended with {} groups'.format(len(self.context.groups)))
+
+	def getGroups(self):
 		return [
 			group
 			for group in self.context.groups
@@ -590,3 +599,78 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 				isdefault=len(stepkeys) == 1,
 			))
 		return steps
+
+class _InferredGroupExtractor:
+	"""
+	Extracts groups from ShapeInfos, based on primitive colors.
+	Each unique pair of hue and saturation defines a group of all the matching shapes.
+	Within each group, value (as in HSV value) defines the sequence ordering.
+	"""
+	def __init__(self, roundingdigits=None):
+		# list of shapes keyed by (hue, saturation)
+		self.shapesbyhuesat = defaultdict(list)  # type: DefaultDict[Tuple, List[ShapeInfo]]
+		self.groups = []  # type: List[GroupInfo]
+		self.roundingdigits = roundingdigits  # type: int
+
+	def load(self, shapes: List[ShapeInfo]):
+		for shape in shapes:
+			self._loadShape(shape)
+		for huesat, shapes in self.shapesbyhuesat.items():
+			self._addGroup(huesat, shapes)
+		return self.groups
+
+	def _loadShape(self, shape: ShapeInfo):
+		hsvcolor = shape.hsvcolor
+		if not hsvcolor:
+			return
+		key = self._prepareKey(hsvcolor[0], hsvcolor[1])
+		self.shapesbyhuesat[key].append(shape)
+
+	def _prepareKey(self, *vals):
+		if self.roundingdigits is None:
+			return tuple(vals)
+		return tuple(round(v, self.roundingdigits) for v in vals)
+
+	def _addGroup(self, huesat, shapes: List[ShapeInfo]):
+		shapesbyvalue = defaultdict(list)  # type: DefaultDict[float, List[ShapeInfo]]
+		shapeindices = [shape.shapeindex for shape in shapes]
+		pathparts = longestcommonprefix([shape.parentpath.split('/') for shape in shapes])
+		name = None
+		if pathparts:
+			cleanedpathparts = [p for p in pathparts if p and not p.startswith('_')]
+			if cleanedpathparts:
+				name = cleanedpathparts[-1]
+		if name:
+			if '[' in name and name.endswith(']'):
+				name = name.split('[')[1]
+				name = name[:-1]
+				if name.startswith('id='):
+					name = name[3:]
+		else:
+			groupindex = len(self.groups)
+			name = '_{}'.format(groupindex)
+		group = GroupInfo(
+			groupname=name,
+			grouppath='/'.join(pathparts + [name]),
+			inferencetype='HS:V',
+			inferredfromvalue=huesat,
+			shapeindices=list(shapeindices),
+		)
+		for shape in shapes:
+			shapesbyvalue[shape.hsvcolor[2]].append(shape)
+		if len(shapesbyvalue) == 1:
+			group.sequencesteps.append(SequenceStep(
+				sequenceindex=0,
+				inferredfromvalue=list(shapesbyvalue.keys())[0],
+				shapeindices=list(shapeindices),
+			))
+		else:
+			for i, key in enumerate(sorted(shapesbyvalue.keys())):
+				group.sequencesteps.append(
+					SequenceStep(
+						sequenceindex=i,
+						inferredfromvalue=key,
+						shapeindices=[shape.shapeindex for shape in shapesbyvalue[key]]
+					)
+				)
+		self.groups.append(group)

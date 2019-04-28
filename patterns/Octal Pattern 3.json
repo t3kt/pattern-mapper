@@ -25,12 +25,6 @@
       "suffixes": "rightArm topArm leftArm bottomArm",
       "anglemin": "-20",
       "anglemax": "20",
-      "prerotate": "0 -90 -180 -270"
-    },
-    {
-      "suffixes": "rightArm_SEQ topArm_SEQ leftArm_SEQ bottomArm_SEQ",
-      "anglemin": "-20",
-      "anglemax": "20",
       "prerotate": "0 -90 -180 -270",
       "sequenceby": {"attr":  "distance", "rounddigits":  2}
     },

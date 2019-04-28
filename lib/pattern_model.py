@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -415,7 +415,7 @@ class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
 			groupgens: List[GroupGenSpec]=None,
-			autogroup: bool=True,
+			autogroup: Optional[bool]=None,
 			rescale: bool=None,
 			recenter: bool=None,
 			defaultshapestate: Dict[str, Any]=None,

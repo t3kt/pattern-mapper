@@ -459,3 +459,15 @@ class ValueSequence:
 	def __repr__(self):
 		return '{}(vals={!r}, cyclic={!r})'.format(
 			type(self).__name__, self.vals, self.cyclic)
+
+def longestcommonprefix(strs):
+	if not strs:
+		return []
+	for i, letter_group in enumerate(zip(*strs)):
+		# ["flower","flow","flight"]
+		# print(i,letter_group,set(letter_group))
+		# 0 ('f', 'f', 'f') {'f'}
+		if len(set(letter_group)) > 1:
+			return strs[0][:i]
+	else:
+		return min(strs)
