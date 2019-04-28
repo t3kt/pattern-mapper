@@ -155,11 +155,9 @@ class GroupGenerators(LoggableSubComponent):
 	def __init__(
 			self, hostobj,
 			shapes: List[ShapeInfo],
-			existinggroups: List[GroupInfo],
 			patternsettings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='GroupGens')
 		self.context = GroupGenContext(shapes)
-		self.context.addGroups(existinggroups or [])
 		self.patternsettings = patternsettings
 
 	@loggedmethod

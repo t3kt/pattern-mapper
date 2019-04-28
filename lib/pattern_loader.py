@@ -219,7 +219,6 @@ class PatternLoader(ExtensionBase):
 		generators = GroupGenerators(
 			hostobj=self,
 			shapes=self.shapes,
-			existinggroups=self.groups,
 			patternsettings=patternsettings)
 		if patternsettings.autogroup in (None, True):
 			generators.extractInferredGroups()
