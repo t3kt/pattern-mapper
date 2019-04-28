@@ -19,6 +19,45 @@
       "groupname": "1.a",
       "paths": "^svg/g\\[id=1\\.a\\]/.*",
       "groupatdepth": 3
+    },
+    {
+      "groupname": "2.a",
+      "paths": "^svg/g\\[id=2\\.a\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "2.b",
+      "paths": "^svg/g\\[id=2\\.b\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "2.c",
+      "paths": "^svg/g\\[id=2\\.c\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "2.d",
+      "paths": "^svg/g\\[id=2\\.d\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "2.e",
+      "paths": "^svg/g\\[id=2\\.e\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "2.f",
+      "paths": "^svg/g\\[id=2\\.f\\]/.*"
+    },
+    {
+      "groupname": "3.a",
+      "paths": "^svg/g\\[id=3\\.a\\]/.*",
+      "groupatdepth": 3
+    },
+    {
+      "groupname": "3.b",
+      "paths": "^svg/g\\[id=3\\.b\\]/.*",
+      "groupatdepth": 4
     }
   ]
 }
