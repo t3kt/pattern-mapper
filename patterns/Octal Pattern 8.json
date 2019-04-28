@@ -1,0 +1,24 @@
+{
+  "autogroup": false,
+  "groups": [
+    {
+      "groupname": "0.a",
+      "paths": "^svg/g\\[id=0\\.a\\]/.*"
+    },
+    {
+      "groupname": "0.b",
+      "paths": "^svg/g\\[id=0\\.b\\]/.*",
+      "groupatdepth": 0
+    },
+    {
+      "groupname": "0.c",
+      "paths": "^svg/g\\[id=0\\.c\\]/.*",
+      "groupatdepth": 0
+    },
+    {
+      "groupname": "1.a",
+      "paths": "^svg/g\\[id=1\\.a\\]/.*",
+      "groupatdepth": 3
+    }
+  ]
+}

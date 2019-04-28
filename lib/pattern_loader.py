@@ -68,7 +68,7 @@ class PatternLoader(ExtensionBase):
 		self._BuildGeometryFromSvg(sop, svgxml)
 		self._BuildGroups()
 
-	@loggedmethod
+	@simpleloggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
 		parser = _SvgParser(self, sop)
 		parser.parse(
@@ -79,7 +79,7 @@ class PatternLoader(ExtensionBase):
 		self.SvgHeight.val = parser.svgheight
 		self.shapes = parser.shapes
 		self.groups = []
-		for o in self.ownerComp.ops('build_shape_attr_table'):
+		for o in self.ownerComp.ops('build_shape_attr_table', 'build_shape_group_sequence_indices'):
 			o.cook(force=True)
 
 	@loggedmethod
@@ -316,10 +316,10 @@ class _SvgParser(LoggableSubComponent):
 		elemname = self._elemName(elem, indexinparent)
 		elemid = elem.get('id', '')
 		if elemid == 'Background' or elemid.startswith('-'):
-			self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
+			self._LogEvent('Skipping element: {}...'.format(ET.tostring(elem)[:30]))
 			return
 		if elem.get('display') == 'none':
-			self._LogEvent('Skipping element: {}'.format(ET.tostring(elem)))
+			self._LogEvent('Skipping element: {}...'.format(ET.tostring(elem)[:30]))
 			return
 		tagname = _localName(elem.tag)
 		if tagname == 'path':
@@ -340,7 +340,7 @@ class _SvgParser(LoggableSubComponent):
 		pathpoints = [_pathPoint(firstsegment.start)]
 		for segment in path[1:]:
 			if isinstance(segment, (svgpath.CubicBezier, svgpath.QuadraticBezier)):
-				self._LogEvent('WARNING: treating bezier as line {}'.format(rawpath))
+				self._LogEvent('WARNING: treating bezier as line {}...'.format(rawpath[0:20]))
 			elif not isinstance(segment, svgpath.Line):
 				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
 					type(segment), rawpath))

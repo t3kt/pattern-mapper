@@ -192,3 +192,21 @@ class PatternDebugger:
 			dat.appendRow([name, vals[name]])
 		for name in sorted(groups.keys()):
 			dat.appendRow(['group[{}]'.format(name), groups[name]])
+
+	def PrevGroup(self):
+		self._StepSelectedGroup(-1)
+
+	def NextGroup(self):
+		self._StepSelectedGroup(1)
+
+	def _StepSelectedGroup(self, offset):
+		groupnames = [c.val for c in self.ownerComp.op('groups').col('groupname')[1:]]
+		grouppar = self.ownerComp.par.Showgroup
+		if not groupnames:
+			grouppar.val = ''
+			return
+		if grouppar.eval() not in groupnames:
+			index = 0
+		else:
+			index = (groupnames.index(grouppar.eval()) + offset) % len(groupnames)
+		grouppar.val = groupnames[index]

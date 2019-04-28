@@ -1,6 +1,6 @@
 {
   "autogroup": false,
-  "groupgens": [
+  "groups": [
     {
       "groupname": "blue",
       "paths": "^svg/g\\[id=blue\\]/.*",

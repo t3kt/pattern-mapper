@@ -344,14 +344,14 @@ class CombinationGroupGenSpec(GroupGenSpec):
 class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
-			groupgens: List[GroupGenSpec]=None,
+			groups: List[GroupGenSpec]=None,
 			autogroup: Optional[bool]=None,
 			rescale: bool=None,
 			recenter: bool=None,
 			defaultshapestate: Dict[str, Any]=None,
 			**attrs):
 		super().__init__(**attrs)
-		self.groupgens = list(groupgens or [])
+		self.groups = list(groups or [])
 		self.rescale = rescale
 		self.recenter = recenter
 		self.defaultshapestate = dict(defaultshapestate or {})
@@ -360,7 +360,7 @@ class PatternSettings(BaseDataObject):
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'autogroup': self.autogroup,
-			'groupgens': GroupGenSpec.ToJsonDicts(self.groupgens),
+			'groups': GroupGenSpec.ToJsonDicts(self.groups),
 			'rescale': self.rescale,
 			'recenter': self.recenter,
 			'defaultshapestate': cleandict(self.defaultshapestate),
@@ -369,6 +369,6 @@ class PatternSettings(BaseDataObject):
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
-			groupgens=GroupGenSpec.FromJsonDicts(obj.get('groupgens')),
-			**excludekeys(obj, ['groupgens'])
+			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
+			**excludekeys(obj, ['groups'])
 		)

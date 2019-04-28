@@ -6,7 +6,7 @@ if False:
 from pattern_model import *
 from abc import ABC
 from typing import Any, List, Set, Dict, DefaultDict
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import re
 
 try:
@@ -118,18 +118,6 @@ class _PolarPredicate(_PositionalPredicate):
 		dist, angle = cartesiantopolar(pos.x, pos.y)
 		return self.distanceranges.contains(dist, index) and self.angleranges.contains(angle, index)
 
-# class _MultiPredicate(_ShapePredicate):
-# 	def __init__(self, *predicates: _ShapePredicate):
-# 		self.predicates = [p for p in predicates if p is not None]
-#
-# 	def test(self, shape: ShapeInfo, index: int):
-# 		if not self.predicates:
-# 			return True
-# 		return any([p.test(shape, index) for p in self.predicates])
-#
-# 	def __repr__(self):
-# 		return ' '.join([repr(p) for p in self.predicates])
-
 class GroupGenContext:
 	def __init__(self, shapes: List[ShapeInfo]):
 		self.shapes = shapes
@@ -183,12 +171,15 @@ class GroupGenerators(LoggableSubComponent):
 
 	@loggedmethod
 	def runGenerators(self):
-		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groupgens)
+		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groups)
 		self._LogEvent('Starting with {} groups'.format(len(self.context.groups)))
 		self._LogEvent('Loaded {} group generators'.format(len(generators)))
 		for generator in generators:
-			self._LogEvent('   {}'.format(generator))
+			self._LogEvent('   {!r}'.format(generator))
 			generator.generateGroups(self.context)
+		for group in self.context.groups:
+			if not group.temporary:
+				group.groupname = tdu.legalName(group.groupname)
 		self._LogEvent('Ended with {} groups'.format(len(self.context.groups)))
 
 	def getGroups(self):
@@ -223,6 +214,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			return self.basename + str(suffix)
 		return str(suffix)
 
+	@loggedmethod
 	def _createGroup(
 			self,
 			groupname: str,
@@ -232,7 +224,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 		if autosequence and shapeindices and self.sequencer:
 			steps = self.sequencer.sequenceShapes(shapeindices, context)
 		else:
-			steps = None
+			steps = [SequenceStep(shapeindices=shapeindices, isdefault=True)]
 		group = GroupInfo(
 			groupname,
 			shapeindices=shapeindices,
@@ -269,6 +261,7 @@ class _PathGroupGenerator(GroupGenerator):
 		super().__init__(hostobj=hostobj, groupspec=groupspec, logprefix='PathGroupGen')
 		self.pathpatterns = ValueSequence.FromSpec(groupspec.paths, cyclic=False)
 		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
+		self.groupatdepth = groupspec.groupatdepth
 
 	@loggedmethod
 	def generateGroups(self, context: GroupGenContext):
@@ -278,25 +271,82 @@ class _PathGroupGenerator(GroupGenerator):
 		for i in range(n):
 			pathpattern = self.pathpatterns[i]
 			self._LogEvent(' [{}] pattern: {!r}'.format(i, pathpattern))
-			shapeindices = [
-				shape.shapeindex
+			shapes = [
+				shape
 				for shape in context.shapes
 				if re.match(pathpattern, shape.shapepath)
 			]
-			self._LogEvent('  found {} shapes'.format(len(shapeindices)))
-			if not shapeindices:
+			self._LogEvent('  found {} shapes'.format(len(shapes)))
+			if not shapes:
 				continue
-			group = self._createGroup(
-				self._getName(i),
-				shapeindices=shapeindices,
-				context=context,
-				autosequence=True,
-			)
-			self._LogEvent('  produced group: {}'.format(group))
-			groups.append(group)
+			if self.groupatdepth is None:
+				groupsforpattern = [
+					self._createGroup(
+						self._getName(i, issolo=n == 1),
+						context=context,
+						shapeindices=[shape.shapeindex for shape in shapes],
+						autosequence=True,
+					)
+				]
+			else:
+				groupsforpattern = self._groupsFromPathMatches(
+					self._getName(i, issolo=n == 1),
+					shapes=shapes,
+					context=context)
+			self._LogEvent('  produced {} groups:'.format(len(groupsforpattern)))
+			for group in groupsforpattern:
+				group.grouppath = '/'.join(longestcommonprefix([shape.shapepath.split('/') for shape in shapes]))
+				self._LogEvent('  {}'.format(group))
+			groups += groupsforpattern
 		if len(groups) == 1 and self.suffixes is None:
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
+
+	@loggedmethod
+	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: GroupGenContext):
+		if self.groupatdepth is None:
+			return [
+				self._createGroup(
+					basename,
+					context=context,
+					shapeindices=[shape.shapeindex for shape in shapes],
+					autosequence=True,
+				)
+			]
+		if self.groupatdepth == 0:
+			return [
+				self._createGroup(
+					'{}_{}'.format(basename, i),
+					context=context,
+					shapeindices=[shape.shapeindex],
+					autosequence=False,
+				)
+				for i, shape in enumerate(shapes)
+			]
+		shapesbyprefix = OrderedDict()  # type: Dict[str, List[ShapeInfo]]
+		for shape in shapes:
+			if not shape.shapepath:
+				pathparts = []
+			else:
+				pathparts = shape.shapepath.split('/')
+			if self.groupatdepth > 0:
+				prefix = '/'.join(pathparts[:self.groupatdepth])
+			else:
+				prefix = '/'.join(pathparts[self.groupatdepth:])
+			self._LogEvent('Shape with path {!r} has prefix {!r}'.format(shape.shapepath, prefix))
+			if prefix not in shapesbyprefix:
+				shapesbyprefix[prefix] = []
+			shapesbyprefix[prefix].append(shape)
+		self._LogEvent('found {} groupings by prefix at depth {}'.format(len(shapesbyprefix), self.groupatdepth))
+		return [
+			self._createGroup(
+				'{}_{}'.format(basename, i),
+				context=context,
+				shapeindices=[shape.shapeindex for shape in groupshapes],
+				autosequence=True,
+			)
+			for i, groupshapes in enumerate(shapesbyprefix.values())
+		]
 
 	def __repr__(self):
 		return '{}(basename: {!r}, suffixes: {!r}, paths: {!r})'.format(
