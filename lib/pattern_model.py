@@ -131,6 +131,16 @@ class GroupInfo(BaseDataObject):
 			return True
 		return not self.sequencesteps[0].isdefault
 
+class BoolOpNames:
+	OR = 'or'
+	AND = 'and'
+	aliases = {
+		AND: AND,
+		'&': AND,
+		OR: OR,
+		'|': OR,
+	}
+
 class SequenceByTypes:
 	red = 'r'
 	green = 'g'
@@ -244,13 +254,16 @@ class PathGroupGenSpec(GroupGenSpec):
 	def __init__(
 			self,
 			paths: _ValueListSpec=None,
+			groupatdepth: int=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.paths = paths
+		self.groupatdepth = groupatdepth
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'path': self.paths,
+			'groupatdepth': self.groupatdepth,
 		}))
 
 class PositionalGroupGenSpec(GroupGenSpec, ABC):
