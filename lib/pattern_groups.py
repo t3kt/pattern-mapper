@@ -136,12 +136,14 @@ class _GroupGenContext:
 	def getGroup(self, groupname: str):
 		return self.groupsbyname.get(groupname)
 
-	def getGroupsWithShape(self, shapeindex: int):
-		return [
-			group
-			for group in self.groups
-			if shapeindex in group.shapeindices
-		]
+	def getGroupNamesByPatterns(self, groupnamepatterns: Iterable[str]):
+		matchingnames = []
+		allgroupnames = list(self.groupsbyname.keys())
+		for pattern in groupnamepatterns:
+			for name in mod.tdu.match(pattern, allgroupnames):
+				if name not in matchingnames:
+					matchingnames.append(name)
+		return matchingnames
 
 	def getShape(self, shapeindex: int):
 		if shapeindex < 0 or shapeindex >= len(self.shapes):
@@ -269,7 +271,7 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
 		if self.suffixes is None:
-			if index == 0 and issolo:
+			if index == 0 and issolo and name:
 				return name
 			else:
 				suffix = 0
@@ -499,6 +501,8 @@ class _CombinationGroupGenerator(_GroupGenerator):
 
 	@loggedmethod
 	def generateGroups(self, context: _GroupGenContext):
+		self.groups1 = ValueSequence(context.getGroupNamesByPatterns(self.groups1), cyclic=True)
+		self.groups2 = ValueSequence(context.getGroupNamesByPatterns(self.groups2), cyclic=True)
 		if self.permute:
 			groups = self._generatePermutations(context)
 		else:

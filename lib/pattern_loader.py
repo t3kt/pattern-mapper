@@ -123,8 +123,6 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def BuildGroupTable(self, dat):
-		if self.groups is None:
-			self._BuildGroups()
 		dat.clear()
 		dat.appendRow([
 			'groupname',
@@ -137,6 +135,8 @@ class PatternLoader(ExtensionBase):
 			'shapecount',
 			'shapes',
 		])
+		if self.groups is None:
+			return
 		for groupinfo in self.groups:
 			dat.appendRow([
 				groupinfo.groupname or '',
@@ -220,7 +220,7 @@ class PatternLoader(ExtensionBase):
 		numshapes = len(self.shapes)
 		chop.numSamples = numshapes
 		if self.groups is None:
-			self._BuildGroups()
+			return
 		for group in self.groups:
 			chan = chop.appendChan('seq_' + group.groupname)
 			shapesteps = [-1] * numshapes

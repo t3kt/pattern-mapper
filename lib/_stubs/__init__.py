@@ -206,6 +206,9 @@ class tdu:
 	@staticmethod
 	def split(string, eval=False)-> '_List': pass
 
+	@staticmethod
+	def match(pattern, inputList, caseSensitive=True) -> '_List[str]': pass
+
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0
 JustifyType.CENTER = 0

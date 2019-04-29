@@ -17,6 +17,12 @@
       "depthlayer": 0
     },
     {
+      "groupname": "0.b",
+      "suffixes": "_combined",
+      "groups": "0.b_*",
+      "boolop": "or"
+    },
+    {
       "groupname": "0.c",
       "paths": "^svg/g\\[id=0\\.c\\]/.*",
       "groupatdepth": 0,
