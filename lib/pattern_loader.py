@@ -28,10 +28,13 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec
 from pattern_groups import GroupGenerators
 
 remap = tdu.remap
+
+def _rundelayed(code, delayFrames=1):
+	return mod.td.run(code, delayFrames=delayFrames)
 
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -39,7 +42,9 @@ class PatternLoader(ExtensionBase):
 		self.SvgWidth = tdu.Dependency(1)
 		self.SvgHeight = tdu.Dependency(1)
 		self.shapes = []  # type: List[ShapeInfo]
-		self.groups = []  # type: List[GroupInfo]
+		self.groups = None  # type: List[GroupInfo]
+		self.patternsettings = None  # type: PatternSettings
+		_rundelayed('op({!r}).LoadPattern()'.format(self.ownerComp.path), delayFrames=1)
 
 	def op(self, path):
 		return self.ownerComp.op(path)
@@ -63,10 +68,25 @@ class PatternLoader(ExtensionBase):
 			return svgname.replace('.svg', '.json')
 		return ''
 
-	@simpleloggedmethod
-	def BuildGeometryFromSvg(self, sop, svgxml):
+	@loggedmethod
+	def LoadPattern(self):
+		svgxmlop = self.op('svg_xml')
+		svgxmlop.par.loadonstart.pulse(1)
+		svgxml = svgxmlop.text
+		sop = self.op('build_geometry')
 		self._BuildGeometryFromSvg(sop, svgxml)
 		self._BuildGroups()
+		self._ApplyDepthLayeringToShapes(sop)
+		_rundelayed('op({!r}).ForceTableCooks()'.format(self.ownerComp.path), delayFrames=1)
+
+	@loggedmethod
+	def ForceTableCooks(self):
+		for o in self.ownerComp.ops(
+				'build_shape_attr_table',
+				'build_shape_group_sequence_indices',
+				'build_group_table',
+				'build_sequence_step_table'):
+			o.cook(force=True)
 
 	@simpleloggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
@@ -78,9 +98,6 @@ class PatternLoader(ExtensionBase):
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
 		self.shapes = parser.shapes
-		self.groups = []
-		for o in self.ownerComp.ops('build_shape_attr_table', 'build_shape_group_sequence_indices'):
-			o.cook(force=True)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -106,7 +123,7 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def BuildGroupTable(self, dat):
-		if not self.groups:
+		if self.groups is None:
 			self._BuildGroups()
 		dat.clear()
 		dat.appendRow([
@@ -114,6 +131,8 @@ class PatternLoader(ExtensionBase):
 			'grouppath',
 			'inferencetype',
 			'inferredfromvalue',
+			'depthlayer',
+			'depth',
 			'sequencelength',
 			'shapecount',
 			'shapes',
@@ -124,6 +143,8 @@ class PatternLoader(ExtensionBase):
 				groupinfo.grouppath or '',
 				groupinfo.inferencetype or '',
 				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
+				formatValue(groupinfo.depthlayer, nonevalue=''),
+				formatValue(groupinfo.depth, nonevalue=''),
 				len(groupinfo.sequencesteps),
 				len(groupinfo.shapeindices),
 				' '.join(map(str, groupinfo.shapeindices)),
@@ -139,7 +160,7 @@ class PatternLoader(ExtensionBase):
 			'inferredfromvalue',
 			'shapes',
 		])
-		if not self.groups:
+		if self.groups is None:
 			return
 		for groupinfo in self.groups:
 			for step in groupinfo.sequencesteps:
@@ -163,6 +184,7 @@ class PatternLoader(ExtensionBase):
 			'centerx', 'centery', 'centerz',
 			'centerangle', 'centerdist',
 			'shapelength',
+			'depthlayer',
 		])
 		for shape in self.shapes:
 			r = dat.numRows
@@ -187,6 +209,7 @@ class PatternLoader(ExtensionBase):
 				dat[r, 'centerangle'] = formatValue(angle)
 				dat[r, 'centerdist'] = formatValue(distance)
 			dat[r, 'shapelength'] = formatValue(shape.shapelength, nonevalue='')
+			dat[r, 'depthlayer'] = formatValue(shape.shapelength, nonevalue='')
 
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
@@ -196,7 +219,7 @@ class PatternLoader(ExtensionBase):
 		chop.clear()
 		numshapes = len(self.shapes)
 		chop.numSamples = numshapes
-		if not self.groups:
+		if self.groups is None:
 			self._BuildGroups()
 		for group in self.groups:
 			chan = chop.appendChan('seq_' + group.groupname)
@@ -209,24 +232,65 @@ class PatternLoader(ExtensionBase):
 				chan[shapeindex] = shapesteps[shapeindex]
 
 	@loggedmethod
-	def _BuildGroups(self):
+	def _LoadPatternSettings(self):
 		jsondat = self.op('load_json_file')
 		jsondat.clear()
 		jsondat.par.loadonstartpulse.pulse()
 		obj = json.loads(jsondat.text) if jsondat.text else {}
-		patternsettings = PatternSettings.FromJsonDict(obj)
+		self.patternsettings = PatternSettings.FromJsonDict(obj)
 
+	@loggedmethod
+	def _BuildGroups(self):
+		if not self.patternsettings:
+			self._LoadPatternSettings()
 		generators = GroupGenerators(
 			hostobj=self,
 			shapes=self.shapes,
-			patternsettings=patternsettings)
-		if patternsettings.autogroup in (None, True):
+			patternsettings=self.patternsettings)
+		if self.patternsettings.autogroup in (None, True):
 			generators.extractInferredGroups()
 		generators.runGenerators()
+		generators.applyDepthLayering()
 		self.groups = generators.getGroups()
 
-		for o in self.ownerComp.ops('build_group_table', 'build_sequence_step_table'):
-			o.cook(force=True)
+
+	@loggedmethod
+	def _ApplyDepthLayeringToShapes(self, sop):
+		if not self.patternsettings:
+			self._LoadPatternSettings()
+		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
+		for group in self.groups:
+			if group.depthlayer is None:
+				self._LogEvent('group {} has no depth layer, skipping'.format(group.groupname))
+				continue
+			self._LogEvent('group {} has depth {} (layer {})'.format(group.groupname, group.depth, group.depthlayer))
+			for shapeindex in group.shapeindices:
+				shape = self.shapes[shapeindex]
+				if shape.depthlayer == group.depthlayer:
+					continue
+				if shape.depthlayer is not None:
+					self._LogEvent('Conflicting layers for shape {}: {} != {}'.format(
+						shapeindex, shape.depthlayer, group.depthlayer))
+					continue
+				shape.depthlayer = group.depthlayer
+				shape.center[2] = group.depth
+
+		defaultlayer = layeringspec.defaultlayer
+		layerdist = layeringspec.layerdistance or 0.1
+		for shape in self.shapes:
+			if shape.depthlayer is None:
+				shape.depthlayer = defaultlayer
+				if defaultlayer is not None:
+					shape.center[2] = defaultlayer * layerdist
+			poly = sop.prims[shape.shapeindex]
+			z = shape.center[2]
+			for vertex in poly:
+				vertex.point.z = z
+
+	# def GetDepthForShape(self, shapeindex: int):
+	# 	if shapeindex is None or shapeindex < 0 or shapeindex >= len(self.shapes):
+	# 		return 0
+	# 	return self.shapes[shapeindex].center[2]
 
 	@staticmethod
 	def SetUVLayerToLocalPos(sop, uvlayer: int):
@@ -297,7 +361,7 @@ class _SvgParser(LoggableSubComponent):
 				point.z *= scale
 		for shape in self.shapes:
 			poly = self.sop.prims[shape.shapeindex]
-			shape.center = poly.center.x, poly.center.y, poly.center.z
+			shape.center = [poly.center.x, poly.center.y, poly.center.z]
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):

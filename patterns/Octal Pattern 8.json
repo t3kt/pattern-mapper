@@ -1,63 +1,103 @@
 {
   "autogroup": false,
+  "depthlayering": {
+    "mode": "manual",
+    "layerdistance": 0.02
+  },
   "groups": [
     {
       "groupname": "0.a",
-      "paths": "^svg/g\\[id=0\\.a\\]/.*"
+      "paths": "^svg/g\\[id=0\\.a\\]/.*",
+      "depthlayer": 0
     },
     {
       "groupname": "0.b",
       "paths": "^svg/g\\[id=0\\.b\\]/.*",
-      "groupatdepth": 0
+      "groupatdepth": 0,
+      "depthlayer": 0
     },
     {
       "groupname": "0.c",
       "paths": "^svg/g\\[id=0\\.c\\]/.*",
-      "groupatdepth": 0
+      "groupatdepth": 0,
+      "depthlayer": 0
     },
     {
       "groupname": "1.a",
       "paths": "^svg/g\\[id=1\\.a\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 1
     },
     {
       "groupname": "2.a",
       "paths": "^svg/g\\[id=2\\.a\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 2
     },
     {
       "groupname": "2.b",
       "paths": "^svg/g\\[id=2\\.b\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 2
     },
     {
       "groupname": "2.c",
       "paths": "^svg/g\\[id=2\\.c\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 2
     },
     {
       "groupname": "2.d",
       "paths": "^svg/g\\[id=2\\.d\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 2
     },
     {
       "groupname": "2.e",
       "paths": "^svg/g\\[id=2\\.e\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 2
     },
     {
       "groupname": "2.f",
-      "paths": "^svg/g\\[id=2\\.f\\]/.*"
+      "paths": "^svg/g\\[id=2\\.f\\]/.*",
+      "depthlayer": 2
     },
     {
       "groupname": "3.a",
       "paths": "^svg/g\\[id=3\\.a\\]/.*",
-      "groupatdepth": 3
+      "groupatdepth": 3,
+      "depthlayer": 3
     },
     {
       "groupname": "3.b",
       "paths": "^svg/g\\[id=3\\.b\\]/.*",
-      "groupatdepth": 4
+      "groupatdepth": 4,
+      "depthlayer": 3
+    },
+    {
+      "groupname": "3.c",
+      "paths": "^svg/g\\[id=3\\.c\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 3
+    },
+    {
+      "groupname": "3.d",
+      "paths": "^svg/g\\[id=3\\.d\\]/.*",
+      "groupatdepth": 4,
+      "depthlayer": 3
+    },
+    {
+      "groupname": "3.e",
+      "paths": "^svg/g\\[id=3\\.e\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 3
+    },
+    {
+      "groupname": "4.a",
+      "paths": "^svg/g\\[id=4\\.a\\]/.*",
+      "groupatdepth": 4,
+      "depthlayer": 4
     }
   ]
 }

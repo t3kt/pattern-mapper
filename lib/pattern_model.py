@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -18,6 +18,17 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
 
+# def _defaultedgetter(getdefault: Callable):
+# 	attrname = getdefault.__name__
+#
+# 	def _getter(self):
+# 		val = getattr(self, '_' + attrname)
+# 		if val is None:
+# 			return getdefault(self)
+# 		return val
+#
+# 	return property(_getter)
+
 class ShapeInfo(BaseDataObject):
 	def __init__(
 			self,
@@ -25,18 +36,20 @@ class ShapeInfo(BaseDataObject):
 			shapename: str,
 			shapepath: str=None,
 			parentpath: str=None,
-			color: Tuple=None,
-			center: Tuple=None,
+			color: Iterable=None,
+			center: Iterable=None,
 			shapelength: float=None,
+			depthlayer: int=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
 		self.shapename = shapename
 		self.shapepath = shapepath
 		self.parentpath = parentpath
-		self.color = color
-		self.center = center
+		self.color = list(color) if color else None
+		self.center = list(center) if center else None
 		self.shapelength = shapelength
+		self.depthlayer = depthlayer
 
 	@property
 	def hsvcolor(self):
@@ -53,6 +66,7 @@ class ShapeInfo(BaseDataObject):
 			'color': self.color,
 			'center': self.center,
 			'shapelength': self.shapelength,
+			'depthlayer': self.depthlayer,
 		}))
 
 class SequenceStep(BaseDataObject):
@@ -91,6 +105,8 @@ class GroupInfo(BaseDataObject):
 			grouppath=None,
 			inferencetype: str=None,
 			inferredfromvalue: Any=None,
+			depthlayer: Union[int, str]=None,
+			depth: float=None,
 			shapeindices: List[int]=None,
 			sequencesteps: List[SequenceStep]=None,
 			temporary: bool=None,
@@ -100,6 +116,8 @@ class GroupInfo(BaseDataObject):
 		self.grouppath = grouppath
 		self.inferencetype = inferencetype
 		self.inferredfromvalue = inferredfromvalue
+		self.depthlayer = depthlayer
+		self.depth = depth
 		self.shapeindices = list(shapeindices or [])
 		self.sequencesteps = list(sequencesteps or [])
 		self.temporary = temporary
@@ -110,6 +128,8 @@ class GroupInfo(BaseDataObject):
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype,
 			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
+			'depthlayer': self.depthlayer,
+			'depth': self.depth,
 			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 			'temporary': self.temporary,
@@ -205,6 +225,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			suffixes: _ValueListSpec=None,
 			sequenceby: SequenceBySpec=None,
 			temporary: bool=None,
+			depthlayer: int=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
@@ -214,6 +235,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			self.temporary = True
 		else:
 			self.temporary = temporary
+		self.depthlayer = depthlayer
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -221,6 +243,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			'suffixes': self.suffixes,
 			'sequenceby': self.sequenceby.ToJsonDict() if self.sequenceby else None,
 			'temporary': self.temporary,
+			'depthlayer': self.depthlayer,
 		}))
 
 	@classmethod
@@ -341,11 +364,50 @@ class CombinationGroupGenSpec(GroupGenSpec):
 			'permute': self.permute,
 		}))
 
+class GroupDepthModes:
+	manual = 'manual'
+	flat = 'flat'
+	groupnameprefix = 'groupnameprefix'
+
+	aliases = {
+		manual: manual,
+		flat: flat,
+		groupnameprefix: groupnameprefix, 'prefix': groupnameprefix,
+	}
+
+class DepthLayeringSpec(BaseDataObject):
+	def __init__(
+			self,
+			mode: str=None,
+			condense: Optional[bool]=None,
+			layerdistance: Optional[float]=None,
+			defaultlayer: Optional[int]=None):
+		super().__init__()
+		self.mode = mode
+		self.condense = condense
+		self.layerdistance = layerdistance
+		self.defaultlayer = defaultlayer
+
+	def ToJsonDict(self):
+		return cleandict({
+			'mode': self.mode,
+			'condense': self.condense,
+			'layerdistance': self.layerdistance,
+			'defaultlayer': self.defaultlayer,
+		})
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		if isinstance(obj, str):
+			return cls(mode=obj)
+		return cls(**obj)
+
 class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
 			groups: List[GroupGenSpec]=None,
 			autogroup: Optional[bool]=None,
+			depthlayering: DepthLayeringSpec=None,
 			rescale: bool=None,
 			recenter: bool=None,
 			defaultshapestate: Dict[str, Any]=None,
@@ -356,6 +418,7 @@ class PatternSettings(BaseDataObject):
 		self.recenter = recenter
 		self.defaultshapestate = dict(defaultshapestate or {})
 		self.autogroup = autogroup
+		self.depthlayering = depthlayering
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -364,11 +427,13 @@ class PatternSettings(BaseDataObject):
 			'rescale': self.rescale,
 			'recenter': self.recenter,
 			'defaultshapestate': cleandict(self.defaultshapestate),
+			'depthlayering': self.depthlayering.ToJsonDict() if self.depthlayering else None,
 		}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
 			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
-			**excludekeys(obj, ['groups'])
+			depthlayering=DepthLayeringSpec.FromJsonDict(obj.get('depthlayering')) if 'depthlayering' in obj else None,
+			**excludekeys(obj, ['groups', 'depthlayering'])
 		)

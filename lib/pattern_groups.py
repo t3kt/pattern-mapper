@@ -118,7 +118,7 @@ class _PolarPredicate(_PositionalPredicate):
 		dist, angle = cartesiantopolar(pos.x, pos.y)
 		return self.distanceranges.contains(dist, index) and self.angleranges.contains(angle, index)
 
-class GroupGenContext:
+class _GroupGenContext:
 	def __init__(self, shapes: List[ShapeInfo]):
 		self.shapes = shapes
 		self.groups = []  # type: List[GroupInfo]
@@ -149,7 +149,7 @@ class GroupGenContext:
 		return self.shapes[shapeindex]
 
 	def __repr__(self):
-		return 'GroupGenContext({} groups, {} shapes)'.format(len(self.groups), len(self.shapes))
+		return '_GroupGenContext({} groups, {} shapes)'.format(len(self.groups), len(self.shapes))
 
 class GroupGenerators(LoggableSubComponent):
 	def __init__(
@@ -157,7 +157,7 @@ class GroupGenerators(LoggableSubComponent):
 			shapes: List[ShapeInfo],
 			patternsettings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='GroupGens')
-		self.context = GroupGenContext(shapes)
+		self.context = _GroupGenContext(shapes)
 		self.patternsettings = patternsettings
 
 	@loggedmethod
@@ -169,7 +169,7 @@ class GroupGenerators(LoggableSubComponent):
 
 	@loggedmethod
 	def runGenerators(self):
-		generators = GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groups)
+		generators = _GroupGenerator.FromSpecs(hostobj=self, groupspecs=self.patternsettings.groups)
 		self._LogEvent('Starting with {} groups'.format(len(self.context.groups)))
 		self._LogEvent('Loaded {} group generators'.format(len(generators)))
 		for generator in generators:
@@ -180,6 +180,47 @@ class GroupGenerators(LoggableSubComponent):
 				group.groupname = tdu.legalName(group.groupname)
 		self._LogEvent('Ended with {} groups'.format(len(self.context.groups)))
 
+	@loggedmethod
+	def applyDepthLayering(self):
+		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
+		mode = GroupDepthModes.aliases.get(layeringspec.mode) or GroupDepthModes.manual
+		condense = layeringspec.condense if layeringspec.condense is not None else True
+		defaultlayer = layeringspec.defaultlayer or 0
+		layerdistance = layeringspec.layerdistance or 0.1
+
+		groupsbylayer = defaultdict(list)  # type: DefaultDict[int, List[GroupInfo]]
+		for group in self.context.groups:
+			if mode == GroupDepthModes.flat:
+				grouplayer = defaultlayer
+			elif group.depthlayer is None:
+				continue
+			elif group.depthlayer == 'auto':
+				if mode == GroupDepthModes.groupnameprefix:
+					grouplayer = _integerprefix(group.groupname, defaultlayer)
+				else:
+					grouplayer = defaultlayer
+			else:
+				grouplayer = group.depthlayer
+			group.depth = grouplayer * layerdistance
+			groupsbylayer[grouplayer].append(group)
+
+		self._LogEvent('Found depth layers: {}'.format({
+			layer: '{} groups'.format(len(groupsbylayer[layer]))
+			for layer in sorted(groupsbylayer.keys())
+		}))
+
+		if condense:
+			groupsbylayer = {
+				layerindex: groupsbylayer[layer]
+				for layerindex, layer in enumerate(sorted(groupsbylayer.keys()))
+			}
+			self._LogEvent('Condensed into layers: {}'.format({
+				layer: '{} groups'.format(len(groupsbylayer[layer]))
+				for layer in sorted(groupsbylayer.keys())
+			}))
+
+		return groupsbylayer
+
 	def getGroups(self):
 		return [
 			group
@@ -187,7 +228,15 @@ class GroupGenerators(LoggableSubComponent):
 			if not group.temporary
 		]
 
-class GroupGenerator(LoggableSubComponent, ABC):
+def _integerprefix(val: str, defval: int=None):
+	if not val:
+		return defval
+	match = re.match('[0-9]+', val)
+	if match is None:
+		return defval
+	return int(match.group(0))
+
+class _GroupGenerator(LoggableSubComponent, ABC):
 	def __init__(self, hostobj, groupspec: GroupGenSpec, logprefix: str=None):
 		super().__init__(hostobj=hostobj, logprefix=logprefix or 'GroupGen')
 		# self.basedongroups = ValueSequence.FromSpec(groupspec.basedon, cyclic=True)
@@ -198,6 +247,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			self.suffixes = ValueSequence.FromSpec(groupspec.suffixes, cyclic=False, backup=lambda i: i)
 		self.sequencer = None  # type: _ShapeSequencer
 		self.temporary = groupspec.temporary
+		self.depthlayer = groupspec.depthlayer
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -216,7 +266,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 	def _createGroup(
 			self,
 			groupname: str,
-			context: GroupGenContext,
+			context: _GroupGenContext,
 			shapeindices: List[int]=None,
 			autosequence=False):
 		if autosequence and shapeindices and self.sequencer:
@@ -227,10 +277,11 @@ class GroupGenerator(LoggableSubComponent, ABC):
 			groupname,
 			shapeindices=shapeindices,
 			sequencesteps=steps,
-			temporary=self.temporary)
+			temporary=self.temporary,
+			depthlayer=self.depthlayer)
 		return group
 
-	def generateGroups(self, context: GroupGenContext):
+	def generateGroups(self, context: _GroupGenContext):
 		raise NotImplementedError()
 
 	@classmethod
@@ -251,7 +302,7 @@ class GroupGenerator(LoggableSubComponent, ABC):
 	def FromSpecs(cls, hostobj, groupspecs: List[GroupGenSpec]):
 		return [cls.FromSpec(hostobj, groupspec) for groupspec in groupspecs]
 
-class _PathGroupGenerator(GroupGenerator):
+class _PathGroupGenerator(_GroupGenerator):
 	def __init__(
 			self,
 			hostobj,
@@ -262,7 +313,7 @@ class _PathGroupGenerator(GroupGenerator):
 		self.groupatdepth = groupspec.groupatdepth
 
 	@loggedmethod
-	def generateGroups(self, context: GroupGenContext):
+	def generateGroups(self, context: _GroupGenContext):
 		groups = []
 		n = len(self.pathpatterns)
 		self._LogEvent('Paths (len: {})'.format(n))
@@ -300,8 +351,7 @@ class _PathGroupGenerator(GroupGenerator):
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
 
-	@loggedmethod
-	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: GroupGenContext):
+	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: _GroupGenContext):
 		if self.groupatdepth is None:
 			return [
 				self._createGroup(
@@ -331,7 +381,6 @@ class _PathGroupGenerator(GroupGenerator):
 				prefix = '/'.join(pathparts[:self.groupatdepth])
 			else:
 				prefix = '/'.join(pathparts[self.groupatdepth:])
-			self._LogEvent('Shape with path {!r} has prefix {!r}'.format(shape.shapepath, prefix))
 			if prefix not in shapesbyprefix:
 				shapesbyprefix[prefix] = []
 			shapesbyprefix[prefix].append(shape)
@@ -350,7 +399,7 @@ class _PathGroupGenerator(GroupGenerator):
 		return '{}(basename: {!r}, suffixes: {!r}, paths: {!r})'.format(
 			type(self).__name__, self.basename, self.suffixes, self.pathpatterns)
 
-class _PredicateGroupGenerator(GroupGenerator):
+class _PredicateGroupGenerator(_GroupGenerator):
 	def __init__(
 			self,
 			hostobj,
@@ -365,7 +414,7 @@ class _PredicateGroupGenerator(GroupGenerator):
 		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
 
 	@loggedmethod
-	def generateGroups(self, context: GroupGenContext):
+	def generateGroups(self, context: _GroupGenContext):
 		groups = []
 		n = len(self.predicate)
 		self._LogEvent('Predicate: {} (len: {})'.format(self.predicate, n))
@@ -412,7 +461,7 @@ class _PolarBoundGroupGenerator(_PredicateGroupGenerator):
 			predicate=_PolarPredicate(groupspec),
 		)
 
-class _CombinationGroupGenerator(GroupGenerator):
+class _CombinationGroupGenerator(_GroupGenerator):
 	def __init__(self, hostobj, groupspec: CombinationGroupGenSpec):
 		super().__init__(
 			hostobj=hostobj,
@@ -432,7 +481,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 			self.groups1, self.groups2, self.boolop, self.permute)
 
 	@loggedmethod
-	def generateGroups(self, context: GroupGenContext):
+	def generateGroups(self, context: _GroupGenContext):
 		if self.permute:
 			groups = self._generatePermutations(context)
 		else:
@@ -442,7 +491,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 		context.addGroups(groups)
 
 	@loggedmethod
-	def _generatePermutations(self, context: GroupGenContext) -> List[GroupInfo]:
+	def _generatePermutations(self, context: _GroupGenContext) -> List[GroupInfo]:
 		groups = []
 		index = 0
 		for groupname1 in self.groups1:
@@ -456,7 +505,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 		return groups
 
 	@loggedmethod
-	def _generateBooleanGroups(self, context: GroupGenContext) -> List[GroupInfo]:
+	def _generateBooleanGroups(self, context: _GroupGenContext) -> List[GroupInfo]:
 		groups = []
 		index = 0
 		for groupname1, groupname2 in self.groups1.permuteWith(self.groups2):
@@ -472,7 +521,7 @@ class _CombinationGroupGenerator(GroupGenerator):
 			self,
 			groupname1: str, groupname2: str,
 			index: int,
-			context: GroupGenContext):
+			context: _GroupGenContext):
 		group1 = context.getGroup(groupname1)
 		group2 = context.getGroup(groupname2)
 		if group1 is None:
@@ -556,7 +605,7 @@ class _ShapeSequencer(ABC):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: GroupGenContext) -> List[SequenceStep]:
+			context: _GroupGenContext) -> List[SequenceStep]:
 		raise NotImplementedError()
 
 	@staticmethod
@@ -576,7 +625,7 @@ class _NoOpShapeSequencer(_ShapeSequencer):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: GroupGenContext):
+			context: _GroupGenContext):
 		return [self._createDefaultStep(shapeindices)]
 
 class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
@@ -622,7 +671,7 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: GroupGenContext):
+			context: _GroupGenContext):
 		self.shapesbykey.clear()
 		self.unkeyedshapes.clear()
 		if not shapeindices:
