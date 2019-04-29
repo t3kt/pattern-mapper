@@ -218,8 +218,25 @@ class GroupGenerators(LoggableSubComponent):
 				layer: '{} groups'.format(len(groupsbylayer[layer]))
 				for layer in sorted(groupsbylayer.keys())
 			}))
+			for layer, layergroups in groupsbylayer.items():
+				for group in layergroups:
+					group.depthlayer = layer
+					group.depth = layer * layerdistance
 
-		return groupsbylayer
+		self._generateLayerGroups(groupsbylayer)
+
+	def _generateLayerGroups(self, groupsbylayer: Dict[int, List[GroupInfo]]):
+		for layer in sorted(groupsbylayer.keys()):
+			combiner = _GroupCombiner(self)
+			for group in groupsbylayer[layer]:
+				combiner.addGroup(group)
+			combinedgroup = GroupInfo(
+				'depthlayer_{}'.format(layer),
+				inferencetype='depthlayer',
+				inferredfromvalue=layer,
+			)
+			combiner.buildInto(combinedgroup, boolop=BoolOpNames.OR)
+			self.context.addGroup(combinedgroup)
 
 	def getGroups(self):
 		return [
@@ -596,7 +613,7 @@ class _GroupCombiner(LoggableSubComponent):
 		if boolop == BoolOpNames.AND:
 			combinedindices = combinedindices.intersection(*indexsets[1:])
 		elif boolop == BoolOpNames.OR:
-			combinedindices = combinedindices.union(*combinedindices[1:])
+			combinedindices = combinedindices.union(*indexsets[1:])
 		else:
 			return set()
 		return combinedindices

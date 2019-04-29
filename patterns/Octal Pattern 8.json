@@ -98,6 +98,36 @@
       "paths": "^svg/g\\[id=4\\.a\\]/.*",
       "groupatdepth": 4,
       "depthlayer": 4
+    },
+    {
+      "groupname": "4.b",
+      "paths": "^svg/g\\[id=4\\.b\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 4
+    },
+    {
+      "groupname": "4.c",
+      "paths": "^svg/g\\[id=4\\.c\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 4
+    },
+    {
+      "groupname": "4.d",
+      "paths": "^svg/g\\[id=4\\.d\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 4
+    },
+    {
+      "groupname": "4.e",
+      "paths": "^svg/g\\[id=4\\.e\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 4
+    },
+    {
+      "groupname": "4.f",
+      "paths": "^svg/g\\[id=4\\.f\\]/.*",
+      "groupatdepth": 4,
+      "depthlayer": 4
     }
   ]
 }

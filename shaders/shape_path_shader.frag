@@ -18,8 +18,8 @@ void main()
 	TDCheckDiscard();
 	
 	float phase = iVert.phase + iVert.attrs.texCoord0.x;
-	phase /= iVert.period;
 	phase = mod(phase, 1.0);
+	phase /= iVert.period;
 	vec4 color = mix(iVert.offColor, iVert.onColor, phase);
 
 //	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.globalTexCoord.st);

@@ -261,9 +261,7 @@ class PatternLoader(ExtensionBase):
 		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
 		for group in self.groups:
 			if group.depthlayer is None:
-				self._LogEvent('group {} has no depth layer, skipping'.format(group.groupname))
 				continue
-			self._LogEvent('group {} has depth {} (layer {})'.format(group.groupname, group.depth, group.depthlayer))
 			for shapeindex in group.shapeindices:
 				shape = self.shapes[shapeindex]
 				if shape.depthlayer == group.depthlayer:
