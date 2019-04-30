@@ -5,7 +5,7 @@ if False:
 
 from pattern_model import *
 from abc import ABC
-from typing import Any, List, Set, Dict, DefaultDict
+from typing import Any, List, Set, Dict, DefaultDict, Tuple
 from collections import defaultdict, OrderedDict
 import re
 
