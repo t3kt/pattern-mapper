@@ -267,6 +267,8 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 		self.sequencer = None  # type: _ShapeSequencer
 		self.temporary = groupspec.temporary
 		self.depthlayer = groupspec.depthlayer
+		self.mergename = groupspec.mergeto
+		self.mergecombiner = _GroupCombiner(self) if groupspec.mergeto else None
 
 	def _getName(self, index: int, issolo=False):
 		name = self.basename
@@ -287,7 +289,8 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 			groupname: str,
 			context: _GroupGenContext,
 			shapeindices: List[int]=None,
-			autosequence=False):
+			autosequence=False,
+			addtomerge=True):
 		if autosequence and shapeindices and self.sequencer:
 			steps = self.sequencer.sequenceShapes(shapeindices, context)
 		else:
@@ -298,28 +301,40 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 			sequencesteps=steps,
 			temporary=self.temporary,
 			depthlayer=self.depthlayer)
+		if addtomerge and self.mergecombiner:
+			self.mergecombiner.addGroup(group)
 		return group
 
 	def generateGroups(self, context: _GroupGenContext):
 		raise NotImplementedError()
 
+	def _generateMergedGroup(self, context: _GroupGenContext):
+		if self.mergecombiner:
+			mergedgroup = self._createGroup(
+				self.mergename,
+				context=context,
+				addtomerge=False,
+			)
+			if self.mergecombiner.buildInto(mergedgroup, boolop=BoolOpNames.OR):
+				context.addGroup(mergedgroup)
+
 	@classmethod
 	def FromSpec(cls, hostobj, groupspec: GroupGenSpec):
-		if isinstance(groupspec, BoxBoundGroupGenSpec):
-			return _BoxBoundGroupGenerator(hostobj, groupspec)
-		elif isinstance(groupspec, PolarBoundGroupGenSpec):
-			return _PolarBoundGroupGenerator(hostobj, groupspec)
-		elif isinstance(groupspec, CombinationGroupGenSpec):
-			return _CombinationGroupGenerator(hostobj, groupspec)
-		elif isinstance(groupspec, PathGroupGenSpec):
-			return _PathGroupGenerator(hostobj, groupspec)
-		else:
-			raise Exception('Unsupported group gen spec: {} (type: {})'.format(
-				groupspec, type(groupspec)))
+		for spectype, gentype in _GroupGenerator._specToGeneratorType.items():
+			if isinstance(groupspec, spectype):
+				return gentype(hostobj, groupspec)
+		raise Exception('Unsupported group gen spec: {} (type: {})'.format(
+			groupspec, type(groupspec)))
 
 	@classmethod
 	def FromSpecs(cls, hostobj, groupspecs: List[GroupGenSpec]):
 		return [cls.FromSpec(hostobj, groupspec) for groupspec in groupspecs]
+
+	_specToGeneratorType = {}
+
+	@classmethod
+	def _registerSpecType(cls, specType):
+		_GroupGenerator._specToGeneratorType[specType] = cls
 
 class _PathGroupGenerator(_GroupGenerator):
 	def __init__(
@@ -369,6 +384,7 @@ class _PathGroupGenerator(_GroupGenerator):
 		if len(groups) == 1 and self.suffixes is None:
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
+		self._generateMergedGroup(context)
 
 	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: _GroupGenContext):
 		if self.groupatdepth is None:
@@ -418,6 +434,8 @@ class _PathGroupGenerator(_GroupGenerator):
 		return '{}(basename: {!r}, suffixes: {!r}, paths: {!r})'.format(
 			type(self).__name__, self.basename, self.suffixes, self.pathpatterns)
 
+_PathGroupGenerator._registerSpecType(PathGroupGenSpec)
+
 class _PredicateGroupGenerator(_GroupGenerator):
 	def __init__(
 			self,
@@ -457,6 +475,7 @@ class _PredicateGroupGenerator(_GroupGenerator):
 		if len(groups) == 1 and self.suffixes is None:
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
+		self._generateMergedGroup(context)
 
 	def __repr__(self):
 		return '{}(basename: {!r}, suffixes: {!r}, predicate: {!r})'.format(
@@ -471,6 +490,8 @@ class _BoxBoundGroupGenerator(_PredicateGroupGenerator):
 			predicate=_CartesianPredicate(groupspec),
 		)
 
+_BoxBoundGroupGenerator._registerSpecType(BoxBoundGroupGenSpec)
+
 class _PolarBoundGroupGenerator(_PredicateGroupGenerator):
 	def __init__(self, hostobj, groupspec: PolarBoundGroupGenSpec):
 		super().__init__(
@@ -480,8 +501,10 @@ class _PolarBoundGroupGenerator(_PredicateGroupGenerator):
 			predicate=_PolarPredicate(groupspec),
 		)
 
+_PolarBoundGroupGenerator._registerSpecType(PolarBoundGroupGenSpec)
+
 class _CombinationGroupGenerator(_GroupGenerator):
-	def __init__(self, hostobj, groupspec: CombinationGroupGenSpec):
+	def __init__(self, hostobj, groupspec: BooleanGroupGenSpec):
 		super().__init__(
 			hostobj=hostobj,
 			logprefix='ComboGroupGen',
@@ -510,6 +533,7 @@ class _CombinationGroupGenerator(_GroupGenerator):
 		if len(groups) == 1 and self.suffixes:
 			groups[0].groupname = self._getName(0, issolo=True)
 		context.addGroups(groups)
+		self._generateMergedGroup(context)
 
 	@loggedmethod
 	def _generatePermutations(self, context: _GroupGenContext) -> List[GroupInfo]:
@@ -564,6 +588,28 @@ class _CombinationGroupGenerator(_GroupGenerator):
 		combiner.buildInto(resultgroup, boolop=self.boolop)
 		return resultgroup
 
+_CombinationGroupGenerator._registerSpecType(BooleanGroupGenSpec)
+
+class _MergeGroupGenerator(_GroupGenerator):
+	def __init__(self, hostobj, groupspec: MergeGroupGenSpec):
+		super().__init__(hostobj, groupspec=groupspec, logprefix='MergeGroupGen')
+		self.groups = ValueSequence.FromSpec(groupspec.groups, cyclic=False)
+		self.flatten = groupspec.flatten
+
+	def generateGroups(self, context: _GroupGenContext):
+		combiner = _GroupCombiner(hostobj=self)
+		groupnames = context.getGroupNamesByPatterns(self.groups)
+		combiner.addGroups(context.getGroup(name) for name in groupnames)
+		resultgroup = self._createGroup(
+			self.basename,
+			context=context,
+		)
+		combiner.buildInto(resultgroup, boolop=BoolOpNames.OR)
+		context.addGroup(resultgroup)
+		self._generateMergedGroup(context)
+
+_MergeGroupGenerator._registerSpecType(MergeGroupGenSpec)
+
 class _GroupCombiner(LoggableSubComponent):
 	def __init__(self, hostobj):
 		super().__init__(hostobj, logprefix='GroupCombiner')
@@ -580,7 +626,13 @@ class _GroupCombiner(LoggableSubComponent):
 		else:
 			self.othergroups.append(group)
 
+	def addGroups(self, groups: Iterable[GroupInfo]):
+		for group in groups:
+			self.addGroup(group)
+
 	def buildInto(self, resultgroup: GroupInfo, boolop: str):
+		if not self.sequencegroup and not self.othergroups:
+			return False
 		boolop = boolop or BoolOpNames.OR
 		allshapeindices = self._combineIndexSets(
 			[group.shapeindices for group in self.othergroups],
@@ -608,6 +660,7 @@ class _GroupCombiner(LoggableSubComponent):
 					shapeindices=list(sorted(stepindices))))
 			resultgroup.sequencesteps = resultsteps
 			resultgroup.shapeindices = list(sorted(set(finalallstepindices)))
+		return True
 
 	@staticmethod
 	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):

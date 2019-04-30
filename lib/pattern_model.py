@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 if False:
 	from ._stubs import *
@@ -226,6 +226,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			sequenceby: SequenceBySpec=None,
 			temporary: bool=None,
 			depthlayer: int=None,
+			mergeto: str=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
@@ -236,6 +237,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 		else:
 			self.temporary = temporary
 		self.depthlayer = depthlayer
+		self.mergeto = mergeto
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -244,6 +246,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			'sequenceby': self.sequenceby.ToJsonDict() if self.sequenceby else None,
 			'temporary': self.temporary,
 			'depthlayer': self.depthlayer,
+			'mergeto': self.mergeto,
 		}))
 
 	@classmethod
@@ -253,8 +256,11 @@ class GroupGenSpec(BaseDataObject, ABC):
 			gentypes.append(BoxBoundGroupGenSpec)
 		if _hasany(obj, 'anglemin', 'anglemax', 'distancemin', 'distancemax'):
 			gentypes.append(PolarBoundGroupGenSpec)
-		if 'groups' in obj and _hasany(obj, 'withgroups', 'boolop', 'permute'):
-			gentypes.append(CombinationGroupGenSpec)
+		if 'groups' in obj:
+			if obj and _hasany(obj, 'withgroups', 'boolop', 'permute'):
+				gentypes.append(BooleanGroupGenSpec)
+			else:
+				gentypes.append(MergeGroupGenSpec)
 		if 'paths' in obj:
 			gentypes.append(PathGroupGenSpec)
 		if not gentypes:
@@ -342,7 +348,7 @@ class PolarBoundGroupGenSpec(PositionalGroupGenSpec):
 			'distancemin': self.distancemin, 'distancemax': self.distancemax,
 		}))
 
-class CombinationGroupGenSpec(GroupGenSpec):
+class BooleanGroupGenSpec(GroupGenSpec):
 	def __init__(
 			self,
 			groups: _ValueListSpec=None,
@@ -362,6 +368,22 @@ class CombinationGroupGenSpec(GroupGenSpec):
 			'withgroups': self.withgroups,
 			'boolop': self.boolop,
 			'permute': self.permute,
+		}))
+
+class MergeGroupGenSpec(GroupGenSpec):
+	def __init__(
+			self,
+			groups: _ValueListSpec=None,
+			flatten: bool=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.groups = groups
+		self.flatten = flatten
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'groups': self.groups,
+			'flatten': self.flatten,
 		}))
 
 class GroupDepthModes:
