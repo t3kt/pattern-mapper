@@ -201,6 +201,9 @@ def excludekeys(d, keys):
 		if key not in keys
 	}
 
+def transformkeys(d, fn):
+	return {} if not d else {fn(key): val for key, val in d.items()}
+
 class BaseDataObject:
 	def __init__(self, **attrs):
 		self.attrs = attrs
@@ -237,6 +240,10 @@ class BaseDataObject:
 	@classmethod
 	def ToJsonDicts(cls, nodes: 'Iterable[BaseDataObject]'):
 		return [n.ToJsonDict() for n in nodes] if nodes else []
+
+	@classmethod
+	def ToOptionalJsonDict(cls, obj: 'BaseDataObject'):
+		return obj.ToJsonDict() if obj is not None else None
 
 	@classmethod
 	def ToJsonDictMap(cls, nodes: 'Dict[str, BaseDataObject]'):
@@ -295,6 +302,58 @@ def hextorgb(hexcolor: str):
 _NUMERALS = '0123456789abcdefABCDEF'
 _HEXDEC = {v: int(v, 16) for v in (x+y for x in _NUMERALS for y in _NUMERALS)}
 
+
+# class Color:
+# 	def __init__(self, r_or_vals=0, g=0, b=0, a=1):
+# 		if isinstance(r_or_vals, (list, tuple)):
+# 			vals = r_or_vals
+# 			self.r = vals[0] if len(vals) >= 1 else 0
+# 			self.g = vals[1] if len(vals) >= 2 else 0
+# 			self.b = vals[2] if len(vals) >= 3 else 0
+# 			self.a = vals[3] if len(vals) >= 4 else 1
+# 		else:
+# 			self.r, self.g, self.b, self.a = r_or_vals, g, b, a
+#
+# 	@classmethod
+# 	def ParseHex(cls, hexcolor: str):
+# 		return cls()
+#
+# 	@property
+# 	def rgb(self): return self.r, self.g, self.b
+#
+# 	@property
+# 	def rgba(self): return self.r, self.g, self.b, self.a
+#
+# 	@property
+# 	def hsv(self): return rgb_to_hsv(self.r, self.g, self.b)
+#
+# 	@property
+# 	def hsva(self): return self.hsv + (self.a,)
+#
+# 	@property
+# 	def hue(self): return self.hsv[0]
+#
+# 	@property
+# 	def saturation(self): return self.hsv[1]
+#
+# 	@property
+# 	def value(self): return self.hsv[2]
+#
+# 	def __len__(self): return 4
+# 	def __getitem__(self, index): return self.rgba[index]
+#
+# 	def __repr__(self):
+# 		return 'Color({}, {}, {}, {})'.format(*self.rgba)
+#
+# 	def __hash__(self): return hash(self.rgba)
+# 	def __eq__(self, other):
+# 		if not other:
+# 			return False
+# 		if isinstance(other, Color):
+# 			return self.rgba == other.rgba
+# 		if isinstance(other, (list, tuple)):
+# 			return self.rgba == Color(*other)
+# 		return False
 
 # variant of defaultdict that passes the key to the factory function
 # https://stackoverflow.com/questions/2912231/is-there-a-clever-way-to-pass-the-key-to-defaultdicts-default-factory

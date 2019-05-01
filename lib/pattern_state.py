@@ -20,6 +20,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
 
+from pattern_model import TransformSpec, ShapeState, GroupShapeState, PatternSettings
 
 class ShapeSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -129,3 +130,18 @@ class _ParGroup:
 			if val is not None:
 				vals[p.name] = val
 		self.setVals(vals, clearmissing=clearmissing)
+
+
+class StateDefaultBuilder(ExtensionBase):
+	def __init__(self, ownerComp):
+		super().__init__(ownerComp)
+
+	def LoadPattern(self, patternsettings: PatternSettings):
+		self.Clear()
+		if patternsettings is None:
+			return
+		pass
+
+	def Clear(self):
+		pass
+

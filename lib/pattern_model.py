@@ -9,9 +9,9 @@ if False:
 	from ._stubs import *
 
 try:
-	from common import cleandict, excludekeys, mergedicts, BaseDataObject
+	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys
 except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, BaseDataObject
+	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys
 
 try:
 	from common import parseValue, parseValueList, formatValue, formatValueList
@@ -243,7 +243,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
 			'suffixes': self.suffixes,
-			'sequenceby': self.sequenceby.ToJsonDict() if self.sequenceby else None,
+			'sequenceby': SequenceBySpec.ToOptionalJsonDict(self.sequenceby),
 			'temporary': self.temporary,
 			'depthlayer': self.depthlayer,
 			'mergeto': self.mergeto,
@@ -273,7 +273,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 	@classmethod
 	def _SpecFromJsonDict(cls, obj):
 		return cls(
-			sequenceby=SequenceBySpec.FromJsonDict(obj.get('sequenceby')) if obj.get('sequenceby') else None,
+			sequenceby=SequenceBySpec.FromOptionalJsonDict(obj.get('sequenceby')),
 			**excludekeys(obj, ['sequenceby']))
 
 def _hasany(obj, *keys):
@@ -424,6 +424,120 @@ class DepthLayeringSpec(BaseDataObject):
 			return cls(mode=obj)
 		return cls(**obj)
 
+_RGBAColor = Tuple[float, float, float, float]
+_UVOffset = Union[Tuple[float, float], Tuple[float, float, float]]
+_XYZ = Union[Tuple[float, float], Tuple[float, float, float]]
+
+class TransformSpec(BaseDataObject):
+	def __init__(
+			self,
+			scale: _XYZ=None, uniformscale: float=None,
+			rotate: _XYZ=None, translate: _XYZ=None, pivot: _XYZ=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.scale = scale
+		self.uniformscale = uniformscale
+		self.rotate = rotate
+		self.translate = translate
+		self.pivot = pivot
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'scale': self.scale, 'uniformscale': self.uniformscale,
+			'rotate': self.rotate, 'translate': self.translate, 'pivot': self.pivot,
+		}))
+
+	def ToParamsDict(self, prefix=None, capitalize=False):
+		return cleandict(transformkeys(mergedicts(
+			self.scale is not None and {
+				'scalex': self.scale[0],
+				'scaley': self.scale[1],
+				'scalez': self.scale[2] if len(self.scale) > 2 else None,
+			},
+			self.uniformscale is not None and {'uniformscale': self.uniformscale},
+			self.rotate is not None and {
+				'rotatex': self.rotate[0],
+				'rotatey': self.rotate[1],
+				'rotatez': self.rotate[2] if len(self.rotate) > 2 else None,
+			},
+			self.translate is not None and {
+				'translatex': self.translate[0],
+				'translatey': self.translate[1],
+				'translatez': self.translate[2] if len(self.translate) > 2 else None,
+			},
+			self.pivot is not None and {
+				'pivotx': self.pivot[0],
+				'pivoty': self.pivot[1],
+				'pivotz': self.pivot[2] if len(self.pivot) > 2 else None,
+			}
+		), _keyTransformer(prefix, capitalize)))
+
+def _keyTransformer(prefix=None, capitalize=False):
+	def _transformer(key):
+		if prefix:
+			key = prefix + key
+		return key.capitalize() if capitalize else key
+	return _transformer
+
+class ShapeState(BaseDataObject):
+	def __init__(
+			self,
+			pathcolor: _RGBAColor=None,
+			# pathoncolor: _RGBAColor=None,
+			# pathoffcolor: _RGBAColor=None,
+			# pathphase: float=None,
+			# pathperiod: float=None,
+			panelcolor: _RGBAColor=None,
+			# panelglobaltexlevel: float=None,
+			# panelglobaluvoffset: _UVOffset=None,
+			# panellocaltexlevel: float=None,
+			# panellocaluvoffset: _UVOffset=None,
+			localtransform: TransformSpec=None,
+			globaltransform: TransformSpec=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.pathcolor = pathcolor
+		self.panelcolor = panelcolor
+		self.localtransform = localtransform
+		self.globaltransform = globaltransform
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'pathcolor': self.pathcolor,
+			'panelcolor': self.panelcolor,
+			'localtransform': TransformSpec.ToOptionalJsonDict(self.localtransform),
+			'globaltransform': TransformSpec.ToOptionalJsonDict(self.globaltransform),
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			localtransform=TransformSpec.FromOptionalJsonDict(obj.get('localtransform')),
+			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
+			**excludekeys(obj, ['localtransform', 'globaltransform']))
+
+class GroupShapeState(ShapeState):
+	def __init__(
+			self,
+			group: _ValueListSpec=None,
+			pathcolor: _RGBAColor=None,
+			panelcolor: _RGBAColor=None,
+			localtransform: TransformSpec=None,
+			globaltransform: TransformSpec=None,
+			**attrs):
+		super().__init__(
+			pathcolor=pathcolor,
+			panelcolor=panelcolor,
+			localtransform=localtransform,
+			globaltransform=globaltransform,
+			**attrs)
+		self.group = group
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'group': self.group,
+		}))
+
 class PatternSettings(BaseDataObject):
 	def __init__(
 			self,
@@ -432,13 +546,15 @@ class PatternSettings(BaseDataObject):
 			depthlayering: DepthLayeringSpec=None,
 			rescale: bool=None,
 			recenter: bool=None,
-			defaultshapestate: Dict[str, Any]=None,
+			defaultshapestate: ShapeState=None,
+			groupshapestates: List[GroupShapeState]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
 		self.rescale = rescale
 		self.recenter = recenter
-		self.defaultshapestate = dict(defaultshapestate or {})
+		self.defaultshapestate = defaultshapestate
+		self.groupshapestates = list(groupshapestates or [])
 		self.autogroup = autogroup
 		self.depthlayering = depthlayering
 
@@ -448,14 +564,17 @@ class PatternSettings(BaseDataObject):
 			'groups': GroupGenSpec.ToJsonDicts(self.groups),
 			'rescale': self.rescale,
 			'recenter': self.recenter,
-			'defaultshapestate': cleandict(self.defaultshapestate),
-			'depthlayering': self.depthlayering.ToJsonDict() if self.depthlayering else None,
+			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
+			'groupshapestates': GroupShapeState.ToJsonDicts(self.groupshapestates),
+			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 		}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
 			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
-			depthlayering=DepthLayeringSpec.FromJsonDict(obj.get('depthlayering')) if 'depthlayering' in obj else None,
-			**excludekeys(obj, ['groups', 'depthlayering'])
+			depthlayering=DepthLayeringSpec.FromOptionalJsonDict(obj.get('depthlayering')),
+			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
+			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
+			**excludekeys(obj, ['groups', 'depthlayering', 'defaultshapestate', 'groupshapestates'])
 		)
