@@ -19,6 +19,7 @@ try:
 except ImportError:
 	from .common import parseValue, formatValue, ValueRange, ValueSequence, ValueRangeSequence
 
+from pattern_model import PatternData
 
 class _ShapePredicate:
 	def test(self, shape: ShapeInfo, index: int): raise NotImplementedError()
@@ -118,48 +119,13 @@ class _PolarPredicate(_PositionalPredicate):
 		dist, angle = cartesiantopolar(pos.x, pos.y)
 		return self.distanceranges.contains(dist, index) and self.angleranges.contains(angle, index)
 
-class _GroupGenContext:
-	def __init__(self, shapes: List[ShapeInfo]):
-		self.shapes = shapes
-		self.groups = []  # type: List[GroupInfo]
-		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
-
-	def addGroup(self, group: GroupInfo):
-		self.groups.append(group)
-		if group.groupname not in self.groupsbyname:
-			self.groupsbyname[group.groupname] = group
-
-	def addGroups(self, groups: List[GroupInfo]):
-		for group in groups:
-			self.addGroup(group)
-
-	def getGroup(self, groupname: str):
-		return self.groupsbyname.get(groupname)
-
-	def getGroupNamesByPatterns(self, groupnamepatterns: Iterable[str]):
-		matchingnames = []
-		allgroupnames = list(self.groupsbyname.keys())
-		for pattern in groupnamepatterns:
-			for name in mod.tdu.match(pattern, allgroupnames):
-				if name not in matchingnames:
-					matchingnames.append(name)
-		return matchingnames
-
-	def getShape(self, shapeindex: int):
-		if shapeindex < 0 or shapeindex >= len(self.shapes):
-			return None
-		return self.shapes[shapeindex]
-
-	def __repr__(self):
-		return '_GroupGenContext({} groups, {} shapes)'.format(len(self.groups), len(self.shapes))
-
 class GroupGenerators(LoggableSubComponent):
 	def __init__(
 			self, hostobj,
 			shapes: List[ShapeInfo],
 			patternsettings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='GroupGens')
-		self.context = _GroupGenContext(shapes)
+		self.context = PatternData(shapes)
 		self.patternsettings = patternsettings
 
 	@loggedmethod
@@ -287,7 +253,7 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 	def _createGroup(
 			self,
 			groupname: str,
-			context: _GroupGenContext,
+			context: PatternData,
 			shapeindices: List[int]=None,
 			autosequence=False,
 			addtomerge=True):
@@ -305,10 +271,10 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 			self.mergecombiner.addGroup(group)
 		return group
 
-	def generateGroups(self, context: _GroupGenContext):
+	def generateGroups(self, context: PatternData):
 		raise NotImplementedError()
 
-	def _generateMergedGroup(self, context: _GroupGenContext):
+	def _generateMergedGroup(self, context: PatternData):
 		if self.mergecombiner:
 			mergedgroup = self._createGroup(
 				self.mergename,
@@ -347,7 +313,7 @@ class _PathGroupGenerator(_GroupGenerator):
 		self.groupatdepth = groupspec.groupatdepth
 
 	@loggedmethod
-	def generateGroups(self, context: _GroupGenContext):
+	def generateGroups(self, context: PatternData):
 		groups = []
 		n = len(self.pathpatterns)
 		self._LogEvent('Paths (len: {})'.format(n))
@@ -386,7 +352,7 @@ class _PathGroupGenerator(_GroupGenerator):
 		context.addGroups(groups)
 		self._generateMergedGroup(context)
 
-	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: _GroupGenContext):
+	def _groupsFromPathMatches(self, basename: str, shapes: List[ShapeInfo], context: PatternData):
 		if self.groupatdepth is None:
 			return [
 				self._createGroup(
@@ -451,7 +417,7 @@ class _PredicateGroupGenerator(_GroupGenerator):
 		self.sequencer = _ShapeSequencer.FromSpec(groupspec, hostobj=self)
 
 	@loggedmethod
-	def generateGroups(self, context: _GroupGenContext):
+	def generateGroups(self, context: PatternData):
 		groups = []
 		n = len(self.predicate)
 		self._LogEvent('Predicate: {} (len: {})'.format(self.predicate, n))
@@ -523,7 +489,7 @@ class _CombinationGroupGenerator(_GroupGenerator):
 			self.groups1, self.groups2, self.boolop, self.permute)
 
 	@loggedmethod
-	def generateGroups(self, context: _GroupGenContext):
+	def generateGroups(self, context: PatternData):
 		self.groups1 = ValueSequence(context.getGroupNamesByPatterns(self.groups1), cyclic=True)
 		self.groups2 = ValueSequence(context.getGroupNamesByPatterns(self.groups2), cyclic=True)
 		if self.permute:
@@ -536,7 +502,7 @@ class _CombinationGroupGenerator(_GroupGenerator):
 		self._generateMergedGroup(context)
 
 	@loggedmethod
-	def _generatePermutations(self, context: _GroupGenContext) -> List[GroupInfo]:
+	def _generatePermutations(self, context: PatternData) -> List[GroupInfo]:
 		groups = []
 		index = 0
 		for groupname1 in self.groups1:
@@ -550,7 +516,7 @@ class _CombinationGroupGenerator(_GroupGenerator):
 		return groups
 
 	@loggedmethod
-	def _generateBooleanGroups(self, context: _GroupGenContext) -> List[GroupInfo]:
+	def _generateBooleanGroups(self, context: PatternData) -> List[GroupInfo]:
 		groups = []
 		index = 0
 		for groupname1, groupname2 in self.groups1.permuteWith(self.groups2):
@@ -566,7 +532,7 @@ class _CombinationGroupGenerator(_GroupGenerator):
 			self,
 			groupname1: str, groupname2: str,
 			index: int,
-			context: _GroupGenContext):
+			context: PatternData):
 		group1 = context.getGroup(groupname1)
 		group2 = context.getGroup(groupname2)
 		if group1 is None:
@@ -596,7 +562,7 @@ class _MergeGroupGenerator(_GroupGenerator):
 		self.groups = ValueSequence.FromSpec(groupspec.groups, cyclic=False)
 		self.flatten = groupspec.flatten
 
-	def generateGroups(self, context: _GroupGenContext):
+	def generateGroups(self, context: PatternData):
 		combiner = _GroupCombiner(hostobj=self)
 		groupnames = context.getGroupNamesByPatterns(self.groups)
 		combiner.addGroups(context.getGroup(name) for name in groupnames)
@@ -679,7 +645,7 @@ class _ShapeSequencer(ABC):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: _GroupGenContext) -> List[SequenceStep]:
+			context: PatternData) -> List[SequenceStep]:
 		raise NotImplementedError()
 
 	@staticmethod
@@ -699,7 +665,7 @@ class _NoOpShapeSequencer(_ShapeSequencer):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: _GroupGenContext):
+			context: PatternData):
 		return [self._createDefaultStep(shapeindices)]
 
 class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
@@ -745,7 +711,7 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 	def sequenceShapes(
 			self,
 			shapeindices: List[int],
-			context: _GroupGenContext):
+			context: PatternData):
 		self.shapesbykey.clear()
 		self.unkeyedshapes.clear()
 		if not shapeindices:

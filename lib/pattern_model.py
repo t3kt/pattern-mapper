@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -516,6 +516,9 @@ class ShapeState(BaseDataObject):
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
 			**excludekeys(obj, ['localtransform', 'globaltransform']))
 
+	def __bool__(self):
+		return bool(self.pathcolor or self.panelcolor or self.localtransform or self.globaltransform)
+
 class GroupShapeState(ShapeState):
 	def __init__(
 			self,
@@ -578,3 +581,45 @@ class PatternSettings(BaseDataObject):
 			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
 			**excludekeys(obj, ['groups', 'depthlayering', 'defaultshapestate', 'groupshapestates'])
 		)
+
+
+class PatternData:
+	def __init__(self, shapes: List[ShapeInfo]):
+		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
+		self.groups = []  # type: List[GroupInfo]
+		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
+		self.defaultshapestate = None  # type: ShapeState
+		self.groupshapestates = {}  # type: Dict[str, ShapeState]
+
+	def addGroup(self, group: GroupInfo):
+		self.groups.append(group)
+		if group.groupname not in self.groupsbyname:
+			self.groupsbyname[group.groupname] = group
+
+	def addGroups(self, groups: List[GroupInfo]):
+		for group in groups:
+			self.addGroup(group)
+
+	def getGroup(self, groupname: str):
+		return self.groupsbyname.get(groupname)
+
+	def getGroupNamesByPatterns(self, groupnamepatterns: Iterable[str]) -> List[str]:
+		matchingnames = []
+		allgroupnames = list(self.groupsbyname.keys())
+		for pattern in groupnamepatterns:
+			for name in mod.tdu.match(pattern, allgroupnames):
+				if name not in matchingnames:
+					matchingnames.append(name)
+		return matchingnames
+
+	def getGroupsByPatterns(self, groupnamepatterns: Iterable[str]) -> List[GroupInfo]:
+		names = self.getGroupNamesByPatterns(groupnamepatterns)
+		return [self.groupsbyname[name] for name in names]
+
+	def getShape(self, shapeindex: int):
+		if shapeindex < 0 or shapeindex >= len(self.shapes):
+			return None
+		return self.shapes[shapeindex]
+
+	def __repr__(self):
+		return 'PatternData({} shapes, {} groups)'.format(len(self.shapes), len(self.groups))
