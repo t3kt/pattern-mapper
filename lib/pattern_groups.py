@@ -122,10 +122,10 @@ class _PolarPredicate(_PositionalPredicate):
 class GroupGenerators(LoggableSubComponent):
 	def __init__(
 			self, hostobj,
-			shapes: List[ShapeInfo],
+			context: PatternData,
 			patternsettings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='GroupGens')
-		self.context = PatternData(shapes)
+		self.context = context
 		self.patternsettings = patternsettings
 
 	@loggedmethod
@@ -206,12 +206,11 @@ class GroupGenerators(LoggableSubComponent):
 			combiner.buildInto(combinedgroup, boolop=BoolOpNames.OR)
 			self.context.addGroup(combinedgroup)
 
-	def getGroups(self):
-		return [
-			group
-			for group in self.context.groups
-			if not group.temporary
-		]
+	@loggedmethod
+	def cleanTemporaryGroups(self):
+		for group in list(self.context.groups):
+			if group.temporary:
+				self.context.removeGroup(group)
 
 def _integerprefix(val: str, defval: int=None):
 	if not val:

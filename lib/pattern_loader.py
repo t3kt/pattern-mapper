@@ -28,7 +28,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData
 from pattern_groups import GroupGenerators
 
 remap = tdu.remap
@@ -41,9 +41,8 @@ class PatternLoader(ExtensionBase):
 		super().__init__(ownerComp)
 		self.SvgWidth = tdu.Dependency(1)
 		self.SvgHeight = tdu.Dependency(1)
-		self.shapes = []  # type: List[ShapeInfo]
-		self.groups = None  # type: List[GroupInfo]
 		self.patternsettings = None  # type: PatternSettings
+		self.patterndata = PatternData()
 		_rundelayed('op({!r}).LoadPattern()'.format(self.ownerComp.path), delayFrames=1)
 
 	def op(self, path):
@@ -56,7 +55,7 @@ class PatternLoader(ExtensionBase):
 	@property
 	def TEMP_jsonObj(self):
 		return {
-			'groups': GroupInfo.ToJsonDicts(self.groups)
+			'groups': GroupInfo.ToJsonDicts(self.patterndata.groups)
 		}
 
 	@property
@@ -70,8 +69,9 @@ class PatternLoader(ExtensionBase):
 
 	@loggedmethod
 	def LoadPattern(self):
+		self.patterndata = PatternData()
 		svgxmlop = self.op('svg_xml')
-		svgxmlop.par.loadonstart.pulse(1)
+		svgxmlop.par.loadonstart.pulse()
 		svgxml = svgxmlop.text
 		sop = self.op('build_geometry')
 		self._BuildGeometryFromSvg(sop, svgxml)
@@ -90,6 +90,7 @@ class PatternLoader(ExtensionBase):
 
 	@simpleloggedmethod
 	def _BuildGeometryFromSvg(self, sop, svgxml):
+		sop.clear()
 		parser = _SvgParser(self, sop)
 		parser.parse(
 			svgxml,
@@ -97,7 +98,7 @@ class PatternLoader(ExtensionBase):
 			rescale=self.ownerComp.par.Rescale)
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
-		self.shapes = parser.shapes
+		self.patterndata.addShapes(parser.shapes)
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -135,9 +136,7 @@ class PatternLoader(ExtensionBase):
 			'shapecount',
 			'shapes',
 		])
-		if self.groups is None:
-			return
-		for groupinfo in self.groups:
+		for groupinfo in self.patterndata.groups:
 			dat.appendRow([
 				groupinfo.groupname or '',
 				groupinfo.grouppath or '',
@@ -160,9 +159,9 @@ class PatternLoader(ExtensionBase):
 			'inferredfromvalue',
 			'shapes',
 		])
-		if self.groups is None:
+		if not self.patterndata.groups:
 			return
-		for groupinfo in self.groups:
+		for groupinfo in self.patterndata.groups:
 			for step in groupinfo.sequencesteps:
 				if not step.shapeindices:
 					continue
@@ -186,7 +185,7 @@ class PatternLoader(ExtensionBase):
 			'shapelength',
 			'depthlayer',
 		])
-		for shape in self.shapes:
+		for shape in self.patterndata.shapes:
 			r = dat.numRows
 			dat.appendRow([])
 			dat[r, 'shapeindex'] = shape.shapeindex
@@ -217,11 +216,11 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def BuildShapeGroupSequenceIndices(self, chop):
 		chop.clear()
-		numshapes = len(self.shapes)
+		numshapes = len(self.patterndata.shapes)
 		chop.numSamples = numshapes
-		if self.groups is None:
+		if not self.patterndata.groups:
 			return
-		for group in self.groups:
+		for group in self.patterndata.groups:
 			chan = chop.appendChan('seq_' + group.groupname)
 			shapesteps = [-1] * numshapes
 			for step in group.sequencesteps:
@@ -245,13 +244,13 @@ class PatternLoader(ExtensionBase):
 			self._LoadPatternSettings()
 		generators = GroupGenerators(
 			hostobj=self,
-			shapes=self.shapes,
+			context=self.patterndata,
 			patternsettings=self.patternsettings)
 		if self.patternsettings.autogroup in (None, True):
 			generators.extractInferredGroups()
 		generators.runGenerators()
 		generators.applyDepthLayering()
-		self.groups = generators.getGroups()
+		generators.cleanTemporaryGroups()
 
 
 	@loggedmethod
@@ -259,11 +258,11 @@ class PatternLoader(ExtensionBase):
 		if not self.patternsettings:
 			self._LoadPatternSettings()
 		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
-		for group in self.groups:
+		for group in self.patterndata.groups:
 			if group.depthlayer is None:
 				continue
 			for shapeindex in group.shapeindices:
-				shape = self.shapes[shapeindex]
+				shape = self.patterndata.getShape(shapeindex)
 				if shape.depthlayer == group.depthlayer:
 					continue
 				if shape.depthlayer is not None:
@@ -275,7 +274,7 @@ class PatternLoader(ExtensionBase):
 
 		defaultlayer = layeringspec.defaultlayer
 		layerdist = layeringspec.layerdistance or 0.1
-		for shape in self.shapes:
+		for shape in self.patterndata.shapes:
 			if shape.depthlayer is None:
 				shape.depthlayer = defaultlayer
 				if defaultlayer is not None:

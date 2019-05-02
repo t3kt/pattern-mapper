@@ -584,12 +584,15 @@ class PatternSettings(BaseDataObject):
 
 
 class PatternData:
-	def __init__(self, shapes: List[ShapeInfo]):
+	def __init__(self, shapes: List[ShapeInfo]=None):
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
 		self.defaultshapestate = None  # type: ShapeState
-		self.groupshapestates = {}  # type: Dict[str, ShapeState]
+		self.groupshapestates = []  # type: List[GroupShapeState]
+
+	def addShapes(self, shapes: Iterable[ShapeInfo]):
+		self.shapes += shapes
 
 	def addGroup(self, group: GroupInfo):
 		self.groups.append(group)
@@ -620,6 +623,15 @@ class PatternData:
 		if shapeindex < 0 or shapeindex >= len(self.shapes):
 			return None
 		return self.shapes[shapeindex]
+
+	def addGroupShapeStates(self, groupstates: Iterable[GroupShapeState]):
+		self.groupshapestates += groupstates
+
+	def removeGroup(self, group: GroupInfo):
+		if group in self.groups:
+			self.groups.remove(group)
+		if group.groupname and group.groupname in self.groupsbyname:
+			del self.groupsbyname[group.groupname]
 
 	def __repr__(self):
 		return 'PatternData({} shapes, {} groups)'.format(len(self.shapes), len(self.groups))
