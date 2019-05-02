@@ -2,9 +2,8 @@ from collections import defaultdict
 import datetime
 import json
 import math
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 import sys
-import itertools
 
 print('common.py loading...')
 
@@ -291,6 +290,12 @@ class BaseDataObject:
 				elif isinstance(val, (list, set, tuple)):
 					val = ' '.join(val)
 				cell.val = val
+
+def addDictRow(dat, obj: Dict[str, Any]):
+	r = dat.numRows
+	dat.appendRow([])
+	for key, val in obj.items():
+		dat[r, key] = formatValue(val, nonevalue='')
 
 def hextorgb(hexcolor: str):
 	if not hexcolor:

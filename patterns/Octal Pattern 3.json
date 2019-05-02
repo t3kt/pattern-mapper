@@ -54,5 +54,11 @@
       "withgroups": "inner",
       "boolop": "and"
     }
+  ],
+  "groupshapestates": [
+    {
+      "group": "blue",
+      "panelcolor": [0, 0.3, 0.8, 1.0]
+    }
   ]
 }

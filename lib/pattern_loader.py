@@ -28,7 +28,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, ShapeState
 from pattern_groups import GroupGenerators
 
 remap = tdu.remap
@@ -74,6 +74,9 @@ class PatternLoader(ExtensionBase):
 		svgxmlop.par.loadonstart.pulse()
 		svgxml = svgxmlop.text
 		sop = self.op('build_geometry')
+		self._LoadPatternSettings()
+		self.patterndata.addGroupShapeStates(self.patternsettings.groupshapestates)
+		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
 		self._BuildGeometryFromSvg(sop, svgxml)
 		self._BuildGroups()
 		self._ApplyDepthLayeringToShapes(sop)
@@ -85,7 +88,8 @@ class PatternLoader(ExtensionBase):
 				'build_shape_attr_table',
 				'build_shape_group_sequence_indices',
 				'build_group_table',
-				'build_sequence_step_table'):
+				'build_sequence_step_table',
+				'build_group_default_shape_states'):
 			o.cook(force=True)
 
 	@simpleloggedmethod
@@ -315,6 +319,14 @@ class PatternLoader(ExtensionBase):
 				xchan[i] = pos.x
 				ychan[i] = pos.y
 				zchan[i] = pos.z
+
+	@loggedmethod
+	def BuildGroupShapeStateTable(self, dat):
+		dat.clear()
+		dat.appendRow(['group'] + ShapeState.AllParamNames())
+		self.patterndata.defaultshapestate.AddToParamsTable(dat, {'group': '*'})
+		for groupshapestate in self.patterndata.groupshapestates:
+			groupshapestate.AddToParamsTable(dat)
 
 
 class _SvgParser(LoggableSubComponent):

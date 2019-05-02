@@ -14,9 +14,9 @@ except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys
 
 try:
-	from common import parseValue, parseValueList, formatValue, formatValueList
+	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
 except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList
+	from .common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
 
 # def _defaultedgetter(getdefault: Callable):
 # 	attrname = getdefault.__name__
@@ -435,11 +435,38 @@ class TransformSpec(BaseDataObject):
 			rotate: _XYZ=None, translate: _XYZ=None, pivot: _XYZ=None,
 			**attrs):
 		super().__init__(**attrs)
-		self.scale = scale
+		self.scale = tuple(scale) if scale else None
 		self.uniformscale = uniformscale
-		self.rotate = rotate
-		self.translate = translate
-		self.pivot = pivot
+		self.rotate = tuple(rotate) if rotate else None
+		self.translate = tuple(translate) if translate else None
+		self.pivot = tuple(pivot) if pivot else None
+
+	@classmethod
+	def DefaultTransformSpec(cls):
+		return TransformSpec(
+			scale=(1, 1, 1),
+			uniformscale=1,
+			rotate=(0, 0, 0),
+			translate=(0, 0, 0),
+			pivot=(0, 0, 0),
+		)
+
+	def Clone(self):
+		return TransformSpec(
+			scale=self.scale, uniformscale=self.uniformscale,
+			rotate=self.rotate, translate=self.translate, pivot=self.pivot,
+		)
+
+	def MergedWith(self, override: 'TransformSpec'):
+		if not override:
+			return self.Clone()
+		return TransformSpec(
+			scale=override.scale or self.scale,
+			uniformscale=override.uniformscale if override.uniformscale is not None else self.uniformscale,
+			rotate=override.rotate or self.rotate,
+			translate=override.translate or self.translate,
+			pivot=override.pivot or self.pivot,
+		)
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -472,6 +499,16 @@ class TransformSpec(BaseDataObject):
 			}
 		), _keyTransformer(prefix, capitalize)))
 
+	@classmethod
+	def AllParamNames(cls, prefix: str):
+		return [
+			prefix + 'scalex', prefix + 'scaley', prefix + 'scalez',
+			prefix + 'uniformscale',
+			prefix + 'rotatex', prefix + 'rotatey', prefix + 'rotatez',
+			prefix + 'translatex', prefix + 'translatey', prefix + 'translatez',
+			prefix + 'pivotx', prefix + 'pivoty', prefix + 'pivotz',
+		]
+
 def _keyTransformer(prefix=None, capitalize=False):
 	def _transformer(key):
 		if prefix:
@@ -496,12 +533,42 @@ class ShapeState(BaseDataObject):
 			globaltransform: TransformSpec=None,
 			**attrs):
 		super().__init__(**attrs)
-		self.pathcolor = pathcolor
-		self.panelcolor = panelcolor
+		self.pathcolor = tuple(pathcolor) if pathcolor else None
+		self.panelcolor = tuple(panelcolor) if panelcolor else None
 		self.localtransform = localtransform
 		self.globaltransform = globaltransform
 
+	@classmethod
+	def DefaultState(cls):
+		return ShapeState(
+			pathcolor=(1, 1, 1, 1),
+			panelcolor=(1, 1, 1, 1),
+			localtransform=TransformSpec.DefaultTransformSpec(),
+			globaltransform=TransformSpec.DefaultTransformSpec(),
+		)
+
+	def Clone(self):
+		return ShapeState(
+			pathcolor=self.pathcolor,
+			panelcolor=self.panelcolor,
+			localtransform=self.localtransform.Clone() if self.localtransform else None,
+			globaltransform=self.globaltransform.Clone() if self.globaltransform else None,
+		)
+
+	def MergedWith(self, override: 'ShapeState'):
+		if not override:
+			return self.Clone()
+		return ShapeState(
+			pathcolor=override.pathcolor or self.pathcolor,
+			panelcolor=override.panelcolor or self.panelcolor,
+			localtransform=override.localtransform.Clone() if override.localtransform else (
+				self.localtransform.Clone() if self.localtransform else None),
+			globaltransform=override.globaltransform.Clone() if override.globaltransform else (
+				self.globaltransform.Clone() if self.globaltransform else None),
+		)
+
 	def ToJsonDict(self):
+		self.AddToTable()
 		return cleandict(mergedicts(self.attrs, {
 			'pathcolor': self.pathcolor,
 			'panelcolor': self.panelcolor,
@@ -516,8 +583,50 @@ class ShapeState(BaseDataObject):
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
 			**excludekeys(obj, ['localtransform', 'globaltransform']))
 
+	def ToParamsDict(self):
+		return cleandict(mergedicts(
+			_colorTupleToDict('Pathcolor', self.pathcolor),
+			_colorTupleToDict('Panelcolor', self.panelcolor),
+			self.localtransform and self.localtransform.ToParamsDict(prefix='Local'),
+			self.globaltransform and self.globaltransform.ToParamsDict(prefix='Global'),
+		))
+
+	@classmethod
+	def AllParamNames(cls):
+		names = [
+			'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora',
+			'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora',
+		]
+		names += TransformSpec.AllParamNames('Local')
+		names += TransformSpec.AllParamNames('Global')
+		return names
+
+	def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
+		addDictRow(dat, mergedicts(
+			self.ToParamsDict(),
+			attrs,
+		))
+
 	def __bool__(self):
 		return bool(self.pathcolor or self.panelcolor or self.localtransform or self.globaltransform)
+
+def _colorTupleToDict(prefix: str, color: _RGBAColor):
+	if not color:
+		return {}
+	if len(color) == 3:
+		return {
+			prefix + 'r': color[0],
+			prefix + 'g': color[1],
+			prefix + 'b': color[2],
+		}
+	if len(color) == 4:
+		return {
+			prefix + 'r': color[0],
+			prefix + 'g': color[1],
+			prefix + 'b': color[2],
+			prefix + 'a': color[3],
+		}
+	raise Exception('Invalid color: {!r}'.format(color))
 
 class GroupShapeState(ShapeState):
 	def __init__(
@@ -540,6 +649,11 @@ class GroupShapeState(ShapeState):
 		return cleandict(mergedicts(super().ToJsonDict(), {
 			'group': self.group,
 		}))
+
+	def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
+		super().AddToParamsTable(
+			dat,
+			mergedicts({'group': self.group}, attrs))
 
 class PatternSettings(BaseDataObject):
 	def __init__(
@@ -588,7 +702,7 @@ class PatternData:
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
-		self.defaultshapestate = None  # type: ShapeState
+		self.defaultshapestate = ShapeState.DefaultState()  # type: ShapeState
 		self.groupshapestates = []  # type: List[GroupShapeState]
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
@@ -623,6 +737,9 @@ class PatternData:
 		if shapeindex < 0 or shapeindex >= len(self.shapes):
 			return None
 		return self.shapes[shapeindex]
+
+	def setDefaultShapeState(self, shapestate: ShapeState):
+		self.defaultshapestate = ShapeState.DefaultState().MergedWith(shapestate)
 
 	def addGroupShapeStates(self, groupstates: Iterable[GroupShapeState]):
 		self.groupshapestates += groupstates
