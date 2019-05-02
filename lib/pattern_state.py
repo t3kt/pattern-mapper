@@ -1,14 +1,14 @@
 print('pattern_state.py loading...')
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Iterable
 
 if False:
 	from ._stubs import *
 
 try:
-	from common import ExtensionBase
+	from common import LoggableSubComponent, ExtensionBase
 except ImportError:
-	from .common import ExtensionBase
+	from .common import LoggableSubComponent, ExtensionBase
 
 try:
 	from common import cleandict, excludekeys, mergedicts
@@ -20,7 +20,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
 
-from pattern_model import TransformSpec, ShapeState, GroupShapeState, PatternSettings
+from pattern_model import ShapeState, PatternData
 
 class ShapeSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -132,16 +132,27 @@ class _ParGroup:
 		self.setVals(vals, clearmissing=clearmissing)
 
 
-class StateDefaultBuilder(ExtensionBase):
-	def __init__(self, ownerComp):
-		super().__init__(ownerComp)
+class ShapeStatesBuilder(LoggableSubComponent):
+	def __init__(self, hostobj, chop):
+		super().__init__(hostobj=hostobj, logprefix='ShapeStatesBuilder')
+		self.chop = chop
 
-	def LoadPattern(self, patternsettings: PatternSettings):
-		self.Clear()
-		if patternsettings is None:
+	def Build(self, patterndata: PatternData):
+		self.chop.clear()
+		for name in ShapeState.AllParamNames():
+			self.chop.appendChan(name)
+		if patterndata is None:
 			return
-		pass
+		n = len(patterndata.shapes)
+		self.chop.numSamples = n
+		self._AddStates(patterndata.defaultshapestate, range(n))
+		for groupstate in patterndata.groupshapestates:
+			shapeindices = patterndata.getShapeIndicesByGroupPattern(parseValueList(groupstate.group))
+			self._AddStates(groupstate, shapeindices)
 
-	def Clear(self):
-		pass
+	def _AddStates(self, shapestate: ShapeState, shapeindices: Iterable[int]):
+		obj = shapestate.ToParamsDict()
+		for shapeindex in shapeindices:
+			for key, val in obj.items():
+				self.chop[key][shapeindex] = val
 

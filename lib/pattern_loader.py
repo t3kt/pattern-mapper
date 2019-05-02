@@ -30,6 +30,7 @@ except ImportError:
 
 from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, ShapeState
 from pattern_groups import GroupGenerators
+from pattern_state import ShapeStatesBuilder
 
 remap = tdu.remap
 
@@ -89,7 +90,9 @@ class PatternLoader(ExtensionBase):
 				'build_shape_group_sequence_indices',
 				'build_group_table',
 				'build_sequence_step_table',
-				'build_group_default_shape_states'):
+				'build_group_default_shape_states',
+				'build_shape_default_states',
+		):
 			o.cook(force=True)
 
 	@simpleloggedmethod
@@ -328,6 +331,10 @@ class PatternLoader(ExtensionBase):
 		for groupshapestate in self.patterndata.groupshapestates:
 			groupshapestate.AddToParamsTable(dat)
 
+	@loggedmethod
+	def BuildShapeDefaultStateCHOP(self, chop):
+		builder = ShapeStatesBuilder(self, chop)
+		builder.Build(self.patterndata)
 
 class _SvgParser(LoggableSubComponent):
 	def __init__(self, hostobj, sop):

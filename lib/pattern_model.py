@@ -3,7 +3,7 @@ from abc import ABC
 print('pattern_model.py loading...')
 
 from colorsys import rgb_to_hsv
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 if False:
 	from ._stubs import *
@@ -150,6 +150,29 @@ class GroupInfo(BaseDataObject):
 		if len(self.sequencesteps) > 1:
 			return True
 		return not self.sequencesteps[0].isdefault
+
+	def shapeSequenceIndex(self, shapeindex: int):
+		for step in self.sequencesteps:
+			if shapeindex in step.shapeindices:
+				return step.sequenceindex
+		if shapeindex in self.shapeindices:
+			return 0
+		return -1
+
+	def containsShape(self, shapeindex: int):
+		if shapeindex in self.shapeindices:
+			return True
+		for step in self.sequencesteps:
+			if shapeindex in step.shapeindices:
+				return True
+		return False
+
+	@property
+	def allShapeIndices(self) -> Set[int]:
+		allindices = set(self.shapeindices)
+		for step in self.sequencesteps:
+			allindices.update(step.shapeindices)
+		return allindices
 
 class BoolOpNames:
 	OR = 'or'
@@ -732,6 +755,13 @@ class PatternData:
 	def getGroupsByPatterns(self, groupnamepatterns: Iterable[str]) -> List[GroupInfo]:
 		names = self.getGroupNamesByPatterns(groupnamepatterns)
 		return [self.groupsbyname[name] for name in names]
+
+	def getShapeIndicesByGroupPattern(self, groupnamepatterns: Iterable[str]) -> Set[int]:
+		shapeindices = set()
+		groups = self.getGroupsByPatterns(groupnamepatterns)
+		for group in groups:
+			shapeindices.update(group.allShapeIndices)
+		return shapeindices
 
 	def getShape(self, shapeindex: int):
 		if shapeindex < 0 or shapeindex >= len(self.shapes):
