@@ -1,4 +1,5 @@
 from abc import ABC
+from enum import Enum
 
 print('pattern_model.py loading...')
 
@@ -474,12 +475,6 @@ class TransformSpec(BaseDataObject):
 			pivot=(0, 0, 0),
 		)
 
-	def Clone(self):
-		return TransformSpec(
-			scale=self.scale, uniformscale=self.uniformscale,
-			rotate=self.rotate, translate=self.translate, pivot=self.pivot,
-		)
-
 	def MergedWith(self, override: 'TransformSpec'):
 		if not override:
 			return self.Clone()
@@ -497,7 +492,9 @@ class TransformSpec(BaseDataObject):
 			'rotate': self.rotate, 'translate': self.translate, 'pivot': self.pivot,
 		}))
 
-	def ToParamsDict(self, prefix=None, capitalize=False):
+	def ToParamsDict(self, prefix=None):
+		if not prefix:
+			prefix = ''
 		return cleandict(transformkeys(mergedicts(
 			self.scale is not None and {
 				'scalex': self.scale[0],
@@ -520,7 +517,7 @@ class TransformSpec(BaseDataObject):
 				'pivoty': self.pivot[1],
 				'pivotz': self.pivot[2] if len(self.pivot) > 2 else None,
 			}
-		), _keyTransformer(prefix, capitalize)))
+		), lambda key: prefix + key))
 
 	@classmethod
 	def AllParamNames(cls, prefix: str):
@@ -532,12 +529,68 @@ class TransformSpec(BaseDataObject):
 			prefix + 'pivotx', prefix + 'pivoty', prefix + 'pivotz',
 		]
 
-def _keyTransformer(prefix=None, capitalize=False):
-	def _transformer(key):
-		if prefix:
-			key = prefix + key
-		return key.capitalize() if capitalize else key
-	return _transformer
+class _BaseEnum(Enum):
+	@classmethod
+	def ByName(cls, name: str, default=None):
+		if name in (None, ''):
+			return default
+		return cls[name]
+
+	@classmethod
+	def ByValue(cls, value: Union[str, int], default=None):
+		if value in (None, ''):
+			return default
+		return cls(value)
+
+class TexCoordMode(_BaseEnum):
+	localuv = 'local'
+	globaluv = 'global'
+
+class CompositeOp(_BaseEnum):
+	add = 0
+	atop = 1
+	average = 2
+	difference = 3
+	inside = 4
+	maximum = 5
+	minimum = 6
+	multiply = 7
+	outside = 8
+	over = 9
+	screen = 10
+	subtract = 11
+	under = 12
+
+class TextureLayer(BaseDataObject):
+	def __init__(
+			self,
+			uvmode: str=None,
+			textureindex: int=None,
+			transform: TransformSpec=None,
+			composite: str=None,
+			**attrs):
+		super().__init__(**attrs)
+		# parse by value
+		self.uvmode = TexCoordMode.ByValue(uvmode, default=TexCoordMode.localuv)  # type: TexCoordMode
+		self.textureindex = textureindex
+		self.transform = transform
+		# parse by name
+		self.composite = CompositeOp.ByName(composite, default=CompositeOp.over)  # type: CompositeOp
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'uvmode': self.uvmode.value,
+			'textureindex': self.textureindex,
+			'transform': TransformSpec.ToOptionalJsonDict(self.transform),
+			'composite': self.composite.name,
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			transform=TransformSpec.FromOptionalJsonDict(obj.get('transform')),
+			**excludekeys(obj, ['transform'])
+		)
 
 class ShapeState(BaseDataObject):
 	def __init__(
@@ -554,12 +607,14 @@ class ShapeState(BaseDataObject):
 			# panellocaluvoffset: _UVOffset=None,
 			localtransform: TransformSpec=None,
 			globaltransform: TransformSpec=None,
+			texturelayers: List[TextureLayer]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.pathcolor = tuple(pathcolor) if pathcolor else None
 		self.panelcolor = tuple(panelcolor) if panelcolor else None
 		self.localtransform = localtransform
 		self.globaltransform = globaltransform
+		self.texturelayers = list(texturelayers or [])
 
 	@classmethod
 	def DefaultState(cls):
@@ -568,14 +623,7 @@ class ShapeState(BaseDataObject):
 			panelcolor=(1, 1, 1, 1),
 			localtransform=TransformSpec.DefaultTransformSpec(),
 			globaltransform=TransformSpec.DefaultTransformSpec(),
-		)
-
-	def Clone(self):
-		return ShapeState(
-			pathcolor=self.pathcolor,
-			panelcolor=self.panelcolor,
-			localtransform=self.localtransform.Clone() if self.localtransform else None,
-			globaltransform=self.globaltransform.Clone() if self.globaltransform else None,
+			texturelayers=[],
 		)
 
 	def MergedWith(self, override: 'ShapeState'):
@@ -584,19 +632,18 @@ class ShapeState(BaseDataObject):
 		return ShapeState(
 			pathcolor=override.pathcolor or self.pathcolor,
 			panelcolor=override.panelcolor or self.panelcolor,
-			localtransform=override.localtransform.Clone() if override.localtransform else (
-				self.localtransform.Clone() if self.localtransform else None),
-			globaltransform=override.globaltransform.Clone() if override.globaltransform else (
-				self.globaltransform.Clone() if self.globaltransform else None),
+			localtransform=TransformSpec.CloneFirst(override.localtransform, self.localtransform),
+			globaltransform=TransformSpec.CloneFirst(override.globaltransform, self.globaltransform),
+			texturelayers=TextureLayer.CloneList(override.texturelayers or self.texturelayers),
 		)
 
 	def ToJsonDict(self):
-		self.AddToTable()
 		return cleandict(mergedicts(self.attrs, {
 			'pathcolor': self.pathcolor,
 			'panelcolor': self.panelcolor,
 			'localtransform': TransformSpec.ToOptionalJsonDict(self.localtransform),
 			'globaltransform': TransformSpec.ToOptionalJsonDict(self.globaltransform),
+			'texturelayers': TextureLayer.ToJsonDicts(self.texturelayers),
 		}))
 
 	@classmethod
@@ -604,6 +651,7 @@ class ShapeState(BaseDataObject):
 		return cls(
 			localtransform=TransformSpec.FromOptionalJsonDict(obj.get('localtransform')),
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
+			texturelayers=TextureLayer.FromJsonDicts(obj.get('texturelayers')),
 			**excludekeys(obj, ['localtransform', 'globaltransform']))
 
 	def ToParamsDict(self):

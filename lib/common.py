@@ -251,6 +251,22 @@ class BaseDataObject:
 			for path, node in nodes.items()
 		} if nodes else {}
 
+	def Clone(self):
+		return self.FromJsonDict(self.ToJsonDict())
+
+	@classmethod
+	def CloneList(cls, items: 'List[BaseDataObject]'):
+		return [item.Clone() for item in (items or [])]
+
+	@classmethod
+	def CloneFirst(cls, *items: 'BaseDataObject'):
+		if not items:
+			return None
+		for item in items:
+			if item:
+				return item
+		return None
+
 	def WriteJsonTo(self, filepath):
 		obj = self.ToJsonDict()
 		with open(filepath, mode='w') as outfile:
