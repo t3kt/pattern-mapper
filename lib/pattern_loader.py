@@ -324,16 +324,8 @@ class PatternLoader(ExtensionBase):
 				zchan[i] = pos.z
 
 	@loggedmethod
-	def BuildGroupShapeStateTable(self, dat):
-		dat.clear()
-		dat.appendRow(['group'] + ShapeState.AllParamNames())
-		self.patterndata.defaultshapestate.AddToParamsTable(dat, {'group': '*'})
-		for groupshapestate in self.patterndata.groupshapestates:
-			groupshapestate.AddToParamsTable(dat)
-
-	@loggedmethod
-	def BuildShapeDefaultStateCHOP(self, chop):
-		builder = ShapeStatesBuilder(self, chop)
+	def BuildShapeDefaultStateTable(self, dat):
+		builder = ShapeStatesBuilder(self, dat)
 		builder.Build(self.patterndata)
 
 class _SvgParser(LoggableSubComponent):

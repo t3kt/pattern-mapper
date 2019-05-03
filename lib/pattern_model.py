@@ -624,11 +624,11 @@ class ShapeState(BaseDataObject):
 		names += TransformSpec.AllParamNames('Global')
 		return names
 
-	def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
-		addDictRow(dat, mergedicts(
-			self.ToParamsDict(),
-			attrs,
-		))
+	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
+	# 	addDictRow(dat, mergedicts(
+	# 		self.ToParamsDict(),
+	# 		attrs,
+	# 	))
 
 	def __bool__(self):
 		return bool(self.pathcolor or self.panelcolor or self.localtransform or self.globaltransform)
@@ -673,10 +673,10 @@ class GroupShapeState(ShapeState):
 			'group': self.group,
 		}))
 
-	def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
-		super().AddToParamsTable(
-			dat,
-			mergedicts({'group': self.group}, attrs))
+	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
+	# 	super().AddToParamsTable(
+	# 		dat,
+	# 		mergedicts({'group': self.group}, attrs))
 
 class PatternSettings(BaseDataObject):
 	def __init__(
@@ -725,7 +725,7 @@ class PatternData:
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
-		self.defaultshapestate = ShapeState.DefaultState()  # type: ShapeState
+		self.defaultshapestate = None  # type: ShapeState
 		self.groupshapestates = []  # type: List[GroupShapeState]
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
@@ -769,7 +769,7 @@ class PatternData:
 		return self.shapes[shapeindex]
 
 	def setDefaultShapeState(self, shapestate: ShapeState):
-		self.defaultshapestate = ShapeState.DefaultState().MergedWith(shapestate)
+		self.defaultshapestate = shapestate.Clone() if shapestate else None
 
 	def addGroupShapeStates(self, groupstates: Iterable[GroupShapeState]):
 		self.groupshapestates += groupstates

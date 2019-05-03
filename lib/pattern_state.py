@@ -133,19 +133,19 @@ class _ParGroup:
 
 
 class ShapeStatesBuilder(LoggableSubComponent):
-	def __init__(self, hostobj, chop):
+	def __init__(self, hostobj, dat):
 		super().__init__(hostobj=hostobj, logprefix='ShapeStatesBuilder')
-		self.chop = chop
+		self.dat = dat
 
 	def Build(self, patterndata: PatternData):
-		self.chop.clear()
-		for name in ShapeState.AllParamNames():
-			self.chop.appendChan(name)
+		self.dat.clear()
+		self.dat.appendRow(ShapeState.AllParamNames())
 		if patterndata is None:
 			return
 		n = len(patterndata.shapes)
-		self.chop.numSamples = n
-		self._AddStates(patterndata.defaultshapestate, range(n))
+		self.dat.setSize(1 + n, self.dat.numCols)
+		if patterndata.defaultshapestate:
+			self._AddStates(patterndata.defaultshapestate, range(n))
 		for groupstate in patterndata.groupshapestates:
 			shapeindices = patterndata.getShapeIndicesByGroupPattern(parseValueList(groupstate.group))
 			self._AddStates(groupstate, shapeindices)
@@ -154,5 +154,4 @@ class ShapeStatesBuilder(LoggableSubComponent):
 		obj = shapestate.ToParamsDict()
 		for shapeindex in shapeindices:
 			for key, val in obj.items():
-				self.chop[key][shapeindex] = val
-
+				self.dat[shapeindex + 1, key] = val
