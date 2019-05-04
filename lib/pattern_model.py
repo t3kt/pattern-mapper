@@ -543,8 +543,8 @@ class _BaseEnum(Enum):
 		return cls(value)
 
 class TexCoordMode(_BaseEnum):
-	localuv = 'local'
-	globaluv = 'global'
+	loc = 0
+	glob = 1
 
 class CompositeOp(_BaseEnum):
 	add = 0
@@ -568,21 +568,24 @@ class TextureLayer(BaseDataObject):
 			textureindex: int=None,
 			transform: TransformSpec=None,
 			composite: str=None,
+			alpha: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		# parse by value
-		self.uvmode = TexCoordMode.ByValue(uvmode, default=TexCoordMode.localuv)  # type: TexCoordMode
+		self.uvmode = TexCoordMode.ByName(uvmode, default=TexCoordMode.loc)  # type: TexCoordMode
 		self.textureindex = textureindex
 		self.transform = transform
 		# parse by name
 		self.composite = CompositeOp.ByName(composite, default=CompositeOp.over)  # type: CompositeOp
+		self.alpha = alpha or 0
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
-			'uvmode': self.uvmode.value,
+			'uvmode': self.uvmode.name,
 			'textureindex': self.textureindex,
 			'transform': TransformSpec.ToOptionalJsonDict(self.transform),
 			'composite': self.composite.name,
+			'alpha': self.alpha,
 		}))
 
 	@classmethod
@@ -592,29 +595,40 @@ class TextureLayer(BaseDataObject):
 			**excludekeys(obj, ['transform'])
 		)
 
+	def ToParamsDict(self, prefix=None):
+		if not prefix:
+			prefix = ''
+		return cleandict(transformkeys(mergedicts(
+			{
+				'uvmode': self.uvmode.value,
+				'textureindex': self.textureindex,
+				'composite': self.composite.value,
+				'alpha': self.alpha,
+			},
+			self.transform and self.transform.ToParamsDict(prefix),
+		), lambda key: prefix + key))
+
 class ShapeState(BaseDataObject):
 	def __init__(
 			self,
 			pathcolor: _RGBAColor=None,
-			# pathoncolor: _RGBAColor=None,
-			# pathoffcolor: _RGBAColor=None,
-			# pathphase: float=None,
-			# pathperiod: float=None,
 			panelcolor: _RGBAColor=None,
-			# panelglobaltexlevel: float=None,
-			# panelglobaluvoffset: _UVOffset=None,
-			# panellocaltexlevel: float=None,
-			# panellocaluvoffset: _UVOffset=None,
 			localtransform: TransformSpec=None,
 			globaltransform: TransformSpec=None,
-			texturelayers: List[TextureLayer]=None,
+			texturelayer1: TextureLayer=None,
+			texturelayer2: TextureLayer=None,
+			texturelayer3: TextureLayer=None,
+			texturelayer4: TextureLayer=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.pathcolor = tuple(pathcolor) if pathcolor else None
 		self.panelcolor = tuple(panelcolor) if panelcolor else None
 		self.localtransform = localtransform
 		self.globaltransform = globaltransform
-		self.texturelayers = list(texturelayers or [])
+		self.texturelayer1 = texturelayer1
+		self.texturelayer2 = texturelayer2
+		self.texturelayer3 = texturelayer3
+		self.texturelayer4 = texturelayer4
 
 	@classmethod
 	def DefaultState(cls):
@@ -623,7 +637,6 @@ class ShapeState(BaseDataObject):
 			panelcolor=(1, 1, 1, 1),
 			localtransform=TransformSpec.DefaultTransformSpec(),
 			globaltransform=TransformSpec.DefaultTransformSpec(),
-			texturelayers=[],
 		)
 
 	def MergedWith(self, override: 'ShapeState'):
@@ -634,7 +647,10 @@ class ShapeState(BaseDataObject):
 			panelcolor=override.panelcolor or self.panelcolor,
 			localtransform=TransformSpec.CloneFirst(override.localtransform, self.localtransform),
 			globaltransform=TransformSpec.CloneFirst(override.globaltransform, self.globaltransform),
-			texturelayers=TextureLayer.CloneList(override.texturelayers or self.texturelayers),
+			texturelayer1=TextureLayer.CloneFirst(override.texturelayer1, self.texturelayer1),
+			texturelayer2=TextureLayer.CloneFirst(override.texturelayer2, self.texturelayer2),
+			texturelayer3=TextureLayer.CloneFirst(override.texturelayer3, self.texturelayer3),
+			texturelayer4=TextureLayer.CloneFirst(override.texturelayer4, self.texturelayer4),
 		)
 
 	def ToJsonDict(self):
@@ -643,7 +659,10 @@ class ShapeState(BaseDataObject):
 			'panelcolor': self.panelcolor,
 			'localtransform': TransformSpec.ToOptionalJsonDict(self.localtransform),
 			'globaltransform': TransformSpec.ToOptionalJsonDict(self.globaltransform),
-			'texturelayers': TextureLayer.ToJsonDicts(self.texturelayers),
+			'texturelayer1': TextureLayer.ToOptionalJsonDict(self.texturelayer1),
+			'texturelayer2': TextureLayer.ToOptionalJsonDict(self.texturelayer2),
+			'texturelayer3': TextureLayer.ToOptionalJsonDict(self.texturelayer3),
+			'texturelayer4': TextureLayer.ToOptionalJsonDict(self.texturelayer4),
 		}))
 
 	@classmethod
@@ -651,8 +670,14 @@ class ShapeState(BaseDataObject):
 		return cls(
 			localtransform=TransformSpec.FromOptionalJsonDict(obj.get('localtransform')),
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
-			texturelayers=TextureLayer.FromJsonDicts(obj.get('texturelayers')),
-			**excludekeys(obj, ['localtransform', 'globaltransform']))
+			texturelayer1=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer1')),
+			texturelayer2=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer2')),
+			texturelayer3=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer3')),
+			texturelayer4=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer4')),
+			**excludekeys(obj, [
+				'localtransform', 'globaltransform',
+				'texturelayer1', 'texturelayer2', 'texturelayer3', 'texturelayer4',
+			]))
 
 	def ToParamsDict(self):
 		return cleandict(mergedicts(
@@ -660,6 +685,10 @@ class ShapeState(BaseDataObject):
 			_colorTupleToDict('Panelcolor', self.panelcolor),
 			self.localtransform and self.localtransform.ToParamsDict(prefix='Local'),
 			self.globaltransform and self.globaltransform.ToParamsDict(prefix='Global'),
+			self.texturelayer1 and self.texturelayer1.ToParamsDict(prefix='Texlayer1'),
+			self.texturelayer2 and self.texturelayer2.ToParamsDict(prefix='Texlayer2'),
+			self.texturelayer3 and self.texturelayer3.ToParamsDict(prefix='Texlayer3'),
+			self.texturelayer4 and self.texturelayer4.ToParamsDict(prefix='Texlayer4'),
 		))
 
 	@classmethod

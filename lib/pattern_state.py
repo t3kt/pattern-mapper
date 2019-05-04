@@ -155,3 +155,13 @@ class ShapeStatesBuilder(LoggableSubComponent):
 		for shapeindex in shapeindices:
 			for key, val in obj.items():
 				self.dat[shapeindex + 1, key] = val
+
+def BuildShapeStateChannels(chop, shapestate: ShapeState):
+	chop.clear()
+	if not shapestate:
+		return
+	parvals = shapestate.ToParamsDict()
+	for name in sorted(parvals.keys()):
+		val = parvals[name]
+		chan = chop.appendChan(name)
+		chan[0] = val
