@@ -22,70 +22,10 @@ except ImportError:
 
 from pattern_model import ShapeState, PatternData
 
-class ShapeSettingsEditor(ExtensionBase):
-	def __init__(self, ownerComp):
-		super().__init__(ownerComp)
-		self.par = ownerComp.par
-		o = ownerComp
-		self.pargroups = [
-			_ParGroup(o, 'Includepathalpha', 'Pathalpha'),
-			_ParGroup(o, 'Includepathoncolor', 'Pathoncolor[rgba]'),
-			_ParGroup(o, 'Includepathoffcolor', 'Pathoffcolor[rgba]'),
-			_ParGroup(o, 'Includepathphase', 'Pathphase'),
-			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
-
-			_ParGroup(o, 'Includepanelalpha', 'Panelalpha'),
-			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
-
-			_ParGroup(o, 'Includepanelglobaltexlevel', 'Panelglobaltexlevel'),
-			_ParGroup(o, 'Includepanelglobaluvoffset', 'Panelglobaluvoffset[uvw]'),
-			_ParGroup(o, 'Includepanellocaltexlevel', 'Panellocaltexlevel'),
-			_ParGroup(o, 'Includepanellocaluvoffset', 'Panellocaluvoffset[uvw]'),
-
-			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]', 'Localuniformscale'),
-			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
-			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
-
-			_ParGroup(o, 'Includeglobalscale', 'Globalscale[xyz]', 'Globaluniformscale'),
-			_ParGroup(o, 'Includeglobalrotate', 'Globalrotate[xyz]'),
-			_ParGroup(o, 'Includeglobaltranslate', 'Globaltranslate[xyz]'),
-		]
-		self.UpdateParStates()
-
-	def UpdateParStates(self):
-		for pg in self.pargroups:
-			pg.updateParsEnabled()
-
-	def GetState(self, filtered=True):
-		return cleandict(mergedicts(*[
-			pg.getVals(filtered=filtered)
-			for pg in self.pargroups
-		]))
-
-	def SetState(self, obj: Dict[str, Any], clearmissing=True):
-		for pg in self.pargroups:
-			pg.setVals(obj, clearmissing=clearmissing)
-
-	def BuildStateTable(self, dat, filtered=True):
-		dat.clear()
-		for pg in self.pargroups:
-			pg.addRows(dat, filtered=filtered)
-
-	def ReadStateRows(self, dat, column=1, clearmissing=True):
-		for pg in self.pargroups:
-			pg.readRows(dat, column, clearmissing=clearmissing)
-
-	def GetActiveNames(self):
-		names = []
-		for pg in self.pargroups:
-			if pg.isactive:
-				names += pg.parnames
-		return names
-
 class _ParGroup:
-	def __init__(self, o, switchparname, *parnames):
-		self.switchpar = getattr(o.par, switchparname) if switchparname else None
-		self.parnames = list(parnames)
+	def __init__(self, o, switchparname: str, *parnames: str):
+		self.switchpar = getattr(o.par, switchparname.capitalize()) if switchparname else None
+		self.parnames = list([p.capitalize() for p in parnames])
 		self.pars = o.pars(*parnames)
 
 	def updateParsEnabled(self):
@@ -130,6 +70,120 @@ class _ParGroup:
 			if val is not None:
 				vals[p.name] = val
 		self.setVals(vals, clearmissing=clearmissing)
+
+	@classmethod
+	def ForTransformSpec(cls, o, prefix: str):
+		return [
+			cls(o, 'Include{}scale'.format(prefix), '{}scale[xyz]'.format(prefix), '{}uniformscale'.format(prefix)),
+			cls(o, 'Include{}rotate'.format(prefix), '{}rotate[xyz]'.format(prefix)),
+			cls(o, 'Include{}translate'.format(prefix), '{}translate[xyz]'.format(prefix)),
+			cls(o, 'Include{}pivot'.format(prefix), '{}pivot[xyz]'.format(prefix)),
+		]
+
+	@classmethod
+	def ForTextureLayer(cls, o, index: int):
+		return [
+			cls(o, 'Includetexlayer{}uvmode'.format(index), 'Texlayer{}uvmode'.format(index)),
+			cls(o, 'Includetexlayer{}textureindex'.format(index), 'Texlayer{}textureindex'.format(index)),
+			cls(o, 'Includetexlayer{}composite'.format(index), 'Texlayer{}composite'.format(index)),
+			cls(o, 'Includetexlayer{}alpha'.format(index), 'Texlayer{}alpha'.format(index)),
+		] + cls.ForTransformSpec(o, 'Tex{}'.format(index))
+
+class _SettingsEditor(ExtensionBase):
+	def __init__(self, ownerComp, pargroups: List[_ParGroup]):
+		super().__init__(ownerComp)
+		self.par = ownerComp.par
+		self.pargroups = list(pargroups or [])
+		self.UpdateParStates()
+
+	def UpdateParStates(self):
+		for pg in self.pargroups:
+			pg.updateParsEnabled()
+
+	def GetStateDict(self, filtered=True):
+		return cleandict(mergedicts(*[
+			pg.getVals(filtered=filtered)
+			for pg in self.pargroups
+		]))
+
+	def SetStateDict(self, obj: Dict[str, Any], clearmissing=True):
+		for pg in self.pargroups:
+			pg.setVals(obj, clearmissing=clearmissing)
+
+	def GetState(self, filtered=True):
+		return self.GetStateDict(filtered=filtered)
+
+	def SetState(self, state, clearmissing=True):
+		self.SetStateDict(state, clearmissing=clearmissing)
+
+	def BuildStateTable(self, dat, filtered=True):
+		dat.clear()
+		for pg in self.pargroups:
+			pg.addRows(dat, filtered=filtered)
+
+	def ReadStateRows(self, dat, column=1, clearmissing=True):
+		for pg in self.pargroups:
+			pg.readRows(dat, column, clearmissing=clearmissing)
+
+	def GetActiveNames(self):
+		names = []
+		for pg in self.pargroups:
+			if pg.isactive:
+				names += pg.parnames
+		return names
+
+class ShapeSettingsEditor(_SettingsEditor):
+	def __init__(self, ownerComp):
+		o = ownerComp
+		super().__init__(ownerComp, [
+			_ParGroup(o, 'Includepathalpha', 'Pathalpha'),
+			_ParGroup(o, 'Includepathoncolor', 'Pathoncolor[rgba]'),
+			_ParGroup(o, 'Includepathoffcolor', 'Pathoffcolor[rgba]'),
+			_ParGroup(o, 'Includepathphase', 'Pathphase'),
+			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
+
+			_ParGroup(o, 'Includepanelalpha', 'Panelalpha'),
+			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
+
+			_ParGroup(o, 'Includepanelglobaltexlevel', 'Panelglobaltexlevel'),
+			_ParGroup(o, 'Includepanelglobaluvoffset', 'Panelglobaluvoffset[uvw]'),
+			_ParGroup(o, 'Includepanellocaltexlevel', 'Panellocaltexlevel'),
+			_ParGroup(o, 'Includepanellocaluvoffset', 'Panellocaluvoffset[uvw]'),
+
+			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]', 'Localuniformscale'),
+			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
+			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
+
+			_ParGroup(o, 'Includeglobalscale', 'Globalscale[xyz]', 'Globaluniformscale'),
+			_ParGroup(o, 'Includeglobalrotate', 'Globalrotate[xyz]'),
+			_ParGroup(o, 'Includeglobaltranslate', 'Globaltranslate[xyz]'),
+		])
+
+
+class ShapeStateEditor(_SettingsEditor):
+	def __init__(self, ownerComp):
+		o = ownerComp
+		super().__init__(
+			ownerComp,
+			[
+				_ParGroup(o, 'Includepathcolor', 'Pathcolor[rgba]'),
+				_ParGroup(o, 'Includepanelcolor', 'Panelcolor[rgba]'),
+			]
+			+ _ParGroup.ForTransformSpec(o, 'Local')
+			+ _ParGroup.ForTransformSpec(o, 'Global')
+			+ _ParGroup.ForTextureLayer(o, 1)
+			+ _ParGroup.ForTextureLayer(o, 2)
+			+ _ParGroup.ForTextureLayer(o, 3)
+			+ _ParGroup.ForTextureLayer(o, 4)
+		)
+
+	def GetState(self, filtered=True) -> ShapeState:
+		obj = self.GetStateDict(filtered=filtered)
+		return ShapeState.FromParamsDict(obj)
+
+	def SetState(self, state: ShapeState, clearmissing=True):
+		obj = state.ToParamsDict()
+		self.SetStateDict(obj, clearmissing=clearmissing)
 
 
 class ShapeStatesBuilder(LoggableSubComponent):

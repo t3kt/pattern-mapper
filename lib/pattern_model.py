@@ -520,6 +520,44 @@ class TransformSpec(BaseDataObject):
 		), lambda key: prefix + key))
 
 	@classmethod
+	def FromParamsDict(cls, obj, prefix=None):
+		if not obj:
+			return None
+		if not prefix:
+			prefix = ''
+		return cls(
+			scale=_TupleFromDict(
+				obj,
+				'{}scalex'.format(prefix).capitalize(),
+				'{}scaley'.format(prefix).capitalize(),
+				'{}scalez'.format(prefix).capitalize(),
+				default=1
+			),
+			uniformscale=obj.get('uniformscale'),
+			rotate=_TupleFromDict(
+				obj,
+				'{}rotatex'.format(prefix).capitalize(),
+				'{}rotatey'.format(prefix).capitalize(),
+				'{}rotatez'.format(prefix).capitalize(),
+				default=0
+			),
+			translate=_TupleFromDict(
+				obj,
+				'{}translatex'.format(prefix).capitalize(),
+				'{}translatey'.format(prefix).capitalize(),
+				'{}translatez'.format(prefix).capitalize(),
+				default=0
+			),
+			pivot=_TupleFromDict(
+				obj,
+				'{}pivotx'.format(prefix).capitalize(),
+				'{}pivoty'.format(prefix).capitalize(),
+				'{}pivotz'.format(prefix).capitalize(),
+				default=0
+			)
+		)
+
+	@classmethod
 	def AllParamNames(cls, prefix: str):
 		return [
 			prefix + 'scalex', prefix + 'scaley', prefix + 'scalez',
@@ -528,6 +566,20 @@ class TransformSpec(BaseDataObject):
 			prefix + 'translatex', prefix + 'translatey', prefix + 'translatez',
 			prefix + 'pivotx', prefix + 'pivoty', prefix + 'pivotz',
 		]
+
+def _TupleFromDict(obj: Dict[str, Any], *names: str, default=None):
+	if not obj:
+		return None
+	vals = []
+	hasany = False
+	for name in names:
+		val = obj.get(name)
+		if val is not None:
+			vals.append(val)
+			hasany = True
+		else:
+			vals.append(default)
+	return vals if hasany else None
 
 class _BaseEnum(Enum):
 	@classmethod
@@ -608,6 +660,18 @@ class TextureLayer(BaseDataObject):
 			self.transform and self.transform.ToParamsDict(prefix),
 		), lambda key: prefix + key))
 
+	@classmethod
+	def FromParamsDict(cls, obj, prefix=None):
+		if not prefix:
+			prefix = ''
+		return cls(
+			uvmode=obj.get(prefix + 'uvmode'),
+			textureindex=obj.get(prefix + 'textureindex'),
+			transform=TransformSpec.FromParamsDict(obj, prefix),
+			composite=obj.get(prefix + 'composite'),
+			alpha=obj.get(prefix + 'alpha'),
+		)
+
 class ShapeState(BaseDataObject):
 	def __init__(
 			self,
@@ -637,6 +701,10 @@ class ShapeState(BaseDataObject):
 			panelcolor=(1, 1, 1, 1),
 			localtransform=TransformSpec.DefaultTransformSpec(),
 			globaltransform=TransformSpec.DefaultTransformSpec(),
+			texturelayer1=TextureLayer(),
+			texturelayer2=TextureLayer(),
+			texturelayer3=TextureLayer(),
+			texturelayer4=TextureLayer(),
 		)
 
 	def MergedWith(self, override: 'ShapeState'):
@@ -690,6 +758,19 @@ class ShapeState(BaseDataObject):
 			self.texturelayer3 and self.texturelayer3.ToParamsDict(prefix='Texlayer3'),
 			self.texturelayer4 and self.texturelayer4.ToParamsDict(prefix='Texlayer4'),
 		))
+
+	@classmethod
+	def FromParamsDict(cls, obj):
+		return cls(
+			pathcolor=_TupleFromDict(obj, 'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora', default=1),
+			panelcolor=_TupleFromDict(obj, 'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora', default=1),
+			localtransform=TransformSpec.FromParamsDict(obj, prefix='Local'),
+			globaltransform=TransformSpec.FromParamsDict(obj, prefix='Global'),
+			texturelayer1=TextureLayer.FromParamsDict(obj, prefix='Texlayer1'),
+			texturelayer2=TextureLayer.FromParamsDict(obj, prefix='Texlayer2'),
+			texturelayer3=TextureLayer.FromParamsDict(obj, prefix='Texlayer3'),
+			texturelayer4=TextureLayer.FromParamsDict(obj, prefix='Texlayer4'),
+		)
 
 	@classmethod
 	def AllParamNames(cls):
