@@ -81,13 +81,13 @@ class _ParGroup:
 		]
 
 	@classmethod
-	def ForTextureLayer(cls, o, index: int):
+	def ForTextureLayer(cls, o, prefix: str):
 		return [
-			cls(o, 'Includetexlayer{}uvmode'.format(index), 'Texlayer{}uvmode'.format(index)),
-			cls(o, 'Includetexlayer{}textureindex'.format(index), 'Texlayer{}textureindex'.format(index)),
-			cls(o, 'Includetexlayer{}composite'.format(index), 'Texlayer{}composite'.format(index)),
-			cls(o, 'Includetexlayer{}alpha'.format(index), 'Texlayer{}alpha'.format(index)),
-		] + cls.ForTransformSpec(o, 'Tex{}'.format(index))
+			cls(o, 'Include{}uvmode'.format(prefix), '{}uvmode'.format(prefix)),
+			cls(o, 'Include{}textureindex'.format(prefix), '{}textureindex'.format(prefix)),
+			cls(o, 'Include{}composite'.format(prefix), '{}composite'.format(prefix)),
+			cls(o, 'Include{}alpha'.format(prefix), '{}alpha'.format(prefix)),
+		] + cls.ForTransformSpec(o, prefix)
 
 class _SettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp, pargroups: List[_ParGroup]):
@@ -163,6 +163,7 @@ class ShapeSettingsEditor(_SettingsEditor):
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
+		ShapeState.CreatePars(o, toggles=True)
 		super().__init__(
 			ownerComp,
 			[
@@ -171,10 +172,11 @@ class ShapeStateEditor(_SettingsEditor):
 			]
 			+ _ParGroup.ForTransformSpec(o, 'Local')
 			+ _ParGroup.ForTransformSpec(o, 'Global')
-			+ _ParGroup.ForTextureLayer(o, 1)
-			+ _ParGroup.ForTextureLayer(o, 2)
-			+ _ParGroup.ForTextureLayer(o, 3)
-			+ _ParGroup.ForTextureLayer(o, 4)
+			+ _ParGroup.ForTextureLayer(o, 'Texlayer1')
+			+ _ParGroup.ForTextureLayer(o, 'Texlayer2')
+			+ _ParGroup.ForTextureLayer(o, 'Texlayer3')
+			+ _ParGroup.ForTextureLayer(o, 'Texlayer4')
+			+ _ParGroup.ForTextureLayer(o, 'Pathtex'),
 		)
 
 	def GetState(self, filtered=True) -> ShapeState:

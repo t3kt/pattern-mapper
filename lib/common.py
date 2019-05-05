@@ -203,6 +203,14 @@ def excludekeys(d, keys):
 def transformkeys(d, fn):
 	return {} if not d else {fn(key): val for key, val in d.items()}
 
+def setattrs(obj, **attrs):
+	if isinstance(obj, (list, tuple)):
+		for o in obj:
+			setattrs(o, **attrs)
+	else:
+		for k, v in attrs.items():
+			setattr(obj, k, v)
+
 class BaseDataObject:
 	def __init__(self, **attrs):
 		self.attrs = attrs

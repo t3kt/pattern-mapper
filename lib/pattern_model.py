@@ -10,9 +10,9 @@ if False:
 	from ._stubs import *
 
 try:
-	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys
+	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs
 except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys
+	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs
 
 try:
 	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
@@ -567,6 +567,58 @@ class TransformSpec(BaseDataObject):
 			prefix + 'pivotx', prefix + 'pivoty', prefix + 'pivotz',
 		]
 
+	@classmethod
+	def CreatePars(cls, page, prefix: str, labelprefix: str, toggles: bool):
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}scale'.format(prefix).capitalize(),
+					label='Include {}Scale'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendXYZ(
+				(prefix + 'scale').capitalize(),
+				label=labelprefix + 'Scale'),
+			default=1, normMin=-1, normMax=1, startSection=not toggles)
+		setattrs(
+			page.appendFloat(
+				(prefix + 'uniformscale').capitalize(),
+				label=labelprefix + 'Uniform Scale'),
+			default=1, normMin=0, normMax=2)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}rotate'.format(prefix).capitalize(),
+					label='Include {}Rotate'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendFloat(
+				(prefix + 'rotate').capitalize(),
+				label=labelprefix + 'Rotate'),
+			default=0, normMin=-180, normMax=180)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}translate'.format(prefix).capitalize(),
+					label='Include {}Translate'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendFloat(
+				(prefix + 'translate').capitalize(),
+				label=labelprefix + 'Translate'),
+			default=0, normMin=-1, normMax=1)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}pivot'.format(prefix).capitalize(),
+					label='Include {}Pivot'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendFloat(
+				(prefix + 'pivot').capitalize(),
+				label=labelprefix + 'Pivot'),
+			default=0, normMin=-1, normMax=1)
+
 def _TupleFromDict(obj: Dict[str, Any], *names: str, default=None):
 	if not obj:
 		return None
@@ -672,6 +724,65 @@ class TextureLayer(BaseDataObject):
 			alpha=obj.get(prefix + 'alpha'),
 		)
 
+	@classmethod
+	def AllParamNames(cls, prefix: str):
+		return [
+			prefix + 'uvmode',
+			prefix + 'textureindex',
+			prefix + 'composite',
+			prefix + 'alpha',
+		] + TransformSpec.AllParamNames(prefix)
+
+	@classmethod
+	def CreatePars(cls, page, prefix: str, labelprefix: str, toggles: bool):
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}uvmode'.format(prefix).capitalize(),
+					label='Include {}UV Mode'.format(labelprefix)),
+				startSection=True)
+		uvmodes = [c.name for c in TexCoordMode]
+		setattrs(
+			page.appendMenu(
+				(prefix + 'uvmode').capitalize(),
+				label=labelprefix + 'UV Mode'),
+			menuNames=uvmodes, menuLabels=uvmodes, default=TexCoordMode.loc.name, startSection=not toggles)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}composite'.format(prefix).capitalize(),
+					label='Include {}Composite'.format(labelprefix)),
+				startSection=True)
+		compops = [c.name for c in CompositeOp]
+		setattrs(
+			page.appendMenu(
+				(prefix + 'composite').capitalize(),
+				label=labelprefix + 'Composite Operator'),
+			menuNames=compops, menuLabels=compops, default=CompositeOp.over.name)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}textureindex'.format(prefix).capitalize(),
+					label='Include {}Texture Index'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendInt(
+				(prefix + 'textureindex').capitalize(),
+				label=labelprefix + 'Texture Index'),
+			default=0, normMin=0, min=0, clampMin=True, normMax=8, max=8, clampMax=True)
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Include{}alpha'.format(prefix).capitalize(),
+					label='Include {}Alpha'.format(labelprefix)),
+				startSection=True)
+		setattrs(
+			page.appendFloat(
+				(prefix + 'alpha').capitalize(),
+				label=labelprefix + 'Alpha'),
+			default=1, normMin=0, normMax=1)
+		TransformSpec.CreatePars(page, prefix, labelprefix, toggles)
+
 class ShapeState(BaseDataObject):
 	def __init__(
 			self,
@@ -683,6 +794,7 @@ class ShapeState(BaseDataObject):
 			texturelayer2: TextureLayer=None,
 			texturelayer3: TextureLayer=None,
 			texturelayer4: TextureLayer=None,
+			pathtexture: TextureLayer=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.pathcolor = tuple(pathcolor) if pathcolor else None
@@ -693,6 +805,7 @@ class ShapeState(BaseDataObject):
 		self.texturelayer2 = texturelayer2
 		self.texturelayer3 = texturelayer3
 		self.texturelayer4 = texturelayer4
+		self.pathtexture = pathtexture
 
 	@classmethod
 	def DefaultState(cls):
@@ -705,6 +818,7 @@ class ShapeState(BaseDataObject):
 			texturelayer2=TextureLayer(),
 			texturelayer3=TextureLayer(),
 			texturelayer4=TextureLayer(),
+			pathtexture=TextureLayer(),
 		)
 
 	def MergedWith(self, override: 'ShapeState'):
@@ -719,6 +833,7 @@ class ShapeState(BaseDataObject):
 			texturelayer2=TextureLayer.CloneFirst(override.texturelayer2, self.texturelayer2),
 			texturelayer3=TextureLayer.CloneFirst(override.texturelayer3, self.texturelayer3),
 			texturelayer4=TextureLayer.CloneFirst(override.texturelayer4, self.texturelayer4),
+			pathtexture=TextureLayer.CloneFirst(override.pathtexture, self.pathtexture),
 		)
 
 	def ToJsonDict(self):
@@ -731,6 +846,7 @@ class ShapeState(BaseDataObject):
 			'texturelayer2': TextureLayer.ToOptionalJsonDict(self.texturelayer2),
 			'texturelayer3': TextureLayer.ToOptionalJsonDict(self.texturelayer3),
 			'texturelayer4': TextureLayer.ToOptionalJsonDict(self.texturelayer4),
+			'pathtexture': TextureLayer.ToOptionalJsonDict(self.pathtexture),
 		}))
 
 	@classmethod
@@ -742,9 +858,10 @@ class ShapeState(BaseDataObject):
 			texturelayer2=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer2')),
 			texturelayer3=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer3')),
 			texturelayer4=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer4')),
+			pathtexture=TextureLayer.FromOptionalJsonDict(obj.get('pathtexture')),
 			**excludekeys(obj, [
 				'localtransform', 'globaltransform',
-				'texturelayer1', 'texturelayer2', 'texturelayer3', 'texturelayer4',
+				'texturelayer1', 'texturelayer2', 'texturelayer3', 'texturelayer4', 'pathtexture',
 			]))
 
 	def ToParamsDict(self):
@@ -757,6 +874,7 @@ class ShapeState(BaseDataObject):
 			self.texturelayer2 and self.texturelayer2.ToParamsDict(prefix='Texlayer2'),
 			self.texturelayer3 and self.texturelayer3.ToParamsDict(prefix='Texlayer3'),
 			self.texturelayer4 and self.texturelayer4.ToParamsDict(prefix='Texlayer4'),
+			self.pathtexture and self.pathtexture.ToParamsDict(prefix='Pathtex'),
 		))
 
 	@classmethod
@@ -770,6 +888,7 @@ class ShapeState(BaseDataObject):
 			texturelayer2=TextureLayer.FromParamsDict(obj, prefix='Texlayer2'),
 			texturelayer3=TextureLayer.FromParamsDict(obj, prefix='Texlayer3'),
 			texturelayer4=TextureLayer.FromParamsDict(obj, prefix='Texlayer4'),
+			pathtexture=TextureLayer.FromParamsDict(obj, prefix='Pathtex'),
 		)
 
 	@classmethod
@@ -780,7 +899,50 @@ class ShapeState(BaseDataObject):
 		]
 		names += TransformSpec.AllParamNames('Local')
 		names += TransformSpec.AllParamNames('Global')
+		names += TextureLayer.AllParamNames('Texlayer1')
+		names += TextureLayer.AllParamNames('Texlayer2')
+		names += TextureLayer.AllParamNames('Texlayer3')
+		names += TextureLayer.AllParamNames('Texlayer4')
+		names += TextureLayer.AllParamNames('Pathtex')
 		return names
+
+	@classmethod
+	def CreatePars(cls, o, toggles: bool):
+		page = o.appendCustomPage('Path')
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Includepathcolor',
+					label='Include Path Color'),
+				startSection=True)
+		setattrs(
+			page.appendRGBA(
+				'Pathcolor',
+				label='Path Color'),
+			default=1, startSection=not toggles)
+		TextureLayer.CreatePars(page, 'Pathtex', 'Path Texture ', toggles)
+		page = o.appendCustomPage('Panel')
+		if toggles:
+			setattrs(
+				page.appendToggle(
+					'Includepanelcolor',
+					label='Include Panel Color'),
+				startSection=True)
+		setattrs(
+			page.appendRGBA(
+				'Panelcolor',
+				label='Panel Color'),
+			default=1, startSection=not toggles)
+		page = o.appendCustomPage('Local Transform')
+		TransformSpec.CreatePars(page, 'Local', 'Local ', toggles)
+		page = o.appendCustomPage('Global Transform')
+		TransformSpec.CreatePars(page, 'Global', 'Global ', toggles)
+		page = o.appendCustomPage('Textures 1-2')
+		TextureLayer.CreatePars(page, 'Texlayer1', 'Layer 1 ', toggles)
+		TextureLayer.CreatePars(page, 'Texlayer2', 'Layer 2 ', toggles)
+		page = o.appendCustomPage('Textures 3-4')
+		TextureLayer.CreatePars(page, 'Texlayer3', 'Layer 3 ', toggles)
+		TextureLayer.CreatePars(page, 'Texlayer4', 'Layer 4 ', toggles)
 
 	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
 	# 	addDictRow(dat, mergedicts(
