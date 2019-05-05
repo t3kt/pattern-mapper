@@ -568,53 +568,29 @@ class TransformSpec(BaseDataObject):
 		]
 
 	@classmethod
-	def CreatePars(cls, page, prefix: str, labelprefix: str, toggles: bool):
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}scale'.format(prefix).capitalize(),
-					label='Include {}Scale'.format(labelprefix)),
-				startSection=True)
+	def CreatePars(cls, page, prefix: str, labelprefix: str):
 		setattrs(
 			page.appendXYZ(
 				(prefix + 'scale').capitalize(),
 				label=labelprefix + 'Scale'),
-			default=1, normMin=-1, normMax=1, startSection=not toggles)
+			default=1, normMin=-1, normMax=1)
 		setattrs(
 			page.appendFloat(
 				(prefix + 'uniformscale').capitalize(),
 				label=labelprefix + 'Uniform Scale'),
 			default=1, normMin=0, normMax=2)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}rotate'.format(prefix).capitalize(),
-					label='Include {}Rotate'.format(labelprefix)),
-				startSection=True)
 		setattrs(
-			page.appendFloat(
+			page.appendXYZ(
 				(prefix + 'rotate').capitalize(),
 				label=labelprefix + 'Rotate'),
 			default=0, normMin=-180, normMax=180)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}translate'.format(prefix).capitalize(),
-					label='Include {}Translate'.format(labelprefix)),
-				startSection=True)
 		setattrs(
-			page.appendFloat(
+			page.appendXYZ(
 				(prefix + 'translate').capitalize(),
 				label=labelprefix + 'Translate'),
 			default=0, normMin=-1, normMax=1)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}pivot'.format(prefix).capitalize(),
-					label='Include {}Pivot'.format(labelprefix)),
-				startSection=True)
 		setattrs(
-			page.appendFloat(
+			page.appendXYZ(
 				(prefix + 'pivot').capitalize(),
 				label=labelprefix + 'Pivot'),
 			default=0, normMin=-1, normMax=1)
@@ -649,6 +625,11 @@ class _BaseEnum(Enum):
 class TexCoordMode(_BaseEnum):
 	loc = 0
 	glob = 1
+
+_uvmodelabels = {
+	TexCoordMode.loc: 'local',
+	TexCoordMode.glob: 'global',
+}
 
 class CompositeOp(_BaseEnum):
 	add = 0
@@ -734,54 +715,31 @@ class TextureLayer(BaseDataObject):
 		] + TransformSpec.AllParamNames(prefix)
 
 	@classmethod
-	def CreatePars(cls, page, prefix: str, labelprefix: str, toggles: bool):
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}uvmode'.format(prefix).capitalize(),
-					label='Include {}UV Mode'.format(labelprefix)),
-				startSection=True)
-		uvmodes = [c.name for c in TexCoordMode]
+	def CreatePars(cls, page, prefix: str, labelprefix: str):
 		setattrs(
 			page.appendMenu(
 				(prefix + 'uvmode').capitalize(),
 				label=labelprefix + 'UV Mode'),
-			menuNames=uvmodes, menuLabels=uvmodes, default=TexCoordMode.loc.name, startSection=not toggles)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}composite'.format(prefix).capitalize(),
-					label='Include {}Composite'.format(labelprefix)),
-				startSection=True)
+			menuNames=[c.name for c in TexCoordMode],
+			menuLabels=[_uvmodelabels[c] for c in TexCoordMode],
+			default=TexCoordMode.loc.name)
 		compops = [c.name for c in CompositeOp]
 		setattrs(
 			page.appendMenu(
 				(prefix + 'composite').capitalize(),
 				label=labelprefix + 'Composite Operator'),
 			menuNames=compops, menuLabels=compops, default=CompositeOp.over.name)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}textureindex'.format(prefix).capitalize(),
-					label='Include {}Texture Index'.format(labelprefix)),
-				startSection=True)
 		setattrs(
 			page.appendInt(
 				(prefix + 'textureindex').capitalize(),
 				label=labelprefix + 'Texture Index'),
 			default=0, normMin=0, min=0, clampMin=True, normMax=8, max=8, clampMax=True)
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Include{}alpha'.format(prefix).capitalize(),
-					label='Include {}Alpha'.format(labelprefix)),
-				startSection=True)
 		setattrs(
 			page.appendFloat(
 				(prefix + 'alpha').capitalize(),
 				label=labelprefix + 'Alpha'),
-			default=1, normMin=0, normMax=1)
-		TransformSpec.CreatePars(page, prefix, labelprefix, toggles)
+			default=0, normMin=0, normMax=1)
+		TransformSpec.CreatePars(page, prefix, labelprefix)
 
 class ShapeState(BaseDataObject):
 	def __init__(
@@ -907,42 +865,57 @@ class ShapeState(BaseDataObject):
 		return names
 
 	@classmethod
-	def CreatePars(cls, o, toggles: bool):
+	def CreatePars(cls, o):
 		page = o.appendCustomPage('Path')
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Includepathcolor',
-					label='Include Path Color'),
-				startSection=True)
+		setattrs(
+			page.appendToggle(
+				'Includepathcolor',
+				label='Include Path Color'),
+			startSection=True)
 		setattrs(
 			page.appendRGBA(
 				'Pathcolor',
 				label='Path Color'),
-			default=1, startSection=not toggles)
-		TextureLayer.CreatePars(page, 'Pathtex', 'Path Texture ', toggles)
+			default=1)
+		setattrs(
+			page.appendToggle('Includepathtex', label='Include Path Texture'),
+			startSection=True)
+		TextureLayer.CreatePars(page, 'Pathtex', 'Path Texture ')
 		page = o.appendCustomPage('Panel')
-		if toggles:
-			setattrs(
-				page.appendToggle(
-					'Includepanelcolor',
-					label='Include Panel Color'),
-				startSection=True)
+		setattrs(
+			page.appendToggle(
+				'Includepanelcolor',
+				label='Include Panel Color'),
+			startSection=True)
 		setattrs(
 			page.appendRGBA(
 				'Panelcolor',
 				label='Panel Color'),
-			default=1, startSection=not toggles)
+			default=1)
 		page = o.appendCustomPage('Local Transform')
-		TransformSpec.CreatePars(page, 'Local', 'Local ', toggles)
+		page.appendToggle('Includelocaltransform', label='Include Local Transform')
+		TransformSpec.CreatePars(page, 'Local', 'Local ')
 		page = o.appendCustomPage('Global Transform')
-		TransformSpec.CreatePars(page, 'Global', 'Global ', toggles)
+		page.appendToggle('Includeglobaltransform', label='Include Global Transform')
+		TransformSpec.CreatePars(page, 'Global', 'Global ')
 		page = o.appendCustomPage('Textures 1-2')
-		TextureLayer.CreatePars(page, 'Texlayer1', 'Layer 1 ', toggles)
-		TextureLayer.CreatePars(page, 'Texlayer2', 'Layer 2 ', toggles)
+		setattrs(
+			page.appendToggle('Includetexlayer1', label='Include Texture Layer 1'),
+			startSection=True)
+		TextureLayer.CreatePars(page, 'Texlayer1', 'Layer 1 ')
+		setattrs(
+			page.appendToggle('Includetexlayer2', label='Include Texture Layer 2'),
+			startSection=True)
+		TextureLayer.CreatePars(page, 'Texlayer2', 'Layer 2 ')
 		page = o.appendCustomPage('Textures 3-4')
-		TextureLayer.CreatePars(page, 'Texlayer3', 'Layer 3 ', toggles)
-		TextureLayer.CreatePars(page, 'Texlayer4', 'Layer 4 ', toggles)
+		setattrs(
+			page.appendToggle('Includetexlayer3', label='Include Texture Layer 3'),
+			startSection=True)
+		TextureLayer.CreatePars(page, 'Texlayer3', 'Layer 3 ')
+		setattrs(
+			page.appendToggle('Includetexlayer4', label='Include Texture Layer 4'),
+			startSection=True)
+		TextureLayer.CreatePars(page, 'Texlayer4', 'Layer 4 ')
 
 	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
 	# 	addDictRow(dat, mergedicts(

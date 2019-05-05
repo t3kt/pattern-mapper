@@ -20,7 +20,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
 
-from pattern_model import ShapeState, PatternData
+from pattern_model import ShapeState, PatternData, TransformSpec, TextureLayer
 
 class _ParGroup:
 	def __init__(self, o, switchparname: str, *parnames: str):
@@ -72,22 +72,12 @@ class _ParGroup:
 		self.setVals(vals, clearmissing=clearmissing)
 
 	@classmethod
-	def ForTransformSpec(cls, o, prefix: str):
-		return [
-			cls(o, 'Include{}scale'.format(prefix), '{}scale[xyz]'.format(prefix), '{}uniformscale'.format(prefix)),
-			cls(o, 'Include{}rotate'.format(prefix), '{}rotate[xyz]'.format(prefix)),
-			cls(o, 'Include{}translate'.format(prefix), '{}translate[xyz]'.format(prefix)),
-			cls(o, 'Include{}pivot'.format(prefix), '{}pivot[xyz]'.format(prefix)),
-		]
+	def ForTransformSpec(cls, o, switchparname: str, prefix: str):
+		return cls(o, switchparname, *TransformSpec.AllParamNames(prefix))
 
 	@classmethod
-	def ForTextureLayer(cls, o, prefix: str):
-		return [
-			cls(o, 'Include{}uvmode'.format(prefix), '{}uvmode'.format(prefix)),
-			cls(o, 'Include{}textureindex'.format(prefix), '{}textureindex'.format(prefix)),
-			cls(o, 'Include{}composite'.format(prefix), '{}composite'.format(prefix)),
-			cls(o, 'Include{}alpha'.format(prefix), '{}alpha'.format(prefix)),
-		] + cls.ForTransformSpec(o, prefix)
+	def ForTextureLayer(cls, o, switchparname: str, prefix: str):
+		return cls(o, switchparname, *TextureLayer.AllParamNames(prefix))
 
 class _SettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp, pargroups: List[_ParGroup]):
@@ -163,20 +153,20 @@ class ShapeSettingsEditor(_SettingsEditor):
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
-		ShapeState.CreatePars(o, toggles=True)
+		ShapeState.CreatePars(o)
 		super().__init__(
 			ownerComp,
 			[
 				_ParGroup(o, 'Includepathcolor', 'Pathcolor[rgba]'),
 				_ParGroup(o, 'Includepanelcolor', 'Panelcolor[rgba]'),
+				_ParGroup.ForTransformSpec(o, 'Includelocaltransform', 'Local'),
+				_ParGroup.ForTransformSpec(o, 'Includeglobaltransform', 'Global'),
+				_ParGroup.ForTextureLayer(o, 'Includepathtex', 'Pathtex'),
+				_ParGroup.ForTextureLayer(o, 'Includetexlayer1', 'Texlayer1'),
+				_ParGroup.ForTextureLayer(o, 'Includetexlayer2', 'Texlayer2'),
+				_ParGroup.ForTextureLayer(o, 'Includetexlayer3', 'Texlayer3'),
+				_ParGroup.ForTextureLayer(o, 'Includetexlayer4', 'Texlayer4'),
 			]
-			+ _ParGroup.ForTransformSpec(o, 'Local')
-			+ _ParGroup.ForTransformSpec(o, 'Global')
-			+ _ParGroup.ForTextureLayer(o, 'Texlayer1')
-			+ _ParGroup.ForTextureLayer(o, 'Texlayer2')
-			+ _ParGroup.ForTextureLayer(o, 'Texlayer3')
-			+ _ParGroup.ForTextureLayer(o, 'Texlayer4')
-			+ _ParGroup.ForTextureLayer(o, 'Pathtex'),
 		)
 
 	def GetState(self, filtered=True) -> ShapeState:
