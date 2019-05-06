@@ -1,3 +1,5 @@
+#define PATH_MODE
+
 #include "shape_shader_pixel_common"
 
 uniform float uPhaseOffset;

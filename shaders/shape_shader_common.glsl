@@ -1,5 +1,14 @@
 // shape_shader_common.glsl
 
+struct TexLayerAttrs {
+	flat bool isGlobal;
+	flat int textureIndex;
+	flat int compositeMode;
+	flat float alpha;
+	flat mat4 transform;
+	flat vec3 pivot;
+};
+
 struct VertexAttrs {
 	flat vec4 color;
 	vec3 worldSpacePos;
@@ -9,8 +18,32 @@ struct VertexAttrs {
 	flat float localTexLevel;
 	flat float globalTexLevel;
 	flat int shapeIndex;
+
+	#ifdef PATH_MODE
+	TexLayerAttrs pathTex;
+	#endif
+	#ifdef PANEL_MODE
+	TexLayerAttrs texLayer1;
+	TexLayerAttrs texLayer2;
+	TexLayerAttrs texLayer3;
+	TexLayerAttrs texLayer4;
+	#endif
 };
 
+
+#define COMP_ADD 0
+#define COMP_ATOP 1
+#define COMP_AVERAGE 2
+#define COMP_DIFFERENCE 3
+#define COMP_INSIDE 4
+#define COMP_MAXIMUM 5
+#define COMP_MINIMUM 6
+#define COMP_MULTIPLY 7
+#define COMP_OUTSIDE 8
+#define COMP_OVER 9
+#define COMP_SCREEN 10
+#define COMP_SUBTRACT 11
+#define COMP_UNDER 12
 
 // https://gist.github.com/onedayitwillmake/3288507
 mat4 rotationX( in float angle ) {
@@ -36,6 +69,21 @@ mat4 rotationXYZ(in vec3 r) {
 	return rotationX(r.x) * rotationY(r.y) * rotationZ(r.z);
 }
 
+mat4 scaleRotateTranslateMatrix(in vec3 scale, in vec3 rotate, in vec3 translate) {
+	// does scale then rotate then translate (even those these look like they are in reverse order below)
+	mat4 m = mat4(
+		1.0, 0.0, 0.0, translate.x,
+		0.0, 1.0, 0.0, translate.y,
+		0.0, 0.0, 1.0, translate.z,
+		0.0, 0.0, 0.0, 1.0);
+	m *= rotationXYZ(rotate);
+	return m * mat4(
+		scale.x, 0.0, 0.0, 0.0,
+		0.0, scale.y, 0.0, 0.0,
+		0.0, 0.0, scale.z, 0.0,
+		0.0, 0.0, 0.0, 1.0);
+}
+
 void scaleRotateTranslate(
 		inout vec4 pos,
 		in vec3 scale,
@@ -43,7 +91,12 @@ void scaleRotateTranslate(
 		in vec3 translate,
 		in vec3 pivot) {
 	pos.xyz -= pivot;
-	pos.xyz *= scale;
-	pos *= rotationXYZ(radians(rotate));
+
+	mat4 m = scaleRotateTranslateMatrix(scale, rotate, translate);
+	pos *= m;
+
+//	pos.xyz *= scale;
+//	pos *= rotationXYZ(radians(rotate));
+
 	pos.xyz += translate + pivot;
 }

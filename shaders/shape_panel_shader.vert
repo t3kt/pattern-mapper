@@ -1,3 +1,5 @@
+#define PANEL_MODE
+
 #include "shape_shader_vertex_common"
 
 out Vertex

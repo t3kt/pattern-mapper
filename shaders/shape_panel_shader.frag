@@ -1,3 +1,5 @@
+#define PANEL_MODE
+
 #include "shape_shader_pixel_common"
 
 uniform sampler2D sPointPositionalTexture;
