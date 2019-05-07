@@ -26,10 +26,11 @@ TexLayerAttrs loadTexLayerAttrs(int shapeIndex, int row) {
 	vec3 translatexyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 3), 0).rgb;
 	vec3 pivotxyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 4), 0).rgb;
 
-	attrs.uvMode = int(round(uvmode_texindex_comp_alpha.r));
-	attrs.textureIndex = int(round(uvmode_texindex_comp_alpha.g));
-	attrs.compositeMode = int(round(uvmode_texindex_comp_alpha.b));
-	attrs.level = uvmode_texindex_comp_alpha.a;
+//	attrs.uvMode = int(round(uvmode_texindex_comp_alpha.r));
+//	attrs.textureIndex = int(round(uvmode_texindex_comp_alpha.g));
+//	attrs.compositeMode = int(round(uvmode_texindex_comp_alpha.b));
+//	attrs.level = uvmode_texindex_comp_alpha.a;
+	attrs.uvMode_textureIndex_compositeMode_level = uvmode_texindex_comp_alpha;
 
 	attrs.transform = scaleRotateTranslateMatrix(
 		scalexyz_uniformscale.rgb * scalexyz_uniformscale.a,

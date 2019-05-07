@@ -10,23 +10,11 @@ uniform samplerBuffer bPhasePeriod;
 out Vertex
 {
 	VertexAttrs attrs;
-	flat vec4 onColor;
-	flat vec4 offColor;
-	flat float phase;
-	flat float period;
 } oVert;
 
 void main() 
 {
 	oVert.attrs = loadVertexAttrs();
-
-	int shapeIndex = oVert.attrs.shapeIndex;
-	oVert.onColor = texelFetch(bOnColors, shapeIndex);
-	oVert.offColor = texelFetch(bOffColors, shapeIndex);
-	
-	vec4 phaseAndPeriod = texelFetch(bPhasePeriod, shapeIndex);
-	oVert.phase = phaseAndPeriod.r + uPhaseOffset;
-	oVert.period = phaseAndPeriod.g;
 
 	// This is here to ensure we only execute lighting etc. code
 	// when we need it. If picking is active we don't need lighting, so

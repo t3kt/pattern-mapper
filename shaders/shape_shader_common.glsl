@@ -1,10 +1,11 @@
 // shape_shader_common.glsl
 
 struct TexLayerAttrs {
-	flat int uvMode;
-	flat int textureIndex;
-	flat int compositeMode;
-	flat float level;
+//	flat int uvMode;
+//	flat int textureIndex;
+//	flat int compositeMode;
+//	flat float level;
+	flat vec4 uvMode_textureIndex_compositeMode_level;
 	flat mat4 transform;
 	flat vec3 pivot;
 };
@@ -79,7 +80,7 @@ mat4 scaleRotateTranslateMatrix(in vec3 scale, in vec3 rotate, in vec3 translate
 		0.0, 1.0, 0.0, translate.y,
 		0.0, 0.0, 1.0, translate.z,
 		0.0, 0.0, 0.0, 1.0);
-	m *= rotationXYZ(rotate);
+	m *= rotationXYZ(radians(rotate));
 	return m * mat4(
 		scale.x, 0.0, 0.0, 0.0,
 		0.0, scale.y, 0.0, 0.0,
