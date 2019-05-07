@@ -22,13 +22,10 @@ void main()
 	float phase = iVert.phase + iVert.attrs.texCoord0.x;
 	phase = mod(phase, 1.0);
 	phase /= iVert.period;
-	vec4 color = mix(iVert.offColor, iVert.onColor, phase);
+//	vec4 color = mix(iVert.offColor, iVert.onColor, phase);
 
-//	vec4 positionalColor = texture(sPointPositionalTexture, iVert.attrs.globalTexCoord.st);
-//	color = mix(color, positionalColor, iVert.attrs.globalTexLevel);
-
-//	vec4 faceColor = texture(sFaceTexture, iVert.attrs.faceTexCoord.st);
-//	color = mix(color, faceColor, iVert.attrs.localTexLevel);
+	vec4 color = iVert.attrs.color;
+	color = applyTexture(color, iVert.attrs, iVert.attrs.pathTex);
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

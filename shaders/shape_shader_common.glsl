@@ -1,10 +1,10 @@
 // shape_shader_common.glsl
 
 struct TexLayerAttrs {
-	flat bool isGlobal;
+	flat int uvMode;
 	flat int textureIndex;
 	flat int compositeMode;
-	flat float alpha;
+	flat float level;
 	flat mat4 transform;
 	flat vec3 pivot;
 };
@@ -30,6 +30,9 @@ struct VertexAttrs {
 	#endif
 };
 
+#define UVMODE_LOCAL 0
+#define UVMODE_GLOBAL 1
+#define UVMODE_PATH 2
 
 #define COMP_ADD 0
 #define COMP_ATOP 1

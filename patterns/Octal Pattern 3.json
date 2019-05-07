@@ -58,7 +58,24 @@
   "groupshapestates": [
     {
       "group": "blue",
-      "panelcolor": [0, 0.3, 0.8, 1.0]
+      "panelcolor": [0, 0.3, 0.8, 1.0],
+      "pathcolor": [0, 0.2, 0.9, 1.0],
+      "pathtexture": {
+        "uvmode": "path",
+        "composite": "add",
+        "alpha": 0.5,
+        "transform": {
+          "scale": [0.5, 1.0, 1.0]
+        }
+      },
+      "texturelayer1": {
+        "uvmode": "glob",
+        "composite": "over",
+        "alpha": 0.7,
+        "transform": {
+          "scale": [0.9, 1.0, 1.0]
+        }
+      }
     }
   ]
 }

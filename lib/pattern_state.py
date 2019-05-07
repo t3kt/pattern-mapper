@@ -153,7 +153,7 @@ class ShapeSettingsEditor(_SettingsEditor):
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
-		ShapeState.CreatePars(o)
+		# ShapeState.CreatePars(o)
 		super().__init__(
 			ownerComp,
 			[
@@ -198,6 +198,7 @@ class ShapeStatesBuilder(LoggableSubComponent):
 
 	def _AddStates(self, shapestate: ShapeState, shapeindices: Iterable[int]):
 		obj = shapestate.ToParamsDict()
+		self._LogEvent('OMG state params: {!r}'.format(obj))
 		for shapeindex in shapeindices:
 			for key, val in obj.items():
 				self.dat[shapeindex + 1, key] = val

@@ -625,10 +625,12 @@ class _BaseEnum(Enum):
 class TexCoordMode(_BaseEnum):
 	loc = 0
 	glob = 1
+	path = 2
 
 _uvmodelabels = {
-	TexCoordMode.loc: 'local',
-	TexCoordMode.glob: 'global',
+	TexCoordMode.loc: 'Local',
+	TexCoordMode.glob: 'Global',
+	TexCoordMode.path: 'Path',
 }
 
 class CompositeOp(_BaseEnum):
@@ -683,15 +685,15 @@ class TextureLayer(BaseDataObject):
 	def ToParamsDict(self, prefix=None):
 		if not prefix:
 			prefix = ''
-		return cleandict(transformkeys(mergedicts(
-			{
+		return cleandict(mergedicts(
+			transformkeys({
 				'uvmode': self.uvmode.value,
 				'textureindex': self.textureindex,
 				'composite': self.composite.value,
 				'alpha': self.alpha,
-			},
+			}, lambda key: prefix + key),
 			self.transform and self.transform.ToParamsDict(prefix),
-		), lambda key: prefix + key))
+		))
 
 	@classmethod
 	def FromParamsDict(cls, obj, prefix=None):
@@ -723,12 +725,13 @@ class TextureLayer(BaseDataObject):
 			menuNames=[c.name for c in TexCoordMode],
 			menuLabels=[_uvmodelabels[c] for c in TexCoordMode],
 			default=TexCoordMode.loc.name)
-		compops = [c.name for c in CompositeOp]
 		setattrs(
 			page.appendMenu(
 				(prefix + 'composite').capitalize(),
 				label=labelprefix + 'Composite Operator'),
-			menuNames=compops, menuLabels=compops, default=CompositeOp.over.name)
+			menuNames=[c.name for c in CompositeOp],
+			menuLabels=[c.name.capitalize() for c in CompositeOp],
+			default=CompositeOp.over.name)
 		setattrs(
 			page.appendInt(
 				(prefix + 'textureindex').capitalize(),
@@ -881,6 +884,7 @@ class ShapeState(BaseDataObject):
 			page.appendToggle('Includepathtex', label='Include Path Texture'),
 			startSection=True)
 		TextureLayer.CreatePars(page, 'Pathtex', 'Path Texture ')
+		o.par.Pathtexuvmode.default = TexCoordMode.path.name
 		page = o.appendCustomPage('Panel')
 		setattrs(
 			page.appendToggle(
