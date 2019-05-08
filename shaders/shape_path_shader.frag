@@ -16,7 +16,7 @@ void main()
 	TDCheckDiscard();
 
 	vec4 color = iVert.attrs.color;
-	color = applyTexture(color, iVert.attrs, iVert.attrs.pathTex);
+	applyTexture(color, iVert.attrs, iVert.attrs.pathTex);
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

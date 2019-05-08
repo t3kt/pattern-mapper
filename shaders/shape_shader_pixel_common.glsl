@@ -5,27 +5,12 @@
 uniform sampler2D sTexture1;
 uniform sampler2D sTexture2;
 
-vec3 getModifiedTexCoord(in VertexAttrs attrs, in TexLayerAttrs texAttrs) {
-	vec3 coord = vec3(0.0);
-	int uvMode = int(round(texAttrs.uvMode_textureIndex_compositeMode_level.x));
-	switch (uvMode) {
-		case UVMODE_GLOBAL: coord = attrs.globalTexCoord; break;
-		case UVMODE_LOCAL: coord = attrs.faceTexCoord; break;
-		case UVMODE_PATH: coord = vec3(attrs.texCoord0, 0.0); break;
-	}
-	coord -= texAttrs.pivot;
-	coord = (vec4(coord, 0.0) * texAttrs.transform).xyz;
-	coord += texAttrs.pivot;
-	return coord;
-}
-
 vec4 getTextureColor(in VertexAttrs attrs, in TexLayerAttrs texAttrs) {
-	vec3 coord = getModifiedTexCoord(attrs, texAttrs);
-	int textureIndex = int(round(texAttrs.uvMode_textureIndex_compositeMode_level.y));
+	int textureIndex = texAttrs.textureIndex;
 	if (textureIndex == 0) {
-		return texture(sTexture1, coord.xy);
+		return texture(sTexture1, texAttrs.texCoord.xy);
 	} else if (textureIndex == 1) {
-		return texture(sTexture1, coord.xy);
+		return texture(sTexture1, texAttrs.texCoord.xy);
 	}
 	return vec4(0.0);
 }
@@ -50,20 +35,18 @@ vec4 compositeColors(vec4 color1, vec4 color2, int compositeMode) {
 	return color1;
 }
 
-vec4 applyTexture(
-	in vec4 baseColor,
+void applyTexture(
+	inout vec4 color,
 	in VertexAttrs attrs,
 	in TexLayerAttrs texAttrs) {
 
-	float level = texAttrs.uvMode_textureIndex_compositeMode_level.w;
-	if (level <= 0.0) {
-		return baseColor;
+	if (texAttrs.level <= 0.0) {
+		return;
 	}
 
 	vec4 texColor = getTextureColor(attrs, texAttrs);
 
-	int compositeMode = int(round(texAttrs.uvMode_textureIndex_compositeMode_level.z));
-	vec4 compedColor = compositeColors(baseColor, texColor, compositeMode);
+	vec4 compedColor = compositeColors(color, texColor, texAttrs.compositeMode);
 
-	return mix(baseColor, compedColor, level);
+	color = mix(color, compedColor, texAttrs.level);
 }

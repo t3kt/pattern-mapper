@@ -15,8 +15,17 @@ int getShapeIndex(float primOffset) {
 	return int(primOffset * (uShapeCount-1));
 }
 
-TexLayerAttrs loadTexLayerAttrs(int shapeIndex, int row) {
-	TexLayerAttrs attrs;
+vec3 getTexCoordForUVMode(in VertexAttrs attrs, int uvMode) {
+	switch (uvMode) {
+		case UVMODE_GLOBAL: return attrs.globalTexCoord;
+		case UVMODE_LOCAL: return attrs.faceTexCoord;
+		case UVMODE_PATH: return vec3(attrs.texCoord0, 0.0);
+	}
+	return vec3(0.0);
+}
+
+TexLayerAttrs loadTexLayerAttrs(in int shapeIndex, in VertexAttrs attrs, in int row) {
+	TexLayerAttrs texAttrs;
 
 	int vOffset = row * 5;
 
@@ -26,19 +35,21 @@ TexLayerAttrs loadTexLayerAttrs(int shapeIndex, int row) {
 	vec3 translatexyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 3), 0).rgb;
 	vec3 pivotxyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 4), 0).rgb;
 
-//	attrs.uvMode = int(round(uvmode_texindex_comp_alpha.r));
-//	attrs.textureIndex = int(round(uvmode_texindex_comp_alpha.g));
-//	attrs.compositeMode = int(round(uvmode_texindex_comp_alpha.b));
-//	attrs.level = uvmode_texindex_comp_alpha.a;
-	attrs.uvMode_textureIndex_compositeMode_level = uvmode_texindex_comp_alpha;
+	int uvMode = int(round(uvmode_texindex_comp_alpha.r));
+	texAttrs.textureIndex = int(round(uvmode_texindex_comp_alpha.g));
+	texAttrs.compositeMode = int(round(uvmode_texindex_comp_alpha.b));
+	texAttrs.level = uvmode_texindex_comp_alpha.a;
 
-	attrs.transform = scaleRotateTranslateMatrix(
-		scalexyz_uniformscale.rgb * scalexyz_uniformscale.a,
+	vec4 texCoord = vec4(getTexCoordForUVMode(attrs, uvMode), 0.0);
+	scaleRotateTranslate(
+		texCoord,
+		scalexyz_uniformscale.xyz * scalexyz_uniformscale.w,
 		rotatexyz,
-		translatexyz);
-	attrs.pivot = pivotxyz;
+		translatexyz,
+		pivotxyz);
+	texAttrs.texCoord = texCoord.xyz;
 
-	return attrs;
+	return texAttrs;
 }
 
 VertexAttrs loadVertexAttrs() {
@@ -95,15 +106,14 @@ VertexAttrs loadVertexAttrs() {
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
 	gl_Position = TDWorldToProj(worldSpacePos, uvUnwrapCoord);
 
-
 	#ifdef PATH_MODE
-	attrs.pathTex = loadTexLayerAttrs(shapeIndex, 0);
+	attrs.pathTex = loadTexLayerAttrs(shapeIndex, attrs, 0);
 	#endif
 	#ifdef PANEL_MODE
-	attrs.texLayer1 = loadTexLayerAttrs(shapeIndex, 0);
-	attrs.texLayer2 = loadTexLayerAttrs(shapeIndex, 1);
-	attrs.texLayer3 = loadTexLayerAttrs(shapeIndex, 2);
-	attrs.texLayer4 = loadTexLayerAttrs(shapeIndex, 3);
+	attrs.texLayer1 = loadTexLayerAttrs(shapeIndex, attrs, 0);
+	attrs.texLayer2 = loadTexLayerAttrs(shapeIndex, attrs, 1);
+	attrs.texLayer3 = loadTexLayerAttrs(shapeIndex, attrs, 2);
+	attrs.texLayer4 = loadTexLayerAttrs(shapeIndex, attrs, 3);
 	#endif
 
 	// This is here to ensure we only execute lighting etc. code
