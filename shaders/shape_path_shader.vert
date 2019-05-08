@@ -2,11 +2,6 @@
 
 #include "shape_shader_vertex_common"
 
-uniform float uPhaseOffset;
-uniform samplerBuffer bOnColors;
-uniform samplerBuffer bOffColors;
-uniform samplerBuffer bPhasePeriod;
-
 out Vertex
 {
 	VertexAttrs attrs;

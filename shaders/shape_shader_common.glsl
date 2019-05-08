@@ -8,13 +8,12 @@ struct TexLayerAttrs {
 };
 
 struct VertexAttrs {
+	flat bool visible;
 	flat vec4 color;
 	vec3 worldSpacePos;
 	vec2 texCoord0;
 	vec3 faceTexCoord;
 	vec3 globalTexCoord;
-	flat float localTexLevel;
-	flat float globalTexLevel;
 	flat int shapeIndex;
 
 	#ifdef PATH_MODE

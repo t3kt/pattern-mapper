@@ -749,6 +749,8 @@ class TextureLayer(BaseDataObject):
 class ShapeState(BaseDataObject):
 	def __init__(
 			self,
+			pathvisible: bool=None,
+			panelvisible: bool=None,
 			pathcolor: _RGBAColor=None,
 			panelcolor: _RGBAColor=None,
 			localtransform: TransformSpec=None,
@@ -760,6 +762,8 @@ class ShapeState(BaseDataObject):
 			pathtexture: TextureLayer=None,
 			**attrs):
 		super().__init__(**attrs)
+		self.pathvisible = pathvisible
+		self.panelvisible = panelvisible
 		self.pathcolor = tuple(pathcolor) if pathcolor else None
 		self.panelcolor = tuple(panelcolor) if panelcolor else None
 		self.localtransform = localtransform
@@ -773,6 +777,8 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def DefaultState(cls):
 		return ShapeState(
+			pathvisible=False,
+			panelvisible=False,
 			pathcolor=(1, 1, 1, 1),
 			panelcolor=(1, 1, 1, 1),
 			localtransform=TransformSpec.DefaultTransformSpec(),
@@ -788,6 +794,8 @@ class ShapeState(BaseDataObject):
 		if not override:
 			return self.Clone()
 		return ShapeState(
+			pathvisible=override.pathvisible if override.pathvisible is not None else self.pathvisible,
+			panelvisible=override.panelvisible if override.panelvisible is not None else self.panelvisible,
 			pathcolor=override.pathcolor or self.pathcolor,
 			panelcolor=override.panelcolor or self.panelcolor,
 			localtransform=TransformSpec.CloneFirst(override.localtransform, self.localtransform),
@@ -801,6 +809,8 @@ class ShapeState(BaseDataObject):
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
+			'pathvisible': self.pathvisible,
+			'panelvisible': self.panelvisible,
 			'pathcolor': self.pathcolor,
 			'panelcolor': self.panelcolor,
 			'localtransform': TransformSpec.ToOptionalJsonDict(self.localtransform),
@@ -829,6 +839,8 @@ class ShapeState(BaseDataObject):
 
 	def ToParamsDict(self):
 		return cleandict(mergedicts(
+			self.pathvisible is not None and {'Pathvisible': self.pathvisible},
+			self.panelvisible is not None and {'Panelvisible': self.panelvisible},
 			_colorTupleToDict('Pathcolor', self.pathcolor),
 			_colorTupleToDict('Panelcolor', self.panelcolor),
 			self.localtransform and self.localtransform.ToParamsDict(prefix='Local'),
@@ -843,6 +855,8 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def FromParamsDict(cls, obj):
 		return cls(
+			pathvisible=obj.get('pathvisible'),
+			panelvisible=obj.get('panelvisible'),
 			pathcolor=_TupleFromDict(obj, 'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora', default=1),
 			panelcolor=_TupleFromDict(obj, 'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora', default=1),
 			localtransform=TransformSpec.FromParamsDict(obj, prefix='Local'),
@@ -857,6 +871,7 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def AllParamNames(cls):
 		names = [
+			'Patvisible', 'Panelvisible',
 			'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora',
 			'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora',
 		]
@@ -873,6 +888,12 @@ class ShapeState(BaseDataObject):
 	def CreatePars(cls, o):
 		page = o.appendCustomPage('Path')
 		setattrs(
+			page.appendToggle('Includepathvisible', label='Include Path Visible'),
+			startSection=True)
+		setattrs(
+			page.appendToggle('Pathvisible', label='Path Visible'),
+			default=True)
+		setattrs(
 			page.appendToggle(
 				'Includepathcolor',
 				label='Include Path Color'),
@@ -888,6 +909,12 @@ class ShapeState(BaseDataObject):
 		TextureLayer.CreatePars(page, 'Pathtex', 'Path Texture ')
 		o.par.Pathtexuvmode.default = TexCoordMode.path.name
 		page = o.appendCustomPage('Panel')
+		setattrs(
+			page.appendToggle('Includepanelvisible', label='Include Panel Visible'),
+			startSection=True)
+		setattrs(
+			page.appendToggle('Panelvisible', label='Panel Visible'),
+			default=True)
 		setattrs(
 			page.appendToggle(
 				'Includepanelcolor',

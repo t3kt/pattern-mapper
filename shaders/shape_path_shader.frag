@@ -2,9 +2,6 @@
 
 #include "shape_shader_pixel_common"
 
-uniform float uPhaseOffset;
-uniform sampler2D sPointPositionalTexture;
-
 in Vertex
 {
 	VertexAttrs attrs;

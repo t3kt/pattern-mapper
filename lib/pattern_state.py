@@ -153,10 +153,12 @@ class ShapeSettingsEditor(_SettingsEditor):
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
-		# ShapeState.CreatePars(o)
+		ShapeState.CreatePars(o)
 		super().__init__(
 			ownerComp,
 			[
+				_ParGroup(o, 'Includepathvisible', 'Pathvisible'),
+				_ParGroup(o, 'Includepanelvisible', 'Panelvisible'),
 				_ParGroup(o, 'Includepathcolor', 'Pathcolor[rgba]'),
 				_ParGroup(o, 'Includepanelcolor', 'Panelcolor[rgba]'),
 				_ParGroup.ForTransformSpec(o, 'Includelocaltransform', 'Local'),
@@ -212,3 +214,21 @@ def BuildShapeStateChannels(chop, shapestate: ShapeState):
 		val = parvals[name]
 		chan = chop.appendChan(name)
 		chan[0] = val
+
+def BuildChannelAttributeTable(dat: DAT, attrs: DAT, prefixes: List[str]):
+	dat.clear()
+	if not prefixes:
+		prefixes = ['']
+	for prefix in prefixes:
+		for srcrow in attrs.rows():
+			vals = _padList(srcrow, 4, default='')
+			dat.appendRow([
+				(prefix + val) if val and val != '_' else '_'
+				for val in vals
+			])
+
+def _padList(vals, length, default=None):
+	return [
+		vals[i] if vals and i < len(vals) else default
+		for i in range(length)
+	]

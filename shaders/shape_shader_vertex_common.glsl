@@ -6,7 +6,6 @@ uniform int uShapeCount;
 uniform sampler2D sColors;
 
 uniform sampler2D sTransforms;
-uniform sampler2D sPanelTexParams;
 uniform sampler2D sTexParams;
 
 in vec3 centerPos;
@@ -74,19 +73,13 @@ VertexAttrs loadVertexAttrs() {
 	attrs.shapeIndex = shapeIndex;
 	attrs.color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
 
-	vec4 localOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 0), 0);
-	vec4 globalOffsetAndLevel = texelFetch(sPanelTexParams, ivec2(shapeIndex, 1), 0);
-
-	attrs.faceTexCoord += localOffsetAndLevel.xyz;
-	attrs.localTexLevel = localOffsetAndLevel.w;
-	attrs.globalTexCoord += globalOffsetAndLevel.xyz;
-	attrs.globalTexLevel = globalOffsetAndLevel.w;
-
-	vec3 localScale = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0).xyz;
+	vec4 localScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0);
+	vec3 localScale = localScaleXYZUniform.xyz * localScaleXYZUniform.w;
 	vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
 	vec3 localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
 
-	vec3 globalScale = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0).xyz;
+	vec4 globalScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0);
+	vec3 globalScale = globalScaleXYZUniform.xyz * globalScaleXYZUniform.w;
 	vec3 globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
 	vec3 globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
 
