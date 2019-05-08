@@ -13,10 +13,14 @@ void main()
 	TDCheckDiscard();
 	
 	vec4 color = iVert.attrs.color;
-	applyTexture(color, iVert.attrs, iVert.attrs.texLayer1);
-	applyTexture(color, iVert.attrs, iVert.attrs.texLayer2);
-	applyTexture(color, iVert.attrs, iVert.attrs.texLayer3);
-	applyTexture(color, iVert.attrs, iVert.attrs.texLayer4);
+	if (!iVert.attrs.visible) {
+		color = vec4(0.0);
+	} else {
+		applyTexture(color, iVert.attrs, iVert.attrs.texLayer1);
+		applyTexture(color, iVert.attrs, iVert.attrs.texLayer2);
+		applyTexture(color, iVert.attrs, iVert.attrs.texLayer3);
+		applyTexture(color, iVert.attrs, iVert.attrs.texLayer4);
+	}
 
 	TDAlphaTest(color.a);
 	fragColor = TDOutputSwizzle(color);

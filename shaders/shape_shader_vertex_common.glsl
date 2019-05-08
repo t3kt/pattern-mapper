@@ -7,6 +7,7 @@ uniform sampler2D sColors;
 
 uniform sampler2D sTransforms;
 uniform sampler2D sTexParams;
+uniform sampler2D sAttrs;
 
 in vec3 centerPos;
 
@@ -72,29 +73,35 @@ VertexAttrs loadVertexAttrs() {
 
 	attrs.shapeIndex = shapeIndex;
 	attrs.color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
-
-	vec4 localScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0);
-	vec3 localScale = localScaleXYZUniform.xyz * localScaleXYZUniform.w;
-	vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
-	vec3 localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
-
-	vec4 globalScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0);
-	vec3 globalScale = globalScaleXYZUniform.xyz * globalScaleXYZUniform.w;
-	vec3 globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
-	vec3 globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
+	attrs.visible = texelFetch(sAttrs, ivec2(shapeIndex, 0), 0).r > 0.5;
 
 	// First deform the vertex and normal
 	// TDDeform always returns values in world space
 	vec4 worldSpacePos = TDDeform(P);
 
-	scaleRotateTranslate(
-		worldSpacePos,
-		globalScale, globalRotate, globalTranslate,
-		vec3(0));
-	scaleRotateTranslate(
-		worldSpacePos,
-		localScale, localRotate, localTranslate,
-		centerPos);
+
+	if (!attrs.visible) {
+		worldSpacePos = vec4(-1000.0);
+	} else {
+		vec4 localScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0);
+		vec3 localScale = localScaleXYZUniform.xyz * localScaleXYZUniform.w;
+		vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
+		vec3 localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
+
+		vec4 globalScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0);
+		vec3 globalScale = globalScaleXYZUniform.xyz * globalScaleXYZUniform.w;
+		vec3 globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
+		vec3 globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
+
+		scaleRotateTranslate(
+			worldSpacePos,
+			globalScale, globalRotate, globalTranslate,
+			vec3(0));
+		scaleRotateTranslate(
+			worldSpacePos,
+			localScale, localRotate, localTranslate,
+			centerPos);
+	}
 
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
 	gl_Position = TDWorldToProj(worldSpacePos, uvUnwrapCoord);
