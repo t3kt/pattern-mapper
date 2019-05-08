@@ -568,7 +568,7 @@ class TransformSpec(BaseDataObject):
 		]
 
 	@classmethod
-	def CreatePars(cls, page, prefix: str, labelprefix: str):
+	def CreatePars(cls, page, prefix: str, labelprefix: str, isforuv: bool=False):
 		setattrs(
 			page.appendXYZ(
 				(prefix + 'scale').capitalize(),
@@ -588,12 +588,14 @@ class TransformSpec(BaseDataObject):
 			page.appendXYZ(
 				(prefix + 'translate').capitalize(),
 				label=labelprefix + 'Translate'),
-			default=0, normMin=-1, normMax=1)
+			default=0, normMin=-0.5 if isforuv else -1, normMax=0.5 if isforuv else 1,
+		)
 		setattrs(
 			page.appendXYZ(
 				(prefix + 'pivot').capitalize(),
 				label=labelprefix + 'Pivot'),
-			default=0, normMin=-1, normMax=1)
+			default=0.5 if isforuv else 0, normMin=0 if isforuv else -1, normMax=1,
+		)
 
 def _TupleFromDict(obj: Dict[str, Any], *names: str, default=None):
 	if not obj:
@@ -736,13 +738,13 @@ class TextureLayer(BaseDataObject):
 			page.appendInt(
 				(prefix + 'textureindex').capitalize(),
 				label=labelprefix + 'Texture Index'),
-			default=0, normMin=0, min=0, clampMin=True, normMax=8, max=8, clampMax=True)
+			default=0, normMin=0, min=0, clampMin=True, normMax=1, max=1, clampMax=True)
 		setattrs(
 			page.appendFloat(
 				(prefix + 'alpha').capitalize(),
 				label=labelprefix + 'Alpha'),
 			default=0, normMin=0, normMax=1)
-		TransformSpec.CreatePars(page, prefix, labelprefix)
+		TransformSpec.CreatePars(page, prefix, labelprefix, isforuv=True)
 
 class ShapeState(BaseDataObject):
 	def __init__(
