@@ -20,13 +20,14 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
 
-from pattern_model import ShapeState, PatternData, TransformSpec, TextureLayer
+from pattern_model import GroupShapeState, ShapeState, PatternData, TransformSpec, TextureLayer
 
 class _ParGroup:
-	def __init__(self, o, switchparname: str, *parnames: str):
+	def __init__(self, o, switchparname: str, *parnames: str, haschannels=True):
 		self.switchpar = getattr(o.par, switchparname.capitalize()) if switchparname else None
 		self.parnames = list([p.capitalize() for p in parnames])
 		self.pars = o.pars(*parnames)
+		self.haschannels = haschannels
 
 	def updateParsEnabled(self):
 		enabled = self.isactive
@@ -90,18 +91,19 @@ class _SettingsEditor(ExtensionBase):
 		for pg in self.pargroups:
 			pg.updateParsEnabled()
 
-	def GetStateDict(self, filtered=True):
+	def GetStateDict(self, filtered=True, channelsonly=True):
 		return cleandict(mergedicts(*[
 			pg.getVals(filtered=filtered)
 			for pg in self.pargroups
+			if pg.haschannels or not channelsonly
 		]))
 
 	def SetStateDict(self, obj: Dict[str, Any], clearmissing=True):
 		for pg in self.pargroups:
 			pg.setVals(obj, clearmissing=clearmissing)
 
-	def GetState(self, filtered=True):
-		return self.GetStateDict(filtered=filtered)
+	def GetState(self, filtered=True, channelsonly=True):
+		return self.GetStateDict(filtered=filtered, channelsonly=channelsonly)
 
 	def SetState(self, state, clearmissing=True):
 		self.SetStateDict(state, clearmissing=clearmissing)
@@ -115,9 +117,11 @@ class _SettingsEditor(ExtensionBase):
 		for pg in self.pargroups:
 			pg.readRows(dat, column, clearmissing=clearmissing)
 
-	def GetActiveNames(self):
+	def GetActiveNames(self, channelsonly=True):
 		names = []
 		for pg in self.pargroups:
+			if channelsonly and not pg.haschannels:
+				continue
 			if pg.isactive:
 				names += pg.parnames
 		return names
@@ -154,6 +158,7 @@ class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
 		ShapeState.CreatePars(o)
+		self._groupnamepargroup = _ParGroup(o, 'Isgroup', 'Group', haschannels=False)
 		super().__init__(
 			ownerComp,
 			[
@@ -168,16 +173,26 @@ class ShapeStateEditor(_SettingsEditor):
 				_ParGroup.ForTextureLayer(o, 'Includetexlayer2', 'Texlayer2'),
 				_ParGroup.ForTextureLayer(o, 'Includetexlayer3', 'Texlayer3'),
 				_ParGroup.ForTextureLayer(o, 'Includetexlayer4', 'Texlayer4'),
+				self._groupnamepargroup,
 			]
 		)
 
-	def GetState(self, filtered=True) -> ShapeState:
-		obj = self.GetStateDict(filtered=filtered)
+	def GetState(self, filtered=True, channelsonly=True) -> ShapeState:
+		obj = self.GetStateDict(filtered=filtered, channelsonly=channelsonly)
+		if (not channelsonly) and self.ownerComp.par.Isgroup:
+			state = GroupShapeState.FromParamsDict(obj)
+			state.group = self.ownerComp.par.Group.eval()
+			return state
 		return ShapeState.FromParamsDict(obj)
 
 	def SetState(self, state: ShapeState, clearmissing=True):
 		obj = state.ToParamsDict()
 		self.SetStateDict(obj, clearmissing=clearmissing)
+		if isinstance(state, GroupShapeState):
+			self._groupnamepargroup.setVals({'Group': state.group}, clearmissing=clearmissing)
+		elif clearmissing:
+			self.ownerComp.par.Group = ''
+			self.ownerComp.par.Isgroup = False
 
 
 class ShapeStatesBuilder(LoggableSubComponent):
@@ -232,3 +247,10 @@ def _padList(vals, length, default=None):
 		vals[i] if vals and i < len(vals) else default
 		for i in range(length)
 	]
+
+class GroupShapeStateEditorManager(ExtensionBase):
+	def __init__(self, ownerComp):
+		super().__init__(ownerComp)
+
+	def LoadStates(self):
+		pass

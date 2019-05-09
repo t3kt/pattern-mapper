@@ -559,3 +559,151 @@ def longestcommonprefix(strs):
 			return strs[0][:i]
 	else:
 		return min(strs)
+
+class opattrs:
+	def __init__(
+			self,
+			order=None,
+			nodepos=None,
+			tags=None,
+			panelparent=None,
+			parvals=None,
+			parexprs=None,
+			storage=None,
+			dropscript=None,
+			cloneimmune=None,
+			dockto=None,
+			showdocked=None,
+	):
+		self.order = order
+		self.nodepos = nodepos
+		self.tags = set(tags) if tags else None  # type: Set[str]
+		self.panelparent = panelparent
+		self.parvals = parvals  # type: Dict[str, Any]
+		self.parexprs = parexprs  # type: Dict[str, str]
+		self.storage = storage  # type: Dict[str, Any]
+		self.dropscript = dropscript  # type: Union[OP, str]
+		self.cloneimmune = cloneimmune  # type: Union[bool, str]
+		self.dockto = dockto  # type: OP
+		self.showdocked = showdocked  # type: bool
+
+	def override(self, other: 'opattrs'):
+		if not other:
+			return self
+		if other.order is not None:
+			self.order = other.order
+		self.nodepos = other.nodepos or self.nodepos
+		if other.cloneimmune is not None:
+			self.cloneimmune = other.cloneimmune
+		self.dockto = other.dockto or self.dockto
+		if other.showdocked is not None:
+			self.showdocked = other.showdocked
+		if other.tags:
+			if self.tags:
+				self.tags.update(other.tags)
+			else:
+				self.tags = set(other.tags)
+		if other.storage:
+			if self.storage:
+				self.storage.update(other.storage)
+			else:
+				self.storage = dict(other.storage)
+		self.panelparent = other.panelparent or self.panelparent
+		self.dropscript = other.dropscript or self.dropscript
+		self.parvals = mergedicts(self.parvals, other.parvals)
+		self.parexprs = mergedicts(self.parexprs, other.parexprs)
+		return self
+
+	def applyto(self, o: OP):
+		if self.order is not None:
+			o.par.alignorder = self.order
+		if self.parvals:
+			for key, val in self.parvals.items():
+				setattr(o.par, key, val)
+		if self.parexprs:
+			for key, expr in self.parexprs.items():
+				getattr(o.par, key).expr = expr
+		if self.nodepos:
+			o.nodeCenterX = self.nodepos[0]
+			o.nodeCenterY = self.nodepos[1]
+		if self.tags:
+			o.tags.update(self.tags)
+		if self.panelparent:
+			self.panelparent.outputCOMPConnectors[0].connect(o)
+		if self.dropscript:
+			o.par.drop = 'legacy'
+			o.par.dropscript = self.dropscript
+		if self.storage:
+			for key, val in self.storage.items():
+				if val is None:
+					o.unstore(key)
+				else:
+					o.store(key, val)
+		if self.cloneimmune == 'comp':
+			o.componentCloneImmune = True
+		elif self.cloneimmune is not None:
+			o.cloneImmune = self.cloneimmune
+		if self.dockto:
+			o.dock = self.dockto
+		if self.showdocked is not None:
+			o.showDocked = self.showdocked
+		return o
+
+	@classmethod
+	def merged(cls, *attrs, **kwargs):
+		result = cls()
+		for a in attrs:
+			if not a:
+				continue
+			if isinstance(a, (list, tuple, set)):
+				for suba in a:
+					if suba:
+						result.override(suba)
+			else:
+				result.override(a)
+		if kwargs:
+			result.override(cls(**kwargs))
+		return result
+
+def updateOP(
+		comp,
+		attrs: opattrs=None, **kwargs):
+	opattrs.merged(attrs, **kwargs).applyto(comp)
+	return comp
+
+def _resolveDest(dest):
+	deststr = str(dest)
+	dest = op(dest)
+	if not dest or not dest.isCOMP:
+		raise Exception('Invalid destination: {}'.format(deststr))
+	return dest
+
+def createFromTemplate(
+		template,
+		dest, name,
+		attrs: opattrs=None, **kwargs):
+	dest = _resolveDest(dest)
+	comp = dest.copy(template, name=name)
+	opattrs.merged(attrs, **kwargs).applyto(comp)
+	return comp
+
+def createOP(
+		optype, dest, name,
+		attrs: opattrs=None, **kwargs):
+	dest = _resolveDest(dest)
+	comp = dest.create(optype, name)
+	opattrs.merged(attrs, **kwargs).applyto(comp)
+	return comp
+
+def getOrCreateOP(
+		optype, dest, name,
+		attrs: opattrs=None, **kwargs):
+	comp = dest.op(name)
+	if not comp:
+		comp = createOP(
+			optype,
+			dest=dest,
+			name=name,
+			attrs=attrs,
+			**kwargs)
+	return comp

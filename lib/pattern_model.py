@@ -871,7 +871,7 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def AllParamNames(cls):
 		names = [
-			'Patvisible', 'Panelvisible',
+			'Pathvisible', 'Panelvisible',
 			'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora',
 			'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora',
 		]
