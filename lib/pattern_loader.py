@@ -228,7 +228,7 @@ class PatternLoader(ExtensionBase):
 		if not self.patterndata.groups:
 			return
 		for group in self.patterndata.groups:
-			chan = chop.appendChan('seq_' + group.groupname)
+			chan = chop.appendChan(group.groupname)
 			shapesteps = [-1] * numshapes
 			for step in group.sequencesteps:
 				for shapeindex in step.shapeindices:
