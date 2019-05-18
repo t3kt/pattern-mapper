@@ -28,7 +28,7 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, ShapeState
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
 from pattern_groups import GroupGenerators
 from pattern_state import ShapeStatesBuilder
 
@@ -352,24 +352,49 @@ class _SvgParser(LoggableSubComponent):
 		self.scale = 1 / max(self.svgwidth, self.svgheight)
 		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
 		self._handleElem(root, 0, namestack=[])
-		self._postProcessCoords(recenter=recenter, rescale=rescale)
-
-	def _postProcessCoords(self, recenter=True, rescale=True):
+		if not self.shapes:
+			return
+		self._calculateShapeCenters()
 		if recenter:
-			offset = -self.sop.center
-			for point in self.sop.points:
-				point.x += offset.x
-				point.y += offset.y
-				point.z += offset.z
+			self._recenterCoords()
 		if rescale:
-			scale = 1 / max(self.sop.size.x, self.sop.size.y, self.sop.size.z)
-			for point in self.sop.points:
-				point.x *= scale
-				point.y *= scale
-				point.z *= scale
+			self._rescaleCoords()
+		self._buildGeometry()
+
+	def _recenterCoords(self):
+		center = sum(tdu.Vector(shape.center) for shape in self.shapes)
 		for shape in self.shapes:
-			poly = self.sop.prims[shape.shapeindex]
-			shape.center = [poly.center.x, poly.center.y, poly.center.z]
+			for point in shape.points:
+				point.pos = list(tdu.Vector(point.pos) - center)
+			shape.center = list(tdu.Vector(shape.center) - center)
+		self._calculateShapeCenters()
+
+	def _rescaleCoords(self):
+		minbounds = [shape.minbound for shape in self.shapes]
+		minbound = tdu.Vector(
+			min(b.x for b in minbounds),
+			min(b.y for b in minbounds),
+			min(b.z for b in minbounds))
+		maxbounds = [shape.maxbound for shape in self.shapes]
+		maxbound = tdu.Vector(
+			max(b.x for b in maxbounds),
+			max(b.y for b in maxbounds),
+			max(b.z for b in maxbounds))
+		size = maxbound - minbound
+		if not size.length():
+			return
+		scale = 1 / max(size.x, size.y, size.z)
+		for shape in self.shapes:
+			for point in shape.points:
+				point.pos = list(tdu.Vector(point.pos) * scale)
+		self._calculateShapeCenters()
+
+	def _calculateShapeCenters(self):
+		for shape in self.shapes:
+			if not shape.points:
+				shape.center = [0, 0, 0]
+			else:
+				shape.center = list(sum(tdu.Vector(p.pos) for p in shape.points) / len(shape.points))
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):
@@ -408,7 +433,7 @@ class _SvgParser(LoggableSubComponent):
 		firstsegment = path[0]
 		if not isinstance(firstsegment, svgpath.Move):
 			raise Exception('Unsupported path (must start with Move) {}'.format(rawpath))
-		pathpoints = [_pathPoint(firstsegment.start)]
+		pointpositions = [_pathPoint(firstsegment.start)]
 		for segment in path[1:]:
 			if isinstance(segment, (svgpath.CubicBezier, svgpath.QuadraticBezier)):
 				self._LogEvent('WARNING: treating bezier as line {}...'.format(rawpath[0:20]))
@@ -416,21 +441,36 @@ class _SvgParser(LoggableSubComponent):
 				raise Exception('Unsupported path (can only contain Line after first segment) {} {}'.format(
 					type(segment), rawpath))
 			pathpt = _pathPoint(segment.end)
-			pathpoints.append(pathpt)
-		# if pathpoints[-1] == pathpoints[0]:
-		# 	pathpoints.pop()
-		poly = self.sop.appendPoly(len(pathpoints), addPoints=True, closed=False)
+			pointpositions.append(pathpt)
+		# if pointpositions[-1] == pointpositions[0]:
+		# 	pointpositions.pop()
 		totaldist = path.length()
 		distances = _segmentDistances(path, self.scale)
 		totaldist *= self.scale
-		shape = ShapeInfo(
-			shapeindex=poly.index,
+		self.shapes.append(ShapeInfo(
+			shapeindex=len(self.shapes),
 			shapename=pathelem.get('id', None),
 			shapepath='/'.join(namestack + [elemname]),
 			parentpath='/'.join(namestack),
 			color=_getPathElementColor(pathelem),
 			shapelength=totaldist,
-		)
+			points=[
+				PointData(
+					pos=list((pos + self.offset) * self.scale),
+					absdist=distances[i],
+					reldist=distances[i] / totaldist
+				)
+				for i, pos in enumerate(pointpositions)
+			],
+		))
+
+	@loggedmethod
+	def _buildGeometry(self):
+		for shape in self.shapes:
+			self._addShapeGeometry(shape)
+
+	def _addShapeGeometry(self, shape: ShapeInfo):
+		poly = self.sop.appendPoly(len(shape.points), addPoints=True, closed=False)
 		if shape.color:
 			poly.Cd[0] = shape.color[0] / 255.0
 			poly.Cd[1] = shape.color[1] / 255.0
@@ -438,15 +478,13 @@ class _SvgParser(LoggableSubComponent):
 		else:
 			poly.Cd[0] = poly.Cd[1] = poly.Cd[2] = 1
 		poly.Cd[3] = 1
-		for i, pathpt in enumerate(pathpoints):
+		for i, pathpt in enumerate(shape.points):
 			vertex = poly[i]
-			pos = (pathpt + self.offset) * self.scale
-			vertex.point.x = pos.x
-			vertex.point.y = pos.y
-			vertex.absRelDist[0] = distances[i]
-			vertex.absRelDist[1] = distances[i] / totaldist
-		self.shapes.append(shape)
-
+			vertex.point.x = pathpt.pos[0]
+			vertex.point.y = pathpt.pos[1]
+			vertex.point.z = pathpt.pos[2]
+			vertex.absRelDist[0] = pathpt.absdist
+			vertex.absRelDist[1] = pathpt.reldist
 
 def _localName(fullname: str):
 	if '}' in fullname:

@@ -37,10 +37,11 @@ class ShapeInfo(BaseDataObject):
 			shapename: str,
 			shapepath: str=None,
 			parentpath: str=None,
-			color: Iterable=None,
-			center: Iterable=None,
+			color: Iterable[Union[float, int]]=None,
+			center: Iterable[Union[float, int]]=None,
 			shapelength: float=None,
 			depthlayer: int=None,
+			points: Iterable['PointData']=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
@@ -51,12 +52,40 @@ class ShapeInfo(BaseDataObject):
 		self.center = list(center) if center else None
 		self.shapelength = shapelength
 		self.depthlayer = depthlayer
+		self.points = list(points or [])
 
 	@property
 	def hsvcolor(self):
 		if not self.color:
 			return None
 		return rgb_to_hsv(self.color[0], self.color[1], self.color[2])
+
+	@property
+	def minbound(self):
+		if not self.points:
+			return None
+		return tdu.Vector(
+			min(p.pos[0] for p in self.points),
+			min(p.pos[1] for p in self.points),
+			min(p.pos[2] for p in self.points),
+		)
+
+	@property
+	def maxbound(self):
+		if not self.points:
+			return None
+		return tdu.Vector(
+			max(p.pos[0] for p in self.points),
+			max(p.pos[1] for p in self.points),
+			max(p.pos[2] for p in self.points),
+		)
+
+	def calculateCenter(self):
+		self.center = [
+			sum([p.pos[0] for p in self.points]) / len(self.points),
+			sum([p.pos[1] for p in self.points]) / len(self.points),
+			sum([p.pos[2] for p in self.points]) / len(self.points),
+		]
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -68,6 +97,32 @@ class ShapeInfo(BaseDataObject):
 			'center': self.center,
 			'shapelength': self.shapelength,
 			'depthlayer': self.depthlayer,
+			'points': PointData.ToJsonDicts(self.points),
+		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			points=PointData.FromJsonDicts(obj.get('points')),
+			**excludekeys(obj, ['points']))
+
+class PointData(BaseDataObject):
+	def __init__(
+			self,
+			pos: Iterable[float]=None,
+			absdist: float=None,
+			reldist: float=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.pos = list(pos or [0, 0, 0])  # type: List[float]
+		self.absdist = absdist
+		self.reldist = reldist
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(self.attrs, {
+			'pos': self.pos,
+			'absdist': self.absdist,
+			'reldist': self.reldist,
 		}))
 
 class SequenceStep(BaseDataObject):
@@ -96,8 +151,7 @@ class SequenceStep(BaseDataObject):
 	def FromJsonDict(cls, obj):
 		return cls(
 			shapeindices=parseValueList(obj.get('shapeindices')),
-			**excludekeys(obj, ['shapeindices'])
-		)
+			**excludekeys(obj, ['shapeindices']))
 
 class GroupInfo(BaseDataObject):
 	def __init__(
@@ -141,8 +195,7 @@ class GroupInfo(BaseDataObject):
 		return cls(
 			sequencesteps=SequenceStep.FromJsonDicts(obj.get('sequencesteps')),
 			shapeindices=parseValueList(obj.get('shapeindices')),
-			**excludekeys(obj, ['sequencesteps', 'shapeindices'])
-		)
+			**excludekeys(obj, ['sequencesteps', 'shapeindices']))
 
 	@property
 	def issequenced(self):
