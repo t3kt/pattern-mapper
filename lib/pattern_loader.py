@@ -74,11 +74,12 @@ class PatternLoader(ExtensionBase):
 		svgxmlop = self.op('svg_xml')
 		svgxmlop.par.loadonstart.pulse()
 		svgxml = svgxmlop.text
-		sop = self.op('build_geometry')
 		self._LoadPatternSettings()
 		self.patterndata.addGroupShapeStates(self.patternsettings.groupshapestates)
 		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
-		self._BuildGeometryFromSvg(sop, svgxml)
+		self._LoadPatternFromSvg(svgxml)
+		sop = self.op('build_geometry')
+		self._BuildGeometry(sop)
 		self._BuildGroups()
 		self._ApplyDepthLayeringToShapes(sop)
 		_rundelayed('op({!r}).ForceTableCooks()'.format(self.ownerComp.path), delayFrames=1)
@@ -96,9 +97,8 @@ class PatternLoader(ExtensionBase):
 			o.cook(force=True)
 
 	@simpleloggedmethod
-	def _BuildGeometryFromSvg(self, sop, svgxml):
-		sop.clear()
-		parser = _SvgParser(self, sop)
+	def _LoadPatternFromSvg(self, svgxml):
+		parser = _SvgParser(self)
 		parser.parse(
 			svgxml,
 			recenter=self.ownerComp.par.Recenter,
@@ -106,6 +106,29 @@ class PatternLoader(ExtensionBase):
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
 		self.patterndata.addShapes(parser.shapes)
+
+	@loggedmethod
+	def _BuildGeometry(self, sop):
+		sop.clear()
+		sop.primAttribs.create('Cd')
+		# distance around path (absolute), distance around path (relative to shape length)
+		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
+		for shape in self.patterndata.shapes:
+			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
+			if shape.color:
+				poly.Cd[0] = shape.color[0] / 255.0
+				poly.Cd[1] = shape.color[1] / 255.0
+				poly.Cd[2] = shape.color[2] / 255.0
+			else:
+				poly.Cd[0] = poly.Cd[1] = poly.Cd[2] = 1
+			poly.Cd[3] = 1
+			for i, pathpt in enumerate(shape.points):
+				vertex = poly[i]
+				vertex.point.x = pathpt.pos[0]
+				vertex.point.y = pathpt.pos[1]
+				vertex.point.z = pathpt.pos[2]
+				vertex.absRelDist[0] = pathpt.absdist
+				vertex.absRelDist[1] = pathpt.reldist
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
@@ -329,23 +352,17 @@ class PatternLoader(ExtensionBase):
 		builder.Build(self.patterndata)
 
 class _SvgParser(LoggableSubComponent):
-	def __init__(self, hostobj, sop):
+	def __init__(self, hostobj):
 		super().__init__(hostobj=hostobj, logprefix='SvgParser')
 		self.svgwidth = 0
 		self.svgheight = 0
-		self.sop = sop
 		self.scale = 1
 		self.offset = tdu.Vector(0, 0, 0)
 		self.shapes = []  # type: List[ShapeInfo]
 
 	def parse(self, svgxml, recenter=True, rescale=True):
-		sop = self.sop
-		sop.clear()
 		if not svgxml:
 			return
-		sop.primAttribs.create('Cd')
-		# distance around path (absolute), distance around path (relative to shape length)
-		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
 		root = ET.fromstring(svgxml)
 		self.svgwidth = float(root.get('width', 1))
 		self.svgheight = float(root.get('height', 1))
@@ -359,7 +376,6 @@ class _SvgParser(LoggableSubComponent):
 			self._recenterCoords()
 		if rescale:
 			self._rescaleCoords()
-		self._buildGeometry()
 
 	def _recenterCoords(self):
 		center = sum(tdu.Vector(shape.center) for shape in self.shapes)
@@ -463,28 +479,6 @@ class _SvgParser(LoggableSubComponent):
 				for i, pos in enumerate(pointpositions)
 			],
 		))
-
-	@loggedmethod
-	def _buildGeometry(self):
-		for shape in self.shapes:
-			self._addShapeGeometry(shape)
-
-	def _addShapeGeometry(self, shape: ShapeInfo):
-		poly = self.sop.appendPoly(len(shape.points), addPoints=True, closed=False)
-		if shape.color:
-			poly.Cd[0] = shape.color[0] / 255.0
-			poly.Cd[1] = shape.color[1] / 255.0
-			poly.Cd[2] = shape.color[2] / 255.0
-		else:
-			poly.Cd[0] = poly.Cd[1] = poly.Cd[2] = 1
-		poly.Cd[3] = 1
-		for i, pathpt in enumerate(shape.points):
-			vertex = poly[i]
-			vertex.point.x = pathpt.pos[0]
-			vertex.point.y = pathpt.pos[1]
-			vertex.point.z = pathpt.pos[2]
-			vertex.absRelDist[0] = pathpt.absdist
-			vertex.absRelDist[1] = pathpt.reldist
 
 def _localName(fullname: str):
 	if '}' in fullname:
