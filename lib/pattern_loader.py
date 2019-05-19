@@ -66,7 +66,7 @@ class PatternLoader(ExtensionBase):
 	def LoadPattern(self):
 		self.patterndata = PatternData()
 		svgxmlop = self.op('svg_xml')
-		svgxmlop.par.loadonstart.pulse()
+		svgxmlop.par.loadonstartpulse.pulse()
 		svgxml = svgxmlop.text
 		self._LoadPatternSettings()
 		self.patterndata.addGroupShapeStates(self.patternsettings.groupshapestates)
