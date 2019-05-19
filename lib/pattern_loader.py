@@ -54,12 +54,6 @@ class PatternLoader(ExtensionBase):
 		return self.op('raw_shapes')
 
 	@property
-	def TEMP_jsonObj(self):
-		return {
-			'groups': GroupInfo.ToJsonDicts(self.patterndata.groups)
-		}
-
-	@property
 	def PatternJsonFileName(self):
 		svgname = self.ownerComp.par.Svgfile.eval()
 		if not svgname:
@@ -407,10 +401,7 @@ class _SvgParser(LoggableSubComponent):
 
 	def _calculateShapeCenters(self):
 		for shape in self.shapes:
-			if not shape.points:
-				shape.center = [0, 0, 0]
-			else:
-				shape.center = list(sum(tdu.Vector(p.pos) for p in shape.points) / len(shape.points))
+			shape.calculateCenter()
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):

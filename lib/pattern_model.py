@@ -81,6 +81,9 @@ class ShapeInfo(BaseDataObject):
 		)
 
 	def calculateCenter(self):
+		if not self.points:
+			self.center = [0.0, 0.0, 0.0]
+			return
 		self.center = [
 			sum([p.pos[0] for p in self.points]) / len(self.points),
 			sum([p.pos[1] for p in self.points]) / len(self.points),
@@ -1099,13 +1102,22 @@ class PatternSettings(BaseDataObject):
 		)
 
 
-class PatternData:
-	def __init__(self, shapes: List[ShapeInfo]=None):
+class PatternData(BaseDataObject):
+	def __init__(
+			self,
+			shapes: List[ShapeInfo]=None,
+			groups: List[GroupInfo]=None,
+			defaultshapestate: ShapeState=None,
+			groupshapestates: List[GroupShapeState]=None):
+		super().__init__()
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
-		self.defaultshapestate = None  # type: ShapeState
-		self.groupshapestates = []  # type: List[GroupShapeState]
+		if groups:
+			for group in groups:
+				self.addGroup(group)
+		self.defaultshapestate = defaultshapestate  # type: ShapeState
+		self.groupshapestates = list(groupshapestates or [])  # type: List[GroupShapeState]
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
 		self.shapes += shapes
@@ -1161,3 +1173,20 @@ class PatternData:
 
 	def __repr__(self):
 		return 'PatternData({} shapes, {} groups)'.format(len(self.shapes), len(self.groups))
+
+	def ToJsonDict(self):
+		return cleandict({
+			'shapes': ShapeInfo.ToJsonDicts(self.shapes),
+			'groups': GroupInfo.ToJsonDicts(self.groups),
+			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
+			'groupshapesates': GroupShapeState.ToJsonDicts(self.groupshapestates),
+		})
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			shapes=ShapeInfo.FromJsonDicts(obj.get('shapes')),
+			groups=GroupInfo.FromJsonDicts(obj.get('groups')),
+			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
+			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
+		)
