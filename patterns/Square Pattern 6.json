@@ -1,0 +1,65 @@
+{
+  "autogroup": false,
+  "depthlayering": {
+    "mode": "manual",
+    "layerdistance": 0.02
+  },
+  "groups": [
+    {
+      "groupname": "1.a",
+      "paths": "^svg/g\\[id=1\\.a\\]/.*",
+      "groupatdepth": 2,
+      "depthlayer": 0,
+      "mergeto": "1.a"
+    },
+    {
+      "groupname": "1.b",
+      "paths": "^svg/g\\[id=1\\.b\\]/.*",
+      "groupatdepth": 2,
+      "depthlayer": 0,
+      "mergeto": "1.b"
+    },
+    {
+      "groupname": "2.a",
+      "paths": "^svg/g\\[id=2\\.a\\]/.*",
+      "groupatdepth": 2,
+      "depthlayer": 1,
+      "mergeto": "2.a"
+    },
+    {
+      "groupname": "2.b",
+      "paths": "^svg/g\\[id=2\\.b\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 1,
+      "mergeto": "2.b"
+    },
+    {
+      "groupname": "2.c",
+      "paths": "^svg/g\\[id=2\\.c\\]/.*",
+      "groupatdepth": 2,
+      "depthlayer": 1,
+      "mergeto": "2.c"
+    },
+    {
+      "groupname": "3.a",
+      "paths": "^svg/g\\[id=3\\.a\\]/.*",
+      "groupatdepth": 4,
+      "depthlayer": 2,
+      "mergeto": "3.a"
+    },
+    {
+      "groupname": "3.b",
+      "paths": "^svg/g\\[id=3\\.b\\]/.*",
+      "groupatdepth": 3,
+      "depthlayer": 2,
+      "mergeto": "3.b"
+    },
+    {
+      "groupname": "3.c",
+      "paths": "^svg/g\\[id=3\\.c\\]/.*",
+      "groupatdepth": 2,
+      "depthlayer": 2,
+      "mergeto": "3.c"
+    }
+  ]
+}
