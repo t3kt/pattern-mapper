@@ -4,9 +4,9 @@ if False:
 	from ._stubs import *
 
 try:
-	from common import LoggableSubComponent, ExtensionBase
+	from common import LoggableSubComponent, ExtensionBase, loggedmethod
 except ImportError:
-	from .common import LoggableSubComponent, ExtensionBase
+	from .common import LoggableSubComponent, ExtensionBase, loggedmethod
 
 try:
 	from common import cleandict, excludekeys, mergedicts
@@ -31,6 +31,7 @@ class PatternDebugger(ExtensionBase):
 	def _shapeCount(self):
 		return self._shapeAttrs.numSamples
 
+	@loggedmethod
 	def SelectShape(self, i, toggle=False):
 		n = self._shapeCount
 		if i < 0 or i >= n or (toggle and i == self.ownerComp.par.Selectedshape):
