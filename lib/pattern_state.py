@@ -1,6 +1,6 @@
 print('pattern_state.py loading...')
 
-from typing import Any, Dict, List, Iterable
+from typing import Any, Dict, List, Iterable, Union
 
 if False:
 	from ._stubs import *
@@ -19,6 +19,11 @@ try:
 	from common import parseValue, parseValueList, formatValue, formatValueList
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList
+
+try:
+	from common import opattrs, createFromTemplate
+except ImportError:
+	from .common import opattrs, createFromTemplate
 
 from pattern_model import GroupShapeState, ShapeState, PatternData, TransformSpec, TextureLayer
 
@@ -157,7 +162,7 @@ class ShapeSettingsEditor(_SettingsEditor):
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
-		ShapeState.CreatePars(o)
+		# ShapeState.CreatePars(o)
 		self._groupnamepargroup = _ParGroup(o, 'Isgroup', 'Group', haschannels=False)
 		super().__init__(
 			ownerComp,
@@ -177,7 +182,7 @@ class ShapeStateEditor(_SettingsEditor):
 			]
 		)
 
-	def GetState(self, filtered=True, channelsonly=True) -> ShapeState:
+	def GetState(self, filtered=True, channelsonly=True) -> Union[ShapeState, GroupShapeState]:
 		obj = self.GetStateDict(filtered=filtered, channelsonly=channelsonly)
 		if (not channelsonly) and self.ownerComp.par.Isgroup:
 			state = GroupShapeState.FromParamsDict(obj)
@@ -252,5 +257,32 @@ class GroupShapeStateEditorManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 
-	def LoadStates(self):
+	@property
+	def _Editors(self) -> List[Union[COMP, ShapeStateEditor]]:
+		return self.ownerComp.ops('gstate__*')
+
+	def LoadStates(self, groupshapestates: List[GroupShapeState]):
+		for editor in self._Editors:
+			editor.destroy()
+		if not groupshapestates:
+			return
+		for i, state in enumerate(groupshapestates):
+			self._AddStateEditor(state, i)
 		pass
+
+	def GetStates(self) -> List[GroupShapeState]:
+		return [
+			editor.GetState(filtered=True, channelsonly=False)
+			for editor in self._Editors
+		]
+
+	def _AddStateEditor(self, state: GroupShapeState, index: int):
+		editor = createFromTemplate(
+			template=self.ownerComp.op('shape_state_editor_template'),
+			dest=self.ownerComp,
+			name='gstate__{}'.format(index),
+			attrs=opattrs(
+				nodepos=[200, -500 + (100 * index)])
+		)  # type: Union[COMP, ShapeStateEditor]
+		editor.SetState(state, clearmissing=True)
+		return editor
