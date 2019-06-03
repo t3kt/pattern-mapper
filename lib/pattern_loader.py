@@ -354,6 +354,39 @@ class PatternLoader(ExtensionBase):
 		builder = ShapeStatesBuilder(self, dat)
 		builder.Build(self.patterndata)
 
+	@loggedmethod
+	def ExportTox(self, name, filename=None):
+		holder = self.op('export_holder')
+		for o in holder.ops('*'):
+			o.destroy()
+		template = self.ownerComp.par.Patterndeftemplate.eval()
+		self._LogEvent('name: {!r}'.format(name))
+		self._LogEvent('template: {!r}'.format(template))
+		comp = holder.copy(template, name=name)
+		for srcname in [
+			'shapes',
+			'shape_panels',
+			'shape_attrs',
+			'shape_group_sequence_indices',
+			'path_position_lookup',
+			'default_shape_state_table',
+			'groups',
+			'sequence_steps',
+			'shape_attr_table',
+		]:
+			destname = 'set_' + srcname
+			self._LogEvent('copying from {} to {}'.format(srcname, destname))
+			dest = comp.op(destname)
+			src = self.op(srcname)
+			self._LogEvent('src: {!r}'.format(src))
+			self._LogEvent('dest: {!r}'.format(dest))
+			dest.copy(src)
+			dest.lock = True
+		if not filename:
+			filename = name + '.tox'
+		comp.par.externaltox.expr = '{!r} if mod.os.path.exists({!r}) else ""'.format(filename, filename)
+		comp.save(filename)
+
 class _SvgParser(LoggableSubComponent):
 	def __init__(self, hostobj):
 		super().__init__(hostobj=hostobj, logprefix='SvgParser')
