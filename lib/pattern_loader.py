@@ -75,6 +75,7 @@ class PatternLoader(ExtensionBase):
 		sop = self.op('build_geometry')
 		self._BuildGeometry(sop)
 		self._BuildGroups()
+		self._AssignGeometryGroups(sop)
 		self._ApplyDepthLayeringToShapes(sop)
 		_rundelayed('op({!r}).ForceTableCooks()'.format(self.ownerComp.path), delayFrames=1)
 
@@ -123,6 +124,14 @@ class PatternLoader(ExtensionBase):
 				vertex.point.z = pathpt.pos[2]
 				vertex.absRelDist[0] = pathpt.absdist
 				vertex.absRelDist[1] = pathpt.reldist
+
+	@loggedmethod
+	def _AssignGeometryGroups(self, sop):
+		for group in self.patterndata.groups:
+			sop.createPrimGroup(group.groupname)
+			primgroup = sop.primGroups[group.groupname]
+			for shapeindex in group.shapeindices:
+				primgroup.add(sop.prims[shapeindex])
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
