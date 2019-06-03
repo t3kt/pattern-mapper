@@ -154,6 +154,9 @@ class PatternLoader(ExtensionBase):
 				_copyAttrVals(toattr=vertex.absRelDist, fromattr=srcvertex.absRelDist)
 				_copyAttrVals(toattr=vertex.uv, fromattr=srcvertex.uv)
 				_copyAttrVals(toattr=vertex.centerPos, fromattr=srcvertex.centerPos)
+		for g in sop.primGroups.values():
+			g.destroy()
+		self._AssignGeometryGroups(sop)
 
 	@loggedmethod
 	def BuildGroupTable(self, dat):
