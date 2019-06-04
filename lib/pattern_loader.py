@@ -128,8 +128,10 @@ class PatternLoader(ExtensionBase):
 	@loggedmethod
 	def _AssignGeometryGroups(self, sop):
 		for group in self.patterndata.groups:
-			sop.createPrimGroup(group.groupname)
-			primgroup = sop.primGroups[group.groupname]
+			primgroup = sop.primGroups.get(group.groupname)
+			if primgroup is None:
+				sop.createPrimGroup(group.groupname)
+				primgroup = sop.primGroups[group.groupname]
 			for shapeindex in group.shapeindices:
 				primgroup.add(sop.prims[shapeindex])
 
