@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="800" height="800" viewBox="0, 0, 800, 800">
+  <g id="-background" display="none">
+    <path d="M0,-0 L800,-0 L800,800 L0,800 z" fill="#000000"/>
+  </g>
+  <g id="Layer_6">
+    <g>
+      <path d="M200,100 L350,100 L350,250 L200,250 z" fill="#1A62EA"/>
+      <path d="M350,150 L450,150 L450,250 L350,250 z" fill="#195EE1"/>
+      <path d="M400,0 L450,0 L450,50 L400,50 z" fill="#1552C7"/>
+      <path d="M0,0 L50,0 L50,50 L0,50 z" fill="#041743"/>
+      <path d="M200,0 L300,0 L300,100 L200,100 z" fill="#0E409F"/>
+      <path d="M300,50 L350,50 L350,100 L300,100 z" fill="#1D68F9"/>
+      <path d="M350,50 L450,50 L450,150 L350,150 z" fill="#1758D4"/>
+      <path d="M300,0 L350,0 L350,50 L300,50 z" fill="#1147AF"/>
+      <path d="M350,0 L400,0 L400,50 L350,50 z" fill="#124CBA"/>
+      <path d="M50,0 L100,0 L100,50 L50,50 z" fill="#05225C"/>
+      <path d="M100,0 L150,0 L150,50 L100,50 z" fill="#072C73"/>
+      <path d="M150,0 L200,0 L200,50 L150,50 z" fill="#0B368A"/>
+    </g>
+    <g>
+      <path d="M0,500 L300,500 L300,800 L0,800 z" fill="#602B71"/>
+      <path d="M0,250 L250,250 L250,500 L0,500 z" fill="#4E225C"/>
+      <path d="M0,50 L200,50 L200,250 L0,250 z" fill="#391744"/>
+      <path d="M300,600 L500,600 L500,800 L300,800 z" fill="#743587"/>
+      <path d="M500,650 L650,650 L650,800 L500,800 z" fill="#863F9C"/>
+      <path d="M650,700 L750,700 L750,800 L650,800 z" fill="#9747B0"/>
+      <path d="M750,750 L800,750 L800,800 L750,800 z" fill="#A34EBD"/>
+      <path d="M650,550 L800,550 L800,700 L650,700 z" fill="#CD64EE"/>
+      <path d="M750,700 L800,700 L800,750 L750,750 z" fill="#BA5AD9"/>
+    </g>
+    <g>
+      <path d="M450,250 L600,250 L600,400 L450,400 z" fill="#B52B20"/>
+      <path d="M700,100 L750,100 L750,150 L700,150 z" fill="#F93F31"/>
+      <path d="M450,-0 L700,-0 L700,250 L450,250 z" fill="#C63024"/>
+      <path d="M750,100 L800,100 L800,150 L750,150 z" fill="#E4382C"/>
+      <path d="M700,150 L800,150 L800,250 L700,250 z" fill="#F03C2E"/>
+      <path d="M700,0 L800,0 L800,100 L700,100 z" fill="#D23327"/>
+      <path d="M450,400 L550,400 L550,500 L450,500 z" fill="#952119"/>
+      <path d="M550,400 L600,400 L600,450 L550,450 z" fill="#58100A"/>
+      <path d="M550,450 L600,450 L600,500 L550,500 z" fill="#801B14"/>
+    </g>
+    <g>
+      <path d="M250,250 L450,250 L450,450 L250,450 z" fill="#023A29"/>
+      <path d="M600,250 L700,250 L700,350 L600,350 z" fill="#1AEBAF"/>
+      <path d="M250,450 L300,450 L300,500 L250,500 z" fill="#034C37"/>
+      <path d="M300,450 L450,450 L450,600 L300,600 z" fill="#045941"/>
+      <path d="M450,500 L500,500 L500,550 L450,550 z" fill="#066A4D"/>
+      <path d="M450,550 L500,550 L500,600 L450,600 z" fill="#077656"/>
+      <path d="M500,500 L650,500 L650,650 L500,650 z" fill="#098360"/>
+      <path d="M600,350 L750,350 L750,500 L600,500 z" fill="#1BF5B7"/>
+      <path d="M650,500 L700,500 L700,550 L650,550 z" fill="#0B8E69"/>
+      <path d="M700,500 L750,500 L750,550 L700,550 z" fill="#0D9B72"/>
+      <path d="M750,500 L800,500 L800,550 L750,550 z" fill="#0FA57A"/>
+      <path d="M750,450 L800,450 L800,500 L750,500 z" fill="#11B486"/>
+      <path d="M750,400 L800,400 L800,450 L750,450 z" fill="#15CC98"/>
+      <path d="M750,350 L800,350 L800,400 L750,400 z" fill="#16D69F"/>
+      <path d="M700,250 L800,250 L800,350 L700,350 z" fill="#18E1A7"/>
+    </g>
+  </g>
+</svg>

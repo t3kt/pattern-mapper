@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="800" height="800" viewBox="0, 0, 800, 800">
+  <g id="-background" display="none">
+    <path d="M0,-0 L800,-0 L800,800 L0,800 z" fill="#000000"/>
+  </g>
+  <g id="Layer_2">
+    <path d="M0,-0 L300,-0 L300,300 L0,300 z" fill="#3E0525"/>
+    <path d="M300,-0 L400,-0 L400,100 L300,100 z" fill="#840E13"/>
+    <path d="M400,-0 L600,-0 L600,200 L400,200 z" fill="#B1182A"/>
+    <path d="M600,-0 L800,-0 L800,300 L600,300 z" fill="#F52424"/>
+    <path d="M300,100 L400,100 L400,300 L300,300 z" fill="#841451"/>
+    <path d="M400,200 L600,200 L600,400 L400,400 z" fill="#B11F73"/>
+    <path d="M0,600 L200,600 L200,800 L0,800 z" fill="#2B2DE6"/>
+    <path d="M200,500 L400,500 L400,800 L200,800 z" fill="#752DD8"/>
+    <path d="M400,600 L500,600 L500,800 L400,800 z" fill="#A235F3"/>
+    <path d="M500,700 L700,700 L700,800 L500,800 z" fill="#CD39F2"/>
+    <path d="M700,600 L800,600 L800,800 L700,800 z" fill="#F52FA0"/>
+    <path d="M500,500 L700,500 L700,700 L500,700 z" fill="#CD31CA"/>
+    <path d="M700,300 L800,300 L800,600 L700,600 z" fill="#F52D92"/>
+    <path d="M600,300 L700,300 L700,500 L600,500 z" fill="#DB2A92"/>
+    <path d="M400,500 L500,500 L500,600 L400,600 z" fill="#A22ABD"/>
+    <path d="M300,400 L600,400 L600,500 L300,500 z" fill="#A225A0"/>
+    <path d="M300,300 L400,300 L400,400 L300,400 z" fill="#841C81"/>
+    <path d="M100,300 L300,300 L300,500 L100,500 z" fill="#511B93"/>
+    <path d="M0,500 L200,500 L200,600 L0,600 z" fill="#2B23BD"/>
+    <path d="M0,300 L100,300 L100,500 L0,500 z" fill="#131993"/>
+  </g>
+  <g id="-NOTES" display="none">
+    <text transform="matrix(1, 0, 0, 1, 372, 97)">
+      <tspan x="-62.047" y="-59" font-family="Helvetica" font-size="19" fill="#BABFBE">Red = center x</tspan>
+      <tspan x="-63.633" y="-37" font-family="Helvetica" font-size="19" fill="#BABFBE">Blue = center y</tspan>
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="800" height="800" viewBox="0, 0, 800, 800">
+  <g id="-background">
+    <path d="M0,-0 L800,-0 L800,800 L0,800 z" fill="#000000"/>
+  </g>
+  <g id="Layer_6">
+    <g>
+      <path d="M100,0 L700,0 L700,100 L100,100 z" fill="#303030"/>
+      <path d="M150,100 L650,100 L650,200 L150,200 z" fill="#575757"/>
+      <path d="M200,200 L600,200 L600,300 L200,300 z" fill="#7B7B7B"/>
+      <path d="M250,300 L550,300 L550,400 L250,400 z" fill="#999999"/>
+      <path d="M300,400 L500,400 L500,500 L300,500 z" fill="#BEBEBE"/>
+      <path d="M350,500 L450,500 L450,600 L350,600 z" fill="#D9D9D9"/>
+    </g>
+    <g>
+      <path d="M700,0 L800,0 L800,60 L700,60 z" fill="#454545"/>
+      <path d="M720,60 L800,60 L800,140 L720,140 z" fill="#717171"/>
+      <path d="M740,140 L800,140 L800,200 L740,200 z" fill="#8A8A8A"/>
+      <path d="M760,200 L800,200 L800,240 L760,240 z" fill="#B0B0B0"/>
+      <path d="M780,240 L800,240 L800,260 L780,260 z" fill="#D0D0D0"/>
+    </g>
+    <g>
+      <path d="M100,0 L0,0 L0,60 L100,60 z" fill="#454545"/>
+      <path d="M80,60 L-0,60 L-0,140 L80,140 z" fill="#717171"/>
+      <path d="M60,140 L-0,140 L-0,200 L60,200 z" fill="#8A8A8A"/>
+      <path d="M40,200 L-0,200 L-0,240 L40,240 z" fill="#B0B0B0"/>
+      <path d="M20,240 L-0,240 L-0,260 L20,260 z" fill="#D0D0D0"/>
+    </g>
+    <g>
+      <path d="M370,600 L430,600 L430,800 L370,800 z" fill="#3B3B3B"/>
+      <path d="M430,620 L480,620 L480,800 L430,800 z" fill="#555555"/>
+      <path d="M480,640 L530,640 L530,800 L480,800 z" fill="#6A6A6A"/>
+      <path d="M530,660 L580,660 L580,800 L530,800 z" fill="#767676"/>
+      <path d="M580,680 L630,680 L630,800 L580,800 z" fill="#898989"/>
+      <path d="M630,700 L680,700 L680,800 L630,800 z" fill="#929292"/>
+      <path d="M680,720 L730,720 L730,800 L680,800 z" fill="#A5A5A5"/>
+      <path d="M730,740 L800,740 L800,800 L730,800 z" fill="#AEAEAE"/>
+      <path d="M750,690 L800,690 L800,740 L750,740 z" fill="#BFBFBF"/>
+      <path d="M760,650 L800,650 L800,690 L760,690 z" fill="#D1D1D1"/>
+      <path d="M770,620 L800,620 L800,650 L770,650 z" fill="#E0E0E0"/>
+      <path d="M780,600 L800,600 L800,620 L780,620 z" fill="#EEEEEE"/>
+      <path d="M370,620 L320,620 L320,800 L370,800 z" fill="#555555"/>
+      <path d="M320,640 L270,640 L270,800 L320,800 z" fill="#6A6A6A"/>
+      <path d="M270,660 L220,660 L220,800 L270,800 z" fill="#767676"/>
+      <path d="M220,680 L170,680 L170,800 L220,800 z" fill="#898989"/>
+      <path d="M170,700 L120,700 L120,800 L170,800 z" fill="#929292"/>
+      <path d="M120,720 L70,720 L70,800 L120,800 z" fill="#A5A5A5"/>
+      <path d="M70,740 L0,740 L0,800 L70,800 z" fill="#AEAEAE"/>
+      <path d="M50,690 L0,690 L0,740 L50,740 z" fill="#BFBFBF"/>
+      <path d="M40,650 L0,650 L0,690 L40,690 z" fill="#D1D1D1"/>
+      <path d="M30,620 L0,620 L0,650 L30,650 z" fill="#E0E0E0"/>
+      <path d="M20,600 L0,600 L0,620 L20,620 z" fill="#EEEEEE"/>
+    </g>
+    <g>
+      <path d="M750,260 L800,260 L800,600 L750,600 z" fill="#484848"/>
+      <path d="M700,200 L750,200 L750,720 L700,720 z" fill="#6D6D6D"/>
+      <path d="M650,100 L700,100 L700,700 L650,700 z" fill="#939393"/>
+      <path d="M600,200 L650,200 L650,680 L600,680 z" fill="#B3B3B3"/>
+      <path d="M550,300 L600,300 L600,660 L550,660 z" fill="#C4C4C4"/>
+      <path d="M500,400 L550,400 L550,640 L500,640 z" fill="#DBDBDB"/>
+      <path d="M450,500 L500,500 L500,620 L450,620 z" fill="#F0F0F0"/>
+    </g>
+    <g>
+      <path d="M50,260 L0,260 L0,600 L50,600 z" fill="#484848"/>
+      <path d="M100,200 L50,200 L50,720 L100,720 z" fill="#6D6D6D"/>
+      <path d="M150,100 L100,100 L100,700 L150,700 z" fill="#939393"/>
+      <path d="M200,200 L150,200 L150,680 L200,680 z" fill="#B3B3B3"/>
+      <path d="M250,300 L200,300 L200,660 L250,660 z" fill="#C4C4C4"/>
+      <path d="M300,400 L250,400 L250,640 L300,640 z" fill="#DBDBDB"/>
+      <path d="M350,500 L300,500 L300,620 L350,620 z" fill="#F0F0F0"/>
+    </g>
+  </g>
+</svg>
