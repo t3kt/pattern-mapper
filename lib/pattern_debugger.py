@@ -38,6 +38,7 @@ class PatternDebugger(ExtensionBase):
 			self.ownerComp.par.Selectedshape = -1
 		else:
 			self.ownerComp.par.Selectedshape = i
+			self.ownerComp.par.Uimode = 'shapes'
 
 	def PrevShape(self):
 		i = self.ownerComp.par.Selectedshape
@@ -105,3 +106,20 @@ class PatternDebugger(ExtensionBase):
 		else:
 			index = (groupnames.index(grouppar.eval()) + offset) % len(groupnames)
 		grouppar.val = groupnames[index]
+		self.ownerComp.par.Uimode = 'groups'
+
+	def BuildUIShapeAttrs(self, chop):
+		chop.clear()
+		mode = self.ownerComp.par.Uimode.eval()
+		shapeattrs = self.ownerComp.op('shape_attrs')
+		highlight = chop.appendChan('highlight')
+		n = shapeattrs.numSamples
+		chop.numSamples = n
+		if mode == 'shapes':
+			selshapeindex = self.ownerComp.par.Selectedshape
+			for i in range(n):
+				highlight[i] = selshapeindex == -1 or i == selshapeindex
+		elif mode == 'groups':
+			# seqindices =
+			pass
+
