@@ -15,139 +15,179 @@
       "paths": "^svg/g\\[id=0\\.b\\]/.*",
       "groupatdepth": 0,
       "depthlayer": 0,
-      "mergeto": "0.b"
+      "mergeto": "0.b",
+      "temporary": true
     },
     {
       "groupname": "0.c",
       "paths": "^svg/g\\[id=0\\.c\\]/.*",
       "groupatdepth": 0,
       "depthlayer": 0,
-      "mergeto": "0.c"
+      "mergeto": "0.c",
+      "temporary": true
     },
     {
       "groupname": "1.a",
       "paths": "^svg/g\\[id=1\\.a\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 1,
-      "mergeto": "1.a"
+      "mergeto": "1.a",
+      "temporary": true
     },
     {
       "groupname": "2.a",
       "paths": "^svg/g\\[id=2\\.a\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 2,
-      "mergeto": "2.a"
+      "mergeto": "2.a",
+      "temporary": true
     },
     {
       "groupname": "2.b",
       "paths": "^svg/g\\[id=2\\.b\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 2,
-      "mergeto": "2.b"
+      "mergeto": "2.b",
+      "temporary": true
     },
     {
       "groupname": "2.c",
       "paths": "^svg/g\\[id=2\\.c\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 2,
-      "mergeto": "2.c"
+      "mergeto": "2.c",
+      "temporary": true
     },
     {
       "groupname": "2.d",
       "paths": "^svg/g\\[id=2\\.d\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 2,
-      "mergeto": "2.d"
+      "mergeto": "2.d",
+      "temporary": true
     },
     {
       "groupname": "2.e",
       "paths": "^svg/g\\[id=2\\.e\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 2,
-      "mergeto": "2.e"
+      "mergeto": "2.e",
+      "temporary": true
     },
     {
       "groupname": "2.f",
       "paths": "^svg/g\\[id=2\\.f\\]/.*",
       "depthlayer": 2,
-      "mergeto": "2.f"
+      "mergeto": "2.f",
+      "temporary": true
     },
     {
       "groupname": "3.a",
       "paths": "^svg/g\\[id=3\\.a\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 3,
-      "mergeto": "3.a"
+      "mergeto": "3.a",
+      "temporary": true
     },
     {
       "groupname": "3.b",
       "paths": "^svg/g\\[id=3\\.b\\]/.*",
       "groupatdepth": 4,
       "depthlayer": 3,
-      "mergeto": "3.b"
+      "mergeto": "3.b",
+      "temporary": true
     },
     {
       "groupname": "3.c",
       "paths": "^svg/g\\[id=3\\.c\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 3,
-      "mergeto": "3.c"
+      "mergeto": "3.c",
+      "temporary": true
     },
     {
       "groupname": "3.d",
       "paths": "^svg/g\\[id=3\\.d\\]/.*",
       "groupatdepth": 4,
       "depthlayer": 3,
-      "mergeto": "3.d"
+      "mergeto": "3.d",
+      "temporary": true
     },
     {
       "groupname": "3.e",
       "paths": "^svg/g\\[id=3\\.e\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 3,
-      "mergeto": "3.e"
+      "mergeto": "3.e",
+      "temporary": true
     },
     {
       "groupname": "4.a",
       "paths": "^svg/g\\[id=4\\.a\\]/.*",
       "groupatdepth": 4,
       "depthlayer": 4,
-      "mergeto": "4.a"
+      "mergeto": "4.a",
+      "temporary": true
     },
     {
       "groupname": "4.b",
       "paths": "^svg/g\\[id=4\\.b\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 4,
-      "mergeto": "4.b"
+      "mergeto": "4.b",
+      "temporary": true
     },
     {
       "groupname": "4.c",
       "paths": "^svg/g\\[id=4\\.c\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 4,
-      "mergeto": "4.c"
+      "mergeto": "4.c",
+      "temporary": true
     },
     {
       "groupname": "4.d",
       "paths": "^svg/g\\[id=4\\.d\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 4,
-      "mergeto": "4.d"
+      "mergeto": "4.d",
+      "temporary": true
     },
     {
       "groupname": "4.e",
       "paths": "^svg/g\\[id=4\\.e\\]/.*",
       "groupatdepth": 3,
       "depthlayer": 4,
-      "mergeto": "4.e"
+      "mergeto": "4.e",
+      "temporary": true
     },
     {
       "groupname": "4.f",
       "paths": "^svg/g\\[id=4\\.f\\]/.*",
       "groupatdepth": 4,
       "depthlayer": 4,
-      "mergeto": "4.f"
+      "mergeto": "4.f",
+      "temporary": true
+    },
+    {
+      "groupname": "tier0",
+      "groups": "0.a 0.b 0.c"
+    },
+    {
+      "groupname": "tier1",
+      "groups": "1.a"
+    },
+    {
+      "groupname": "tier2",
+      "groups": "2.a 2.b 2.c 2.d 2.e 2.f"
+    },
+    {
+      "groupname": "tier3",
+      "groups": "3.a 3.b 3.c 3.d 3.e"
+    },
+    {
+      "groupname": "tier4",
+      "groups": "4.a 4.b 4.c 4.d 4.e 4.f"
     }
   ]
 }

@@ -246,7 +246,7 @@ class PatternLoader(ExtensionBase):
 				dat[r, 'centerangle'] = formatValue(angle)
 				dat[r, 'centerdist'] = formatValue(distance)
 			dat[r, 'shapelength'] = formatValue(shape.shapelength, nonevalue='')
-			dat[r, 'depthlayer'] = formatValue(shape.shapelength, nonevalue='')
+			dat[r, 'depthlayer'] = formatValue(shape.depthlayer, nonevalue='')
 
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape

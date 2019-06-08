@@ -280,6 +280,7 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 				context=context,
 				addtomerge=False,
 			)
+			mergedgroup.temporary = False
 			if self.mergecombiner.buildInto(mergedgroup, boolop=BoolOpNames.OR):
 				context.addGroup(mergedgroup)
 
