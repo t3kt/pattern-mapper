@@ -1,0 +1,27 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "groups": [
+    {
+      "groupname": "outerteal",
+      "paths": "^svg/g\\[id=outerteal]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "innerblue",
+      "paths": "^svg/g\\[id=innerblue]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "outerpink",
+      "paths": "^svg/g\\[id=outerpink]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "suffixes": "primarySlice1 primarySlice2 primarySlice3",
+      "anglemin": "0",
+      "anglemax": "120",
+      "prerotate": "90 210 330"
+    }
+  ]
+}
