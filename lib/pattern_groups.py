@@ -47,13 +47,33 @@ class _PositionalPredicate(_ShapePredicate, ABC):
 			parse=float,
 			cyclic=True,
 			backup=0)
+		self.boundmode = groupspec.boundmode
 
 	def test(self, shape: ShapeInfo, index: int):
-		pos = tdu.Position(shape.center)
 		prerotate = self.prerotates[index]
+		xform = None
 		if prerotate is not None:
 			xform = tdu.Matrix()
 			xform.rotate(0, 0, prerotate, pivot=(0, 0, 0))
+		if self.boundmode in [BoundMode.full, BoundMode.partial]:
+			results = [
+				self._testTransformedPosition(tdu.Position(point.pos), index, xform)
+				for point in shape.points
+			]
+			if self.boundmode == BoundMode.full:
+				return all(results)
+			else:
+				return any(results)
+		elif self.boundmode == BoundMode.center:
+			pos = tdu.Position(shape.center)
+			if xform is not None:
+				pos *= xform
+			return self._testPosition(pos, index)
+		else:
+			return False
+
+	def _testTransformedPosition(self, pos: tdu.Position, index: int, xform: tdu.Matrix):
+		if xform is not None:
 			pos *= xform
 		return self._testPosition(pos, index)
 
@@ -69,6 +89,7 @@ class _CartesianPredicate(_PositionalPredicate):
 		self.yranges = ValueRangeSequence.FromSpecs(
 			groupspec.ymin, groupspec.ymax,
 			cyclic=True, parse=float)
+		self.boundmode = groupspec.boundmode
 
 	def __repr__(self):
 		desc = '(x: {} y: {}'.format(self.xranges, self.yranges)
@@ -97,6 +118,7 @@ class _PolarPredicate(_PositionalPredicate):
 		self.distanceranges = ValueRangeSequence.FromSpecs(
 			groupspec.distancemin, groupspec.distancemax,
 			cyclic=True, parse=float)
+		self.boundmode = groupspec.boundmode
 
 	def __repr__(self):
 		desc = '(angle: {} dist: {}'.format(self.angleranges, self.distanceranges)

@@ -21,7 +21,35 @@
       "suffixes": "primarySlice1 primarySlice2 primarySlice3",
       "anglemin": "0",
       "anglemax": "120",
-      "prerotate": "90 210 330"
+      "prerotate": "90 210 330",
+      "boundmode": "partial",
+      "temporary": true
+    },
+    {
+      "suffixes": "secondarySlice1 secondarySlice2 secondarySlice3",
+      "anglemin": "60",
+      "anglemax": "180",
+      "prerotate": "90 210 330",
+      "boundmode": "partial",
+      "temporary": true
+    },
+    {
+      "groups": "outerteal",
+      "withgroups": "primarySlice1 primarySlice2 primarySlice3",
+      "boolop": "and",
+      "suffixes": "outerteal_1 outerteal_2 outerteal_3"
+    },
+    {
+      "groups": "outerpink",
+      "withgroups": "secondarySlice1 secondarySlice2 secondarySlice3",
+      "boolop": "and",
+      "suffixes": "outerpink_1 outerpink_2 outerpink_3"
+    },
+    {
+      "groups": "x_innerblue",
+      "withgroups": "primarySlice1 primarySlice2 primarySlice3",
+      "boolop": "and",
+      "suffixes": "innerblue_1 innerblue_2 innerblue_3"
     }
   ]
 }

@@ -19,6 +19,19 @@ try:
 except ImportError:
 	from .common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
 
+class _BaseEnum(Enum):
+	@classmethod
+	def ByName(cls, name: str, default=None):
+		if name in (None, ''):
+			return default
+		return cls[name]
+
+	@classmethod
+	def ByValue(cls, value: Union[str, int], default=None):
+		if value in (None, ''):
+			return default
+		return cls(value)
+
 # def _defaultedgetter(getdefault: Callable):
 # 	attrname = getdefault.__name__
 #
@@ -375,17 +388,25 @@ class PathGroupGenSpec(GroupGenSpec):
 			'groupatdepth': self.groupatdepth,
 		}))
 
+class BoundMode(_BaseEnum):
+	center = 0
+	full = 1
+	partial = 2
+
 class PositionalGroupGenSpec(GroupGenSpec, ABC):
 	def __init__(
 			self,
 			prerotate: _ValueListSpec=None,
+			boundmode: str=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.prerotate = prerotate
+		self.boundmode = BoundMode.ByName(boundmode, BoundMode.center)
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(super().ToJsonDict(), {
 			'prerotate': self.prerotate,
+			'boundmode': self.boundmode.name,
 		}))
 
 class BoxBoundGroupGenSpec(PositionalGroupGenSpec):
@@ -666,19 +687,6 @@ def _TupleFromDict(obj: Dict[str, Any], *names: str, default=None):
 		else:
 			vals.append(default)
 	return vals if hasany else None
-
-class _BaseEnum(Enum):
-	@classmethod
-	def ByName(cls, name: str, default=None):
-		if name in (None, ''):
-			return default
-		return cls[name]
-
-	@classmethod
-	def ByValue(cls, value: Union[str, int], default=None):
-		if value in (None, ''):
-			return default
-		return cls(value)
 
 class TexCoordMode(_BaseEnum):
 	loc = 0
