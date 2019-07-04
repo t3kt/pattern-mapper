@@ -3,6 +3,7 @@ print('pattern_loader.py loading...')
 import json
 import xml.etree.ElementTree as ET
 from typing import List
+import pathlib
 
 if False:
 	from ._stubs import *
@@ -55,12 +56,13 @@ class PatternLoader(ExtensionBase):
 
 	@property
 	def PatternJsonFileName(self):
+		return self._GetPatternFileName('json')
+
+	def _GetPatternFileName(self, ext):
 		svgname = self.ownerComp.par.Svgfile.eval()
-		if not svgname:
-			return ''
-		if svgname.endswith('.svg'):
-			return svgname.replace('.svg', '.json')
-		return ''
+		if not svgname or not svgname.endswith('.svg'):
+			return None
+		return svgname.replace('.svg', '.' + ext)
 
 	@loggedmethod
 	def LoadPattern(self):
@@ -360,7 +362,14 @@ class PatternLoader(ExtensionBase):
 		builder.Build(self.patterndata)
 
 	@loggedmethod
-	def ExportTox(self, name, filename=None):
+	def ExportTox(self, name=None, filename=None):
+		if not name:
+			svgfilepath = pathlib.Path(self.ownerComp.par.Svgfile.eval())
+			name = svgfilepath.stem
+			if not filename:
+				filename = self._GetPatternFileName('.tox')
+			if not filename:
+				return
 		holder = self.op('export_holder')
 		for o in holder.ops('*'):
 			o.destroy()
