@@ -1,0 +1,67 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "groups": [
+    {
+      "groupname": "magenta",
+      "paths": "^svg/g\\[id=magenta]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "brickred",
+      "paths": "^svg/g\\[id=brickred]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal",
+      "paths": "^svg/g\\[id=teal]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "olivegreen",
+      "paths": "^svg/g\\[id=olivegreen]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "dullpurple",
+      "paths": "^svg/g\\[id=dullpurple]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "deepgreen",
+      "paths": "^svg/g\\[id=deepgreen]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "orange",
+      "paths": "^svg/g\\[id=orange]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "indigo",
+      "paths": "^svg/g\\[id=indigo]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "dullred",
+      "paths": "^svg/g\\[id=dullred]/.*",
+      "sequenceby": "value"
+    },
+    {
+      "suffixes": "primarySlice1 primarySlice2 primarySlice3",
+      "anglemin": "0",
+      "anglemax": "120",
+      "prerotate": "90 210 330",
+      "boundmode": "partial",
+      "temporary": true
+    },
+    {
+      "suffixes": "secondarySlice1 secondarySlice2 secondarySlice3",
+      "anglemin": "60",
+      "anglemax": "180",
+      "prerotate": "90 210 330",
+      "boundmode": "partial",
+      "temporary": true
+    }
+  ]
+}
