@@ -32,6 +32,7 @@ class _ParGroup:
 		self.switchpar = getattr(o.par, switchparname.capitalize()) if switchparname else None
 		self.parnames = list([p.capitalize() for p in parnames])
 		self.pars = o.pars(*parnames)
+		self.tuplenames = list({p.tupletName for p in self.pars})
 		self.haschannels = haschannels
 
 	def updateParsEnabled(self):
@@ -122,13 +123,23 @@ class _SettingsEditor(ExtensionBase):
 		for pg in self.pargroups:
 			pg.readRows(dat, column, clearmissing=clearmissing)
 
-	def GetActiveNames(self, channelsonly=True):
-		names = []
+	def _GetActiveGroups(self, channelsonly=True):
 		for pg in self.pargroups:
 			if channelsonly and not pg.haschannels:
 				continue
 			if pg.isactive:
-				names += pg.parnames
+				yield pg
+
+	def GetActiveNames(self, channelsonly=True):
+		names = []
+		for pg in self._GetActiveGroups(channelsonly):
+			names += pg.parnames
+		return names
+
+	def GetActiveTupleNames(self, channelsonly=True):
+		names = []
+		for pg in self._GetActiveGroups(channelsonly):
+			names += pg.tuplenames
 		return names
 
 class ShapeSettingsEditor(_SettingsEditor):
