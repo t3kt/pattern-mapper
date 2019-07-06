@@ -1,6 +1,7 @@
 {
   "autogroup": false,
   "rescale": true,
+  "fixtrianglecenters": true,
   "groups": [
     {
       "groupname": "magenta",

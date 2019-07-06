@@ -15,9 +15,9 @@ except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs
 
 try:
-	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
+	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow, averagePoints, triangleCenter
 except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList, addDictRow
+	from .common import parseValue, parseValueList, formatValue, formatValueList, addDictRow, averagePoints, triangleCenter
 
 class _BaseEnum(Enum):
 	@classmethod
@@ -94,14 +94,18 @@ class ShapeInfo(BaseDataObject):
 		)
 
 	def calculateCenter(self):
-		if not self.points:
-			self.center = [0.0, 0.0, 0.0]
-			return
-		self.center = [
-			sum([p.pos[0] for p in self.points]) / len(self.points),
-			sum([p.pos[1] for p in self.points]) / len(self.points),
-			sum([p.pos[2] for p in self.points]) / len(self.points),
-		]
+		self.center = averagePoints([p.pos for p in self.points])
+
+	def calculateTriangleCenter(self):
+		self.center = triangleCenter([p.pos for p in self.points])
+
+	@property
+	def istriangle(self):
+		if len(self.points) == 3 and self.points[0] != self.points[2]:
+			return True
+		if len(self.points) == 4 and self.points[0] == self.points[3]:
+			return True
+		return False
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1078,6 +1082,7 @@ class PatternSettings(BaseDataObject):
 			recenter: bool=None,
 			defaultshapestate: ShapeState=None,
 			groupshapestates: List[GroupShapeState]=None,
+			fixtrianglecenters: bool=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
@@ -1087,6 +1092,7 @@ class PatternSettings(BaseDataObject):
 		self.groupshapestates = list(groupshapestates or [])
 		self.autogroup = autogroup
 		self.depthlayering = depthlayering
+		self.fixtrianglecenters = fixtrianglecenters
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1097,6 +1103,7 @@ class PatternSettings(BaseDataObject):
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
 			'groupshapestates': GroupShapeState.ToJsonDicts(self.groupshapestates),
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
+			'fixtrianglecenters': self.fixtrianglecenters,
 		}))
 
 	@classmethod

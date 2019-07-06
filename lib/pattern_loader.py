@@ -99,7 +99,8 @@ class PatternLoader(ExtensionBase):
 		parser.parse(
 			svgxml,
 			recenter=self.ownerComp.par.Recenter,
-			rescale=self.ownerComp.par.Rescale)
+			rescale=self.ownerComp.par.Rescale,
+			fixtrianglecenters=self.patternsettings.fixtrianglecenters)
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
 		self.patterndata.addShapes(parser.shapes)
@@ -410,7 +411,7 @@ class _SvgParser(LoggableSubComponent):
 		self.offset = tdu.Vector(0, 0, 0)
 		self.shapes = []  # type: List[ShapeInfo]
 
-	def parse(self, svgxml, recenter=True, rescale=True):
+	def parse(self, svgxml, recenter=True, rescale=True, fixtrianglecenters=False):
 		if not svgxml:
 			return
 		root = ET.fromstring(svgxml)
@@ -421,11 +422,11 @@ class _SvgParser(LoggableSubComponent):
 		self._handleElem(root, 0, namestack=[])
 		if not self.shapes:
 			return
-		self._calculateShapeCenters()
 		if recenter:
 			self._recenterCoords()
 		if rescale:
 			self._rescaleCoords()
+		self._calculateShapeCenters(fixtrianglecenters)
 
 	def _recenterCoords(self):
 		center = sum(tdu.Vector(shape.center) for shape in self.shapes)
@@ -433,7 +434,6 @@ class _SvgParser(LoggableSubComponent):
 			for point in shape.points:
 				point.pos = list(tdu.Vector(point.pos) - center)
 			shape.center = list(tdu.Vector(shape.center) - center)
-		self._calculateShapeCenters()
 
 	def _rescaleCoords(self):
 		minbounds = [shape.minbound for shape in self.shapes]
@@ -453,11 +453,22 @@ class _SvgParser(LoggableSubComponent):
 		for shape in self.shapes:
 			for point in shape.points:
 				point.pos = list(tdu.Vector(point.pos) * scale)
-		self._calculateShapeCenters()
 
-	def _calculateShapeCenters(self):
+	@loggedmethod
+	def _calculateShapeCenters(self, fixtrianglecenters):
 		for shape in self.shapes:
-			shape.calculateCenter()
+			if shape.istriangle and fixtrianglecenters:
+				self._LogEvent('Shape has is triangle, attempting to fix triangle center')
+				try:
+					shape.calculateTriangleCenter()
+					self._LogEvent('Successfully calculated triangle center for shape: {}'.format(shape))
+				except Exception as e:
+					self._LogEvent('WARNING: unable to calculate triangle center for shape {} {}'.format(e, shape))
+					shape.calculateCenter()
+			else:
+				if fixtrianglecenters:
+					self._LogEvent('Shape is not a triangle, NOT attempting to fix triangle center')
+				shape.calculateCenter()
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):
