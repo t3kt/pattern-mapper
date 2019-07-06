@@ -94,16 +94,26 @@ class ShapeInfo(BaseDataObject):
 		)
 
 	def calculateCenter(self):
-		self.center = averagePoints([p.pos for p in self.points])
+		if self.isopenloop:
+			pts = self.points[:-1]
+		else:
+			pts = self.points
+		self.center = averagePoints([p.pos for p in pts])
 
 	def calculateTriangleCenter(self):
 		self.center = triangleCenter([p.pos for p in self.points])
 
 	@property
+	def isopenloop(self):
+		if len(self.points) < 4:
+			return False
+		return self.points[0].pos == self.points[-1].pos
+
+	@property
 	def istriangle(self):
-		if len(self.points) == 3 and self.points[0].pos != self.points[2].pos:
+		if len(self.points) == 3 and not self.isopenloop:
 			return True
-		if len(self.points) == 4 and self.points[0].pos == self.points[3].pos:
+		if len(self.points) == 4 and self.isopenloop:
 			return True
 		return False
 
