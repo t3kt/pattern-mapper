@@ -101,9 +101,9 @@ class ShapeInfo(BaseDataObject):
 
 	@property
 	def istriangle(self):
-		if len(self.points) == 3 and self.points[0] != self.points[2]:
+		if len(self.points) == 3 and self.points[0].pos != self.points[2].pos:
 			return True
-		if len(self.points) == 4 and self.points[0] == self.points[3]:
+		if len(self.points) == 4 and self.points[0].pos == self.points[3].pos:
 			return True
 		return False
 
