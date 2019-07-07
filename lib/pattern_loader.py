@@ -25,9 +25,9 @@ except ImportError:
 	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar, longestcommonprefix
 
 try:
-	from common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
+	from common import parseValue, parseValueList, formatValue, formatValueList, ValueRange, averagePoints
 except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange
+	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange, averagePoints
 
 from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
 from pattern_groups import GroupGenerators
@@ -412,6 +412,8 @@ class _SvgParser(LoggableSubComponent):
 		self.scale = 1
 		self.offset = tdu.Vector(0, 0, 0)
 		self.shapes = []  # type: List[ShapeInfo]
+		self.minbound = tdu.Vector(0, 0, 0)
+		self.maxbound = tdu.Vector(0, 0, 0)
 
 	def parse(self, svgxml, recenter=True, rescale=True, fixtrianglecenters=False):
 		if not svgxml:
@@ -424,6 +426,16 @@ class _SvgParser(LoggableSubComponent):
 		self._handleElem(root, 0, namestack=[])
 		if not self.shapes:
 			return
+		minbounds = [shape.minbound for shape in self.shapes]
+		self.minbound = tdu.Vector(
+			min(b.x for b in minbounds),
+			min(b.y for b in minbounds),
+			min(b.z for b in minbounds))
+		maxbounds = [shape.maxbound for shape in self.shapes]
+		self.maxbound = tdu.Vector(
+			max(b.x for b in maxbounds),
+			max(b.y for b in maxbounds),
+			max(b.z for b in maxbounds))
 		if recenter:
 			self._recenterCoords()
 		if rescale:
@@ -431,26 +443,13 @@ class _SvgParser(LoggableSubComponent):
 		self._calculateShapeCenters(fixtrianglecenters)
 
 	def _recenterCoords(self):
-		center = sum(tdu.Vector(shape.center) for shape in self.shapes)
+		center = tdu.Vector(averagePoints([self.minbound, self.maxbound]))
 		for shape in self.shapes:
 			for point in shape.points:
 				point.pos = list(tdu.Vector(point.pos) - center)
-			shape.center = list(tdu.Vector(shape.center) - center)
 
 	def _rescaleCoords(self):
-		minbounds = [shape.minbound for shape in self.shapes]
-		minbound = tdu.Vector(
-			min(b.x for b in minbounds),
-			min(b.y for b in minbounds),
-			min(b.z for b in minbounds))
-		maxbounds = [shape.maxbound for shape in self.shapes]
-		maxbound = tdu.Vector(
-			max(b.x for b in maxbounds),
-			max(b.y for b in maxbounds),
-			max(b.z for b in maxbounds))
-		size = maxbound - minbound
-		if not size.length():
-			return
+		size = self.maxbound - self.minbound
 		scale = 1 / max(size.x, size.y, size.z)
 		for shape in self.shapes:
 			for point in shape.points:
