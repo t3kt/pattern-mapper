@@ -410,16 +410,15 @@ def averagePoints(points):
 
 def triangleCenter(points):
 	if len(points) != 3:
-		raise Exception('Shape is not a triangle')
+		raise Exception('Shape is not a triangle (wrong number of points: {})'.format(len(points)))
 	pt1, pt2, pt3 = points
 	if pt1[2] != pt2[2] or pt1[2] != pt3[2]:
 		raise Exception('Points must have the same depth')
 	opposite1 = averagePoints([pt2, pt3])
 	opposite2 = averagePoints([pt1, pt3])
-	results = intersectLines(
+	centerx, centery, valid, r, s = intersectLines(
 		(pt1[0], pt1[1]), (opposite1[0], opposite1[1]),
 		(pt2[0], pt2[1]), (opposite2[0], opposite2[1]))
-	centerx, centery, valid = results[0:2]
 	if not valid:
 		raise Exception('Invalid triangle')
 	return centerx, centery, pt1[2]

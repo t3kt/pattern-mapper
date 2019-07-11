@@ -95,12 +95,8 @@ class PatternLoader(ExtensionBase):
 
 	@simpleloggedmethod
 	def _LoadPatternFromSvg(self, svgxml):
-		parser = _SvgParser(self)
-		parser.parse(
-			svgxml,
-			recenter=self.ownerComp.par.Recenter,
-			rescale=self.ownerComp.par.Rescale,
-			fixtrianglecenters=self.patternsettings.fixtrianglecenters)
+		parser = _SvgParser(self, self.patternsettings)
+		parser.parse(svgxml)
 		self.SvgWidth.val = parser.svgwidth
 		self.SvgHeight.val = parser.svgheight
 		self.patterndata.addShapes(parser.shapes)
@@ -405,7 +401,7 @@ class PatternLoader(ExtensionBase):
 		comp.save(filename)
 
 class _SvgParser(LoggableSubComponent):
-	def __init__(self, hostobj):
+	def __init__(self, hostobj, settings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='SvgParser')
 		self.svgwidth = 0
 		self.svgheight = 0
@@ -414,8 +410,9 @@ class _SvgParser(LoggableSubComponent):
 		self.shapes = []  # type: List[ShapeInfo]
 		self.minbound = tdu.Vector(0, 0, 0)
 		self.maxbound = tdu.Vector(0, 0, 0)
+		self.settings = settings
 
-	def parse(self, svgxml, recenter=True, rescale=True, fixtrianglecenters=False):
+	def parse(self, svgxml):
 		if not svgxml:
 			return
 		root = ET.fromstring(svgxml)
@@ -436,14 +433,29 @@ class _SvgParser(LoggableSubComponent):
 			max(b.x for b in maxbounds),
 			max(b.y for b in maxbounds),
 			max(b.z for b in maxbounds))
-		if recenter:
+		if self.settings.recenter:
 			self._recenterCoords()
-		if rescale:
+		if self.settings.rescale:
 			self._rescaleCoords()
-		self._calculateShapeCenters(fixtrianglecenters)
+		self._calculateShapeCenters()
+
+	def _getShapeByName(self, shapename: str):
+		for shape in self.shapes:
+			if shape.shapename == shapename:
+				return shape
+		return None
 
 	def _recenterCoords(self):
-		center = tdu.Vector(averagePoints([self.minbound, self.maxbound]))
+		if isinstance(self.settings.recenter, str):
+			centershape = self._getShapeByName(self.settings.recenter)
+			if not centershape:
+				self._LogEvent('Unable to find shape for recentering: {!r}'.format(self.settings.recenter))
+				return
+			self._calculateShapeCenter(centershape)
+			self._LogEvent('Recentering based on shape: {}'.format(centershape))
+			center = tdu.Vector(centershape.center)
+		else:
+			center = tdu.Vector(averagePoints([self.minbound, self.maxbound]))
 		for shape in self.shapes:
 			for point in shape.points:
 				point.pos = list(tdu.Vector(point.pos) - center)
@@ -455,21 +467,24 @@ class _SvgParser(LoggableSubComponent):
 			for point in shape.points:
 				point.pos = list(tdu.Vector(point.pos) * scale)
 
-	@loggedmethod
-	def _calculateShapeCenters(self, fixtrianglecenters):
-		for shape in self.shapes:
-			if shape.istriangle and fixtrianglecenters:
-				self._LogEvent('Shape has is triangle, attempting to fix triangle center')
-				try:
-					shape.calculateTriangleCenter()
-					self._LogEvent('Successfully calculated triangle center for shape: {}'.format(shape))
-				except Exception as e:
-					self._LogEvent('WARNING: unable to calculate triangle center for shape {} {}'.format(e, shape))
-					shape.calculateCenter()
-			else:
-				if fixtrianglecenters:
-					self._LogEvent('Shape is not a triangle, NOT attempting to fix triangle center')
+	def _calculateShapeCenter(self, shape: ShapeInfo):
+		if shape.istriangle and self.settings.fixtrianglecenters:
+			self._LogEvent('Shape has is triangle, attempting to fix triangle center')
+			try:
+				shape.calculateTriangleCenter()
+				self._LogEvent('Successfully calculated triangle center for shape: {}'.format(shape))
+			except Exception as e:
+				self._LogEvent('WARNING: unable to calculate triangle center for shape {} {}'.format(e, shape))
 				shape.calculateCenter()
+		else:
+			if self.settings.fixtrianglecenters:
+				self._LogEvent('Shape is not a triangle, NOT attempting to fix triangle center')
+			shape.calculateCenter()
+
+	@loggedmethod
+	def _calculateShapeCenters(self):
+		for shape in self.shapes:
+			self._calculateShapeCenter(shape)
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):

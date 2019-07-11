@@ -93,15 +93,18 @@ class ShapeInfo(BaseDataObject):
 			max(p.pos[2] for p in self.points),
 		)
 
-	def calculateCenter(self):
+	@property
+	def _pointsWithoutOpenLoop(self):
 		if self.isopenloop:
-			pts = self.points[:-1]
+			return self.points[:-1]
 		else:
-			pts = self.points
-		self.center = averagePoints([p.pos for p in pts])
+			return self.points
+
+	def calculateCenter(self):
+		self.center = averagePoints([p.pos for p in self._pointsWithoutOpenLoop])
 
 	def calculateTriangleCenter(self):
-		self.center = triangleCenter([p.pos for p in self.points])
+		self.center = triangleCenter([p.pos for p in self._pointsWithoutOpenLoop])
 
 	@property
 	def isopenloop(self):
@@ -1089,7 +1092,7 @@ class PatternSettings(BaseDataObject):
 			autogroup: Optional[bool]=None,
 			depthlayering: DepthLayeringSpec=None,
 			rescale: bool=None,
-			recenter: bool=None,
+			recenter: Union[bool, str]=None,  # str is a reference to a shapename
 			defaultshapestate: ShapeState=None,
 			groupshapestates: List[GroupShapeState]=None,
 			fixtrianglecenters: bool=None,
@@ -1183,6 +1186,14 @@ class PatternData(BaseDataObject):
 		if shapeindex < 0 or shapeindex >= len(self.shapes):
 			return None
 		return self.shapes[shapeindex]
+
+	def getShapeByName(self, shapename: str):
+		if not shapename:
+			return None
+		for shape in self.shapes:
+			if shape.shapename == shapename:
+				return shape
+		return None
 
 	def setDefaultShapeState(self, shapestate: ShapeState):
 		self.defaultshapestate = shapestate.Clone() if shapestate else None
