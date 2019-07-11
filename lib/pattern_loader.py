@@ -494,7 +494,10 @@ class _SvgParser(LoggableSubComponent):
 			return
 		tagname = _localName(elem.tag)
 		if tagname == 'path':
-			self._handlePathElem(elem, elemname=elemname, namestack=namestack)
+			try:
+				self._handlePathElem(elem, elemname=elemname, namestack=namestack)
+			except Exception as e:
+				self._LogEvent('Skipping element with invalid svg path (namestack: {}, error: {})'.format(namestack, e))
 		else:
 			childnamestack = namestack + [elemname]
 			for childindex, childelem in enumerate(list(elem)):
