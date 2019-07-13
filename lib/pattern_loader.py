@@ -447,13 +447,19 @@ class _SvgParser(LoggableSubComponent):
 
 	def _recenterCoords(self):
 		if isinstance(self.settings.recenter, str):
-			centershape = self._getShapeByName(self.settings.recenter)
-			if not centershape:
+			shapenames = self.settings.recenter.split(' ')
+			centershapes = []
+			for shapename in shapenames:
+				centershape = self._getShapeByName(shapename)
+				if centershape:
+					centershapes.append(centershape)
+			if not centershapes:
 				self._LogEvent('Unable to find shape for recentering: {!r}'.format(self.settings.recenter))
 				return
-			self._calculateShapeCenter(centershape)
-			self._LogEvent('Recentering based on shape: {}'.format(centershape))
-			center = tdu.Vector(centershape.center)
+			for centershape in centershapes:
+				self._calculateShapeCenter(centershape)
+			self._LogEvent('Recentering based on shapes: {}'.format(centershapes))
+			center = tdu.Vector(averagePoints([centershape.center for centershape in centershapes]))
 		else:
 			center = tdu.Vector(averagePoints([self.minbound, self.maxbound]))
 		for shape in self.shapes:

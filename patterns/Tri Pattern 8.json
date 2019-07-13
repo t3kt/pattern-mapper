@@ -1,7 +1,7 @@
 {
   "autogroup": false,
   "rescale": true,
-  "recenter": true,
+  "recenter": "centerShape1 centerShape2 centerShape3",
   "fixtrianglecenters": true,
   "groups": [
     {
