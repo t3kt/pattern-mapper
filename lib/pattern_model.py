@@ -1,4 +1,5 @@
 from abc import ABC
+from collections import deque
 from enum import Enum
 
 print('pattern_model.py loading...')
@@ -106,6 +107,25 @@ class ShapeInfo(BaseDataObject):
 	def calculateTriangleCenter(self):
 		self.center = triangleCenter([p.pos for p in self._pointsWithoutOpenLoop])
 
+	def isEquivalentTo(self, other: 'ShapeInfo', tolerance=0.0):
+		if other is None:
+			return False
+		ownpts = self._pointsWithoutOpenLoop
+		otherpts = other._pointsWithoutOpenLoop
+		n = len(ownpts)
+		if n != len(otherpts):
+			return False
+		firstindex = _firstIndexWhere(otherpts, lambda p: p.isEquivalentTo(ownpts[0]))
+		if firstindex == -1:
+			return False
+		otherpts = deque(otherpts)
+		otherpts.rotate(firstindex)
+		for i, ownpt in enumerate(ownpts):
+			otherpt = otherpts[i]
+			if not otherpt.isEquivalentTo(ownpts[0], tolerance):
+				return False
+		return True
+
 	@property
 	def isopenloop(self):
 		if len(self.points) < 4:
@@ -151,12 +171,26 @@ class PointData(BaseDataObject):
 		self.absdist = absdist
 		self.reldist = reldist
 
+	def isEquivalentTo(self, other: 'PointData', tolerance=0.0):
+		return other is not None and _arePositionsInRange(self.pos, other.pos, tolerance)
+
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'pos': self.pos,
 			'absdist': self.absdist,
 			'reldist': self.reldist,
 		}))
+
+def _arePositionsInRange(pos1, pos2, tolerance=0.0):
+	if pos1 is None or pos2 is None:
+		return False
+	return tdu.Vector(pos1).distance(tdu.Vector(pos2)) <= tolerance
+
+def _firstIndexWhere(items, test):
+	for i, val in enumerate(items):
+		if test(val):
+			return i
+	return -1
 
 class SequenceStep(BaseDataObject):
 	def __init__(
