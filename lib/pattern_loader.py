@@ -107,6 +107,7 @@ class PatternLoader(ExtensionBase):
 		sop.clear()
 		sop.primAttribs.create('Cd')
 		sop.primAttribs.create('shapeIndex', 0)
+		sop.primAttribs.create('duplicate', 0)
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
 		for shape in self.patterndata.shapes:
@@ -114,6 +115,7 @@ class PatternLoader(ExtensionBase):
 			# 	continue
 			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
 			poly.shapeIndex[0] = shape.shapeindex
+			poly.duplicate[0] = int(shape.isduplicate)
 			if shape.color:
 				poly.Cd[0] = shape.color[0] / 255.0
 				poly.Cd[1] = shape.color[1] / 255.0
@@ -152,6 +154,7 @@ class PatternLoader(ExtensionBase):
 			# so they need to be hard-coded
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
 			poly.shapeIndex[0] = srcpoly.shapeIndex[0]
+			poly.duplicate[0] = srcpoly.duplicate[0]
 			for vertex in poly:
 				srcvertex = srcpoly[vertex.index]
 				vertex.point.x = srcvertex.point.x
