@@ -380,7 +380,7 @@ class PatternLoader(ExtensionBase):
 			svgfilepath = pathlib.Path(self.ownerComp.par.Svgfile.eval())
 			name = svgfilepath.stem
 			if not filename:
-				filename = self._GetPatternFileName('.tox')
+				filename = self._GetPatternFileName('tox')
 			if not filename:
 				return
 		holder = self.op('export_holder')
