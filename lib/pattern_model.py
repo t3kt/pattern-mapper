@@ -73,6 +73,10 @@ class ShapeInfo(BaseDataObject):
 		self.radius = radius
 
 	@property
+	def isduplicate(self):
+		return self.dupcount == -1
+
+	@property
 	def hsvcolor(self):
 		if not self.color:
 			return None

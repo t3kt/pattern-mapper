@@ -106,10 +106,14 @@ class PatternLoader(ExtensionBase):
 	def _BuildGeometry(self, sop):
 		sop.clear()
 		sop.primAttribs.create('Cd')
+		sop.primAttribs.create('shapeIndex', 0)
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
 		for shape in self.patterndata.shapes:
+			# if shape.isduplicate:
+			# 	continue
 			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
+			poly.shapeIndex[0] = shape.shapeindex
 			if shape.color:
 				poly.Cd[0] = shape.color[0] / 255.0
 				poly.Cd[1] = shape.color[1] / 255.0
@@ -654,6 +658,7 @@ class _ShapeDeduplicator(LoggableSubComponent):
 			self._ReplaceShapesInGroup(group)
 
 	def _RemoveDuplicateShapes(self):
+		self._LogEvent('Removing {} duplicate shapes'.format(len(self.indexreplacements)))
 		self.patterndata.shapes = [
 			shape
 			for shape in self.patterndata.shapes
@@ -677,23 +682,18 @@ class _ShapeDeduplicator(LoggableSubComponent):
 			# 	self._LogEvent('No duplicates found for shape {}'.format(shape1.shapeindex))
 
 	def _ReplaceShapesInGroup(self, group: GroupInfo):
-		newindices, removed = self._ReplaceIndices(group.shapeindices)
-		if removed:
-			beforechange = list(group.shapeindices)
+		newindices, modified = self._ReplaceIndices(group.shapeindices)
+		if modified:
 			group.shapeindices = newindices
-			afterchange = list(group.shapeindices)
-			self._LogEvent('Replaced indices in group {}'.format(group.groupname, removed))
-			self._LogEvent('   replaced: {}'.format(removed))
-			self._LogEvent('   before change: {}'.format(beforechange))
-			self._LogEvent('   after  change: {}'.format(afterchange))
+			self._LogEvent('Replaced indices in group {}'.format(group.groupname))
 		else:
 			self._LogEvent('No changes in group {}'.format(group.groupname))
 
 	def _ReplaceIndices(self, indexlist: List[int]):
 		if not indexlist:
-			return indexlist, []
+			return indexlist, False
 		newlist = []
-		removed = []
+		modified = False
 		for index in indexlist:
 			if index not in self.indexreplacements:
 				newlist.append(index)
@@ -701,6 +701,6 @@ class _ShapeDeduplicator(LoggableSubComponent):
 				newindex = self.indexreplacements[index]
 				if newindex not in newlist:
 					newlist.append(newindex)
-				removed.append(index)
+				modified = True
 		newlist.sort()
-		return newlist, removed
+		return newlist, modified
