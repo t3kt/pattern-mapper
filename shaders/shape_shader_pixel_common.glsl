@@ -10,7 +10,7 @@ vec4 getTextureColor(in VertexAttrs attrs, in TexLayerAttrs texAttrs) {
 	if (textureIndex == 0) {
 		return texture(sTexture1, texAttrs.texCoord.xy);
 	} else if (textureIndex == 1) {
-		return texture(sTexture1, texAttrs.texCoord.xy);
+		return texture(sTexture2, texAttrs.texCoord.xy);
 	}
 	return vec4(0.0);
 }
