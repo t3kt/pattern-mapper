@@ -56,6 +56,7 @@ class ShapeInfo(BaseDataObject):
 			shapelength: float=None,
 			depthlayer: int=None,
 			points: Iterable['PointData']=None,
+			dupcount: int=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
@@ -67,6 +68,7 @@ class ShapeInfo(BaseDataObject):
 		self.shapelength = shapelength
 		self.depthlayer = depthlayer
 		self.points = list(points or [])
+		self.dupcount = dupcount or 0
 
 	@property
 	def hsvcolor(self):
@@ -150,6 +152,7 @@ class ShapeInfo(BaseDataObject):
 			'center': self.center,
 			'shapelength': self.shapelength,
 			'depthlayer': self.depthlayer,
+			'dupcount': self.dupcount,
 			'points': PointData.ToJsonDicts(self.points),
 		}))
 
@@ -203,8 +206,12 @@ class SequenceStep(BaseDataObject):
 		super().__init__(**attrs)
 		self.sequenceindex = sequenceindex
 		self.shapeindices = list(shapeindices or [])
+		self.shapeindices.sort()
 		self.isdefault = isdefault
 		self.inferredfromvalue = inferredfromvalue
+
+	def replaceIndices(self, replacements: Dict[int, int]):
+		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -219,6 +226,18 @@ class SequenceStep(BaseDataObject):
 		return cls(
 			shapeindices=parseValueList(obj.get('shapeindices')),
 			**excludekeys(obj, ['shapeindices']))
+
+def _replaceIndices(indexlist: List[int], replacements: Dict[int, int]):
+	if not replacements or not indexlist:
+		return indexlist
+	newlist = []
+	for index in indexlist:
+		newindex = replacements.get(index)
+		if newindex is None:
+			newlist.append(index)
+		elif newindex not in newlist:
+			newlist.append(newindex)
+	return newlist
 
 class GroupInfo(BaseDataObject):
 	def __init__(
@@ -241,8 +260,14 @@ class GroupInfo(BaseDataObject):
 		self.depthlayer = depthlayer
 		self.depth = depth
 		self.shapeindices = list(shapeindices or [])
+		self.shapeindices.sort()
 		self.sequencesteps = list(sequencesteps or [])
 		self.temporary = temporary
+
+	def replaceIndices(self, replacements: Dict[int, int]):
+		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
+		for step in self.sequencesteps:
+			step.replaceIndices(replacements)
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1130,6 +1155,7 @@ class PatternSettings(BaseDataObject):
 			defaultshapestate: ShapeState=None,
 			groupshapestates: List[GroupShapeState]=None,
 			fixtrianglecenters: bool=None,
+			mergedups: Union[bool, float]=None,  # number is a distance tolerance
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
@@ -1140,6 +1166,7 @@ class PatternSettings(BaseDataObject):
 		self.autogroup = autogroup
 		self.depthlayering = depthlayering
 		self.fixtrianglecenters = fixtrianglecenters
+		self.mergedups = mergedups
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1151,6 +1178,7 @@ class PatternSettings(BaseDataObject):
 			'groupshapestates': GroupShapeState.ToJsonDicts(self.groupshapestates),
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 			'fixtrianglecenters': self.fixtrianglecenters,
+			'mergedups': self.mergedups,
 		}))
 
 	@classmethod
@@ -1216,10 +1244,10 @@ class PatternData(BaseDataObject):
 			shapeindices.update(group.allShapeIndices)
 		return shapeindices
 
-	def getShape(self, shapeindex: int):
-		if shapeindex < 0 or shapeindex >= len(self.shapes):
-			return None
-		return self.shapes[shapeindex]
+	def getShapeByIndex(self, shapeindex: int):
+		for shape in self.shapes:
+			if shape.shapeindex == shapeindex:
+				return shape
 
 	def getShapeByName(self, shapename: str):
 		if not shapename:

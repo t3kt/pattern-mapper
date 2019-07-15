@@ -739,7 +739,7 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 		if not shapeindices:
 			return []
 		for shapeindex in shapeindices:
-			shape = context.getShape(shapeindex)
+			shape = context.getShapeByIndex(shapeindex)
 			if shape:
 				self._registerShape(shape)
 		if self.unkeyedshapes:

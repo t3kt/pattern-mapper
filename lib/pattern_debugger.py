@@ -31,7 +31,6 @@ class PatternDebugger(ExtensionBase):
 	def _shapeCount(self):
 		return self._shapeAttrs.numSamples
 
-	@loggedmethod
 	def SelectShape(self, i, toggle=False):
 		n = self._shapeCount
 		if i < 0 or i >= n or (toggle and i == self.ownerComp.par.Selectedshape):

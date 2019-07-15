@@ -2,7 +2,7 @@ print('pattern_loader.py loading...')
 
 import json
 import xml.etree.ElementTree as ET
-from typing import List
+from typing import Dict, List, Union
 import pathlib
 
 if False:
@@ -75,8 +75,9 @@ class PatternLoader(ExtensionBase):
 		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
 		self._LoadPatternFromSvg(svgxml)
 		sop = self.op('build_geometry')
-		self._BuildGeometry(sop)
 		self._BuildGroups()
+		self._MergeDuplicateShapes()
+		self._BuildGeometry(sop)
 		self._AssignGeometryGroups(sop)
 		self._ApplyDepthLayeringToShapes(sop)
 		_rundelayed('op({!r}).ForceTableCooks()'.format(self.ownerComp.path), delayFrames=1)
@@ -221,7 +222,7 @@ class PatternLoader(ExtensionBase):
 			'centerangle', 'centerdist',
 			'shapelength',
 			'depthlayer',
-			'istriangle',
+			'istriangle', 'dupcount',
 		])
 		for shape in self.patterndata.shapes:
 			r = dat.numRows
@@ -248,6 +249,7 @@ class PatternLoader(ExtensionBase):
 			dat[r, 'shapelength'] = formatValue(shape.shapelength, nonevalue='')
 			dat[r, 'depthlayer'] = formatValue(shape.depthlayer, nonevalue='')
 			dat[r, 'istriangle'] = formatValue(int(shape.istriangle))
+			dat[r, 'dupcount'] = formatValue(shape.dupcount)
 
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
@@ -291,6 +293,10 @@ class PatternLoader(ExtensionBase):
 		generators.applyDepthLayering()
 		generators.cleanTemporaryGroups()
 
+	@loggedmethod
+	def _MergeDuplicateShapes(self):
+		merger = _ShapeDeduplicator(self, self.patterndata, self.patternsettings)
+		merger.MergeDuplicates()
 
 	@loggedmethod
 	def _ApplyDepthLayeringToShapes(self, sop):
@@ -301,7 +307,7 @@ class PatternLoader(ExtensionBase):
 			if group.depthlayer is None:
 				continue
 			for shapeindex in group.shapeindices:
-				shape = self.patterndata.getShape(shapeindex)
+				shape = self.patterndata.getShapeByIndex(shapeindex)
 				if shape.depthlayer == group.depthlayer:
 					continue
 				if shape.depthlayer is not None:
@@ -483,8 +489,8 @@ class _SvgParser(LoggableSubComponent):
 				self._LogEvent('WARNING: unable to calculate triangle center for shape {} {}'.format(e, shape))
 				shape.calculateCenter()
 		else:
-			if self.settings.fixtrianglecenters:
-				self._LogEvent('Shape is not a triangle, NOT attempting to fix triangle center')
+			# if self.settings.fixtrianglecenters:
+			# 	self._LogEvent('Shape is not a triangle, NOT attempting to fix triangle center')
 			shape.calculateCenter()
 
 	@loggedmethod
@@ -610,3 +616,84 @@ def _segmentDistances(path: svgpath.Path, scale):
 
 def _pathPoint(pathpt: complex):
 	return tdu.Position(pathpt.real, pathpt.imag, 0)
+
+def _parseTolerance(value: Union[bool, float, int]):
+	if value is None:
+		return None
+	if isinstance(value, bool):
+		return 0.0 if value else None
+	return float(value)
+
+class _ShapeDeduplicator(LoggableSubComponent):
+	def __init__(self, hostobj, patterndata: PatternData, patternsettings: PatternSettings):
+		super().__init__(hostobj, logprefix='ShapeDedup')
+		self.patterndata = patterndata
+		self.indexreplacements = {}  # type: Dict[int, int]
+		self.tolerance = _parseTolerance(patternsettings.mergedups)
+		self._LogEvent('tolerance: {!r}'.format(self.tolerance))
+
+	@loggedmethod
+	def MergeDuplicates(self):
+		if self.tolerance is None:
+			return
+		self._LoadDuplicates()
+		self._LogEvent('Found {} shapes to replace'.format(len(self.indexreplacements)))
+		if self.indexreplacements:
+			self._ReplaceShapesInGroups()
+			# self._RemoveDuplicateShapes()
+
+	def _ReplaceShapesInGroups(self):
+		for group in self.patterndata.groups:
+			self._ReplaceShapesInGroup(group)
+
+	def _RemoveDuplicateShapes(self):
+		self.patterndata.shapes = [
+			shape
+			for shape in self.patterndata.shapes
+			if shape.shapeindex not in self.indexreplacements
+		]
+
+	def _LoadDuplicates(self):
+		for i, shape1 in enumerate(self.patterndata.shapes):
+			if shape1.shapeindex in self.indexreplacements:
+				continue
+			dupsforshape = []
+			for shape2 in self.patterndata.shapes[i + 1:]:
+				if shape2.isEquivalentTo(shape1, self.tolerance):
+					self.indexreplacements[shape2.shapeindex] = shape1.shapeindex
+					dupsforshape.append(shape2.shapeindex)
+					shape2.dupcount = -1
+			shape1.dupcount = len(dupsforshape)
+			if shape1.dupcount > 1:
+				self._LogEvent('Found duplicates for shape {}: {}'.format(shape1.shapeindex, dupsforshape))
+			# else:
+			# 	self._LogEvent('No duplicates found for shape {}'.format(shape1.shapeindex))
+
+	def _ReplaceShapesInGroup(self, group: GroupInfo):
+		newindices, removed = self._ReplaceIndices(group.shapeindices)
+		if removed:
+			beforechange = list(group.shapeindices)
+			group.shapeindices = newindices
+			afterchange = list(group.shapeindices)
+			self._LogEvent('Replaced indices in group {}'.format(group.groupname, removed))
+			self._LogEvent('   replaced: {}'.format(removed))
+			self._LogEvent('   before change: {}'.format(beforechange))
+			self._LogEvent('   after  change: {}'.format(afterchange))
+		else:
+			self._LogEvent('No changes in group {}'.format(group.groupname))
+
+	def _ReplaceIndices(self, indexlist: List[int]):
+		if not indexlist:
+			return indexlist, []
+		newlist = []
+		removed = []
+		for index in indexlist:
+			if index not in self.indexreplacements:
+				newlist.append(index)
+			else:
+				newindex = self.indexreplacements[index]
+				if newindex not in newlist:
+					newlist.append(newindex)
+				removed.append(index)
+		newlist.sort()
+		return newlist, removed
