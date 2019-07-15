@@ -1,6 +1,7 @@
 {
   "autogroup": false,
   "rescale": true,
+  "recenter": true,
   "fixtrianglecenters": true,
   "groups": [
     {
