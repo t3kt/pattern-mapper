@@ -57,6 +57,7 @@ class ShapeInfo(BaseDataObject):
 			depthlayer: int=None,
 			points: Iterable['PointData']=None,
 			dupcount: int=None,
+			radius: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
@@ -69,6 +70,7 @@ class ShapeInfo(BaseDataObject):
 		self.depthlayer = depthlayer
 		self.points = list(points or [])
 		self.dupcount = dupcount or 0
+		self.radius = radius
 
 	@property
 	def hsvcolor(self):
@@ -109,6 +111,13 @@ class ShapeInfo(BaseDataObject):
 	def calculateTriangleCenter(self):
 		self.center = triangleCenter([p.pos for p in self._pointsWithoutOpenLoop])
 
+	def calculateRadius(self):
+		center = tdu.Vector(self.center)
+		self.radius = max([
+			tdu.Vector(p.pos).distance(center)
+			for p in self.points
+		])
+
 	def isEquivalentTo(self, other: 'ShapeInfo', tolerance=0.0):
 		if other is None:
 			return False
@@ -117,15 +126,23 @@ class ShapeInfo(BaseDataObject):
 		n = len(ownpts)
 		if n != len(otherpts):
 			return False
-		firstindex = _firstIndexWhere(otherpts, lambda p: p.isEquivalentTo(ownpts[0]))
-		if firstindex == -1:
+
+		# firstindex = _firstIndexWhere(otherpts, lambda p: p.isEquivalentTo(ownpts[0]))
+		# if firstindex == -1:
+		# 	return False
+		# otherpts = deque(otherpts)
+		# otherpts.rotate(firstindex)
+		# for i, ownpt in enumerate(ownpts):
+		# 	otherpt = otherpts[i]
+		# 	if not otherpt.isEquivalentTo(ownpts[0], tolerance):
+		# 		return False
+		# return True
+		centerdist = tdu.Vector(self.center).distance(tdu.Vector(other.center))
+		if centerdist > tolerance:
 			return False
-		otherpts = deque(otherpts)
-		otherpts.rotate(firstindex)
-		for i, ownpt in enumerate(ownpts):
-			otherpt = otherpts[i]
-			if not otherpt.isEquivalentTo(ownpts[0], tolerance):
-				return False
+		raddiff = abs(self.radius - other.radius)
+		if raddiff > tolerance:
+			return False
 		return True
 
 	@property
@@ -153,6 +170,7 @@ class ShapeInfo(BaseDataObject):
 			'shapelength': self.shapelength,
 			'depthlayer': self.depthlayer,
 			'dupcount': self.dupcount,
+			'radius': self.radius,
 			'points': PointData.ToJsonDicts(self.points),
 		}))
 

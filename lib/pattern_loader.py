@@ -222,7 +222,7 @@ class PatternLoader(ExtensionBase):
 			'centerangle', 'centerdist',
 			'shapelength',
 			'depthlayer',
-			'istriangle', 'dupcount',
+			'istriangle', 'dupcount', 'radius',
 		])
 		for shape in self.patterndata.shapes:
 			r = dat.numRows
@@ -250,6 +250,7 @@ class PatternLoader(ExtensionBase):
 			dat[r, 'depthlayer'] = formatValue(shape.depthlayer, nonevalue='')
 			dat[r, 'istriangle'] = formatValue(int(shape.istriangle))
 			dat[r, 'dupcount'] = formatValue(shape.dupcount)
+			dat[r, 'radius'] = formatValue(shape.radius)
 
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
@@ -444,6 +445,7 @@ class _SvgParser(LoggableSubComponent):
 		if self.settings.rescale:
 			self._rescaleCoords()
 		self._calculateShapeCenters()
+		self._calculateShapeRadiuses()
 
 	def _getShapeByName(self, shapename: str):
 		for shape in self.shapes:
@@ -497,6 +499,11 @@ class _SvgParser(LoggableSubComponent):
 	def _calculateShapeCenters(self):
 		for shape in self.shapes:
 			self._calculateShapeCenter(shape)
+
+	@loggedmethod
+	def _calculateShapeRadiuses(self):
+		for shape in self.shapes:
+			shape.calculateRadius()
 
 	@staticmethod
 	def _elemName(elem: ET.Element, indexinparent: int):
