@@ -2,7 +2,7 @@ print('pattern_loader.py loading...')
 
 import json
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Union
+from typing import Dict, List, Set, Union
 import pathlib
 
 if False:
@@ -638,44 +638,70 @@ def _parseTolerance(value: Union[bool, float, int]):
 		return 0.0 if value else None
 	return float(value)
 
+class _ShapeIndexRemapper(LoggableSubComponent):
+	def __init__(self, hostobj, logprefix='ShapeRemap'):
+		super().__init__(hostobj, logprefix=logprefix)
+		self.oldtonewindex = {}  # type: Dict[int, int]
+
+	def __getitem__(self, oldindex):
+		return self.oldtonewindex.get(oldindex)
+
+	def __setitem__(self, oldindex, newindex):
+		self.oldtonewindex[oldindex] = newindex
+
+	def __contains__(self, oldindex):
+		return oldindex in self.oldtonewindex
+
+	def __len__(self):
+		return len(self.oldtonewindex)
+
+	def __bool__(self):
+		return bool(self.oldtonewindex)
+
+	@loggedmethod
+	def RemapShapesInGroups(self, patterndata: PatternData):
+		modified = False
+		for group in patterndata.groups:
+			if self._RemapShapesInGroup(group):
+				modified = True
+		return modified
+
+	def _RemapShapesInGroup(self, group: GroupInfo):
+		modified = _ReplaceIndices(group.shapeindices, self.oldtonewindex)
+		for step in group.sequencesteps:
+			if _ReplaceIndices(step.shapeindices, self.oldtonewindex):
+				modified = True
+		if modified:
+			self._LogEvent('Replaced indices in group {}'.format(group.groupname))
+		else:
+			self._LogEvent('No changes in group {}'.format(group.groupname))
+		return modified
+
 class _ShapeDeduplicator(LoggableSubComponent):
 	def __init__(self, hostobj, patterndata: PatternData, patternsettings: PatternSettings):
 		super().__init__(hostobj, logprefix='ShapeDedup')
 		self.patterndata = patterndata
-		self.indexreplacements = {}  # type: Dict[int, int]
+		self.dupremapper = _ShapeIndexRemapper(self, 'DeDup')
 		self.tolerance = _parseTolerance(patternsettings.mergedups)
-		self._LogEvent('tolerance: {!r}'.format(self.tolerance))
 
 	@loggedmethod
 	def MergeDuplicates(self):
 		if self.tolerance is None:
 			return
 		self._LoadDuplicates()
-		self._LogEvent('Found {} shapes to replace'.format(len(self.indexreplacements)))
-		if self.indexreplacements:
-			self._ReplaceShapesInGroups()
-			# self._RemoveDuplicateShapes()
-
-	def _ReplaceShapesInGroups(self):
-		for group in self.patterndata.groups:
-			self._ReplaceShapesInGroup(group)
-
-	def _RemoveDuplicateShapes(self):
-		self._LogEvent('Removing {} duplicate shapes'.format(len(self.indexreplacements)))
-		self.patterndata.shapes = [
-			shape
-			for shape in self.patterndata.shapes
-			if shape.shapeindex not in self.indexreplacements
-		]
+		self._LogEvent('Found {} shapes to replace'.format(len(self.dupremapper)))
+		if self.dupremapper:
+			self.dupremapper.RemapShapesInGroups(self.patterndata)
+			self._RemoveDuplicateShapes()
 
 	def _LoadDuplicates(self):
 		for i, shape1 in enumerate(self.patterndata.shapes):
-			if shape1.shapeindex in self.indexreplacements:
+			if shape1.shapeindex in self.dupremapper:
 				continue
 			dupsforshape = []
 			for shape2 in self.patterndata.shapes[i + 1:]:
 				if shape2.isEquivalentTo(shape1, self.tolerance):
-					self.indexreplacements[shape2.shapeindex] = shape1.shapeindex
+					self.dupremapper[shape2.shapeindex] = shape1.shapeindex
 					dupsforshape.append(shape2.shapeindex)
 					shape2.dupcount = -1
 			shape1.dupcount = len(dupsforshape)
@@ -684,26 +710,42 @@ class _ShapeDeduplicator(LoggableSubComponent):
 			# else:
 			# 	self._LogEvent('No duplicates found for shape {}'.format(shape1.shapeindex))
 
-	def _ReplaceShapesInGroup(self, group: GroupInfo):
-		newindices, modified = self._ReplaceIndices(group.shapeindices)
-		if modified:
-			group.shapeindices = newindices
-			self._LogEvent('Replaced indices in group {}'.format(group.groupname))
-		else:
-			self._LogEvent('No changes in group {}'.format(group.groupname))
-
-	def _ReplaceIndices(self, indexlist: List[int]):
-		if not indexlist:
-			return indexlist, False
-		newlist = []
-		modified = False
-		for index in indexlist:
-			if index not in self.indexreplacements:
-				newlist.append(index)
+	def _RemoveDuplicateShapes(self):
+		self._LogEvent('Removing {} duplicate shapes'.format(len(self.dupremapper)))
+		remainingshapes = []
+		removedshapecount = 0
+		resequencer = _ShapeIndexRemapper(self, 'ReSeq')
+		for shape in self.patterndata.shapes:
+			if shape.isduplicate:
+				removedshapecount += 1
 			else:
-				newindex = self.indexreplacements[index]
-				if newindex not in newlist:
-					newlist.append(newindex)
-				modified = True
-		newlist.sort()
-		return newlist, modified
+				oldindex = shape.shapeindex
+				shape.shapeindex = len(remainingshapes)
+				remainingshapes.append(shape)
+				if shape.shapeindex != oldindex:
+					resequencer[oldindex] = shape.shapeindex
+		if not resequencer:
+			self._LogEvent('No resequencing changes needed')
+			return False
+		self._LogEvent('Removing {} shapes, {} remaining'.format(removedshapecount, len(remainingshapes)))
+		self.patterndata.shapes = remainingshapes
+		resequencer.RemapShapesInGroups(self.patterndata)
+
+def _ReplaceIndices(indexlist: List[int], replacements: Dict[int, int]):
+	if not indexlist:
+		return False
+	newlist = []
+	modified = False
+	for index in indexlist:
+		if index not in replacements:
+			newlist.append(index)
+		else:
+			newindex = replacements[index]
+			if newindex not in newlist:
+				newlist.append(newindex)
+			modified = True
+	if not modified:
+		return False
+	newlist.sort()
+	indexlist[:] = newlist
+	return True
