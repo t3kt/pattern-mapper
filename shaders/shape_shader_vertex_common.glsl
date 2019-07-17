@@ -10,10 +10,7 @@ uniform sampler2D sTexParams;
 uniform sampler2D sAttrs;
 
 in vec3 centerPos;
-
-int getShapeIndex(float primOffset) {
-	return int(primOffset * (uShapeCount-1));
-}
+in int shapeIndex;
 
 vec3 getTexCoordForUVMode(in VertexAttrs attrs, int uvMode) {
 	switch (uvMode) {
@@ -59,7 +56,6 @@ VertexAttrs loadVertexAttrs() {
 		vec3 texcoord = TDInstanceTexCoord(uv[0]);
 		attrs.texCoord0.st = texcoord.st;
 	}
-	int shapeIndex = getShapeIndex(attrs.texCoord0.y);
 
 	{ // Avoid duplicate variable defs
 		vec3 texcoord = TDInstanceTexCoord(uv[1]);
