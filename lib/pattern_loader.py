@@ -38,11 +38,93 @@ remap = tdu.remap
 def _rundelayed(code, delayFrames=1):
 	return mod.td.run(code, delayFrames=delayFrames)
 
+class PatternBuilder(ExtensionBase):
+	def __init__(self, ownerComp):
+		super().__init__(ownerComp)
+		self.patternsettings = None  # type: PatternSettings
+		self.patterndata = None  # type: PatternData
+
+	@property
+	def PatternJsonFileName(self):
+		return self._GetPatternFileName('json')
+
+	def _GetPatternFileName(self, ext):
+		svgname = self.ownerComp.par.Svgfile.eval()
+		if not svgname or not svgname.endswith('.svg'):
+			return None
+		return svgname.replace('.svg', '.' + ext)
+
+	@loggedmethod
+	def LoadPattern(self):
+		self.patterndata = PatternData()
+		svgxmlop = self.op('svg_xml')
+		svgxmlop.par.loadonstartpulse.pulse()
+		svgxml = svgxmlop.text
+		self._LoadPatternSettings()
+		self.patterndata.title = pathlib.PurePath(self.ownerComp.par.Svgfile.eval()).stem or ''
+		self.patterndata.addGroupShapeStates(self.patternsettings.groupshapestates)
+		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
+		self._LoadPatternFromSvg(svgxml)
+		self._BuildGroups()
+		self._MergeDuplicateShapes()
+
+	@simpleloggedmethod
+	def _LoadPatternFromSvg(self, svgxml):
+		parser = _SvgParser(self, self.patternsettings)
+		parser.parse(svgxml)
+		self.patterndata.addShapes(parser.shapes)
+		self.patterndata.svgwidth = parser.svgwidth
+		self.patterndata.svgheight = parser.svgheight
+
+	@loggedmethod
+	def _LoadPatternSettings(self):
+		jsondat = self.op('load_json_file')
+		jsondat.clear()
+		jsondat.par.loadonstartpulse.pulse()
+		obj = json.loads(jsondat.text) if jsondat.text else {}
+		self.patternsettings = PatternSettings.FromJsonDict(obj)
+		self.patterndata.settings = self.patternsettings
+
+	@loggedmethod
+	def _BuildGroups(self):
+		if not self.patternsettings:
+			self._LoadPatternSettings()
+		generators = GroupGenerators(
+			hostobj=self,
+			context=self.patterndata,
+			patternsettings=self.patternsettings)
+		if self.patternsettings.autogroup in (None, True):
+			generators.extractInferredGroups()
+		generators.runGenerators()
+		generators.applyDepthLayering()
+		generators.cleanTemporaryGroups()
+
+	@loggedmethod
+	def _BuildGroups(self):
+		if not self.patternsettings:
+			self._LoadPatternSettings()
+		generators = GroupGenerators(
+			hostobj=self,
+			context=self.patterndata,
+			patternsettings=self.patternsettings)
+		if self.patternsettings.autogroup in (None, True):
+			generators.extractInferredGroups()
+		generators.runGenerators()
+		generators.applyDepthLayering()
+		generators.cleanTemporaryGroups()
+
+	@loggedmethod
+	def _MergeDuplicateShapes(self):
+		merger = _ShapeDeduplicator(self, self.patterndata, self.patternsettings)
+		merger.MergeDuplicates()
+
+	def GetPatternJson(self, minify=True):
+		obj = self.patterndata and self.patterndata.ToJsonDict() or {}
+		return json.dumps(obj, indent=None if minify else '  ')
+
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
-		self.SvgWidth = tdu.Dependency(1)
-		self.SvgHeight = tdu.Dependency(1)
 		self.patternsettings = None  # type: PatternSettings
 		self.patterndata = PatternData()
 		_rundelayed('op({!r}).LoadPattern()'.format(self.ownerComp.path), delayFrames=1)
@@ -71,12 +153,13 @@ class PatternLoader(ExtensionBase):
 		svgxmlop.par.loadonstartpulse.pulse()
 		svgxml = svgxmlop.text
 		self._LoadPatternSettings()
+		self.patterndata.title = pathlib.PurePath(self.ownerComp.par.Svgfile.eval()).stem or ''
 		self.patterndata.addGroupShapeStates(self.patternsettings.groupshapestates)
 		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
 		self._LoadPatternFromSvg(svgxml)
-		sop = self.op('build_geometry')
 		self._BuildGroups()
 		self._MergeDuplicateShapes()
+		sop = self.op('build_geometry')
 		self._BuildGeometry(sop)
 		self._AssignGeometryGroups(sop)
 		self._ApplyDepthLayeringToShapes(sop)
@@ -98,9 +181,9 @@ class PatternLoader(ExtensionBase):
 	def _LoadPatternFromSvg(self, svgxml):
 		parser = _SvgParser(self, self.patternsettings)
 		parser.parse(svgxml)
-		self.SvgWidth.val = parser.svgwidth
-		self.SvgHeight.val = parser.svgheight
 		self.patterndata.addShapes(parser.shapes)
+		self.patterndata.svgwidth = parser.svgwidth
+		self.patterndata.svgheight = parser.svgheight
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):

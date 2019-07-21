@@ -1220,7 +1220,11 @@ class PatternData(BaseDataObject):
 			shapes: List[ShapeInfo]=None,
 			groups: List[GroupInfo]=None,
 			defaultshapestate: ShapeState=None,
-			groupshapestates: List[GroupShapeState]=None):
+			groupshapestates: List[GroupShapeState]=None,
+			settings: PatternSettings=None,
+			title: str=None,
+			svgwidth: float=None,
+			svgheight: float=None):
 		super().__init__()
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
@@ -1230,6 +1234,10 @@ class PatternData(BaseDataObject):
 				self.addGroup(group)
 		self.defaultshapestate = defaultshapestate  # type: ShapeState
 		self.groupshapestates = list(groupshapestates or [])  # type: List[GroupShapeState]
+		self.title = title
+		self.settings = settings
+		self.svgwidth = svgwidth
+		self.svgheight = svgheight
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
 		self.shapes += shapes
@@ -1300,6 +1308,10 @@ class PatternData(BaseDataObject):
 			'groups': GroupInfo.ToJsonDicts(self.groups),
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
 			'groupshapesates': GroupShapeState.ToJsonDicts(self.groupshapestates),
+			'title': self.title,
+			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
+			'svgwidth': self.svgwidth,
+			'svgheight': self.svgheight,
 		})
 
 	@classmethod
@@ -1309,4 +1321,5 @@ class PatternData(BaseDataObject):
 			groups=GroupInfo.FromJsonDicts(obj.get('groups')),
 			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
 			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
+			settings=PatternSettings.FromOptionalJsonDict(obj.get('settings')),
 		)
