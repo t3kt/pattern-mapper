@@ -1310,8 +1310,8 @@ class PatternData(BaseDataObject):
 			'groupshapesates': GroupShapeState.ToJsonDicts(self.groupshapestates),
 			'title': self.title,
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
-			'svgwidth': self.svgwidth,
-			'svgheight': self.svgheight,
+			'svgwidth': formatValue(self.svgwidth, nonevalue=None),
+			'svgheight': formatValue(self.svgheight, nonevalue=None),
 		})
 
 	@classmethod

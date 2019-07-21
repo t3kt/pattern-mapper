@@ -67,6 +67,25 @@ class PatternBuilder(ExtensionBase):
 		self._LoadPatternFromSvg(svgxml)
 		self._BuildGroups()
 		self._MergeDuplicateShapes()
+		self.FillInfoTable(self.ownerComp.op('build_info'))
+		self.BuildOutput()
+		if self.ownerComp.par.Autosave:
+			self.SaveOutput()
+
+	@loggedmethod
+	def BuildOutput(self):
+		output = self.ownerComp.op('output_json')
+		output.text = self._GetPatternJson(minify=self.ownerComp.par.Minifyjson)
+
+	@loggedmethod
+	def SaveOutput(self):
+		self.BuildOutput()
+		output = self.ownerComp.op('output_json')
+		if not self.patterndata or not self.patterndata.title:
+			return
+		output.par.file = str(pathlib.PurePath(self.ownerComp.par.Outputdir.eval() or '.').joinpath(
+			self.patterndata.title + '.json')).replace('\\', '/')
+		output.par.writepulse.pulse()
 
 	@simpleloggedmethod
 	def _LoadPatternFromSvg(self, svgxml):
@@ -118,9 +137,24 @@ class PatternBuilder(ExtensionBase):
 		merger = _ShapeDeduplicator(self, self.patterndata, self.patternsettings)
 		merger.MergeDuplicates()
 
-	def GetPatternJson(self, minify=True):
+	def _GetPatternJson(self, minify=True):
 		obj = self.patterndata and self.patterndata.ToJsonDict() or {}
-		return json.dumps(obj, indent=None if minify else '  ')
+		return json.dumps(obj, indent=None if minify else '  ', sort_keys=True)
+
+	def FillInfoTable(self, dat):
+		dat.clear()
+		if not self.patterndata:
+			dat.appendRows([
+				['title', ''],
+				['shapes', '0'],
+				['groups', '0'],
+			])
+		else:
+			dat.appendRows([
+				['title', self.patterndata.title or ''],
+				['shapes', len(self.patterndata.shapes)],
+				['groups', len(self.patterndata.groups)],
+			])
 
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
