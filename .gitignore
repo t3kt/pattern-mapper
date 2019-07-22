@@ -3,3 +3,5 @@ CrashAutoSave*
 .idea
 *.pyc
 *-log.txt
+
+backup/
