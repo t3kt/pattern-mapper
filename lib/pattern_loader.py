@@ -254,11 +254,7 @@ class PatternLoader2(ExtensionBase):
 
 	@loggedmethod
 	def ConvertShapePathsToPanels(self, sop, insop):
-		sop.copy(insop)
-		while len(sop.prims):
-			sop.prims[0].destroy()
-		while len(sop.points):
-			sop.points[0].destroy()
+		_copyAndClearSOP(sop, insop)
 		for srcpoly in insop.prims:
 			poly = sop.appendPoly(len(srcpoly) - 1, addPoints=True, closed=True)
 			# for some reason using getattr() on points/prims/vertices/etc causes TD to crash
@@ -405,6 +401,22 @@ class PatternLoader2(ExtensionBase):
 	@staticmethod
 	def FixFaceFlipping(sop):
 		fixFaceFlipping(sop)
+
+	def BuildPathLookupTable(self, chop, tablelength):
+		chop.clear()
+		shapes = self.op('raw_shapes')
+		shapecount = shapes.numPrims
+		chop.numSamples = tablelength
+		for shapeindex in range(shapecount):
+			xchan = chop.appendChan('shape{}:tx'.format(shapeindex))
+			ychan = chop.appendChan('shape{}:ty'.format(shapeindex))
+			zchan = chop.appendChan('shape{}:tz'.format(shapeindex))
+			prim = shapes.prims[shapeindex]
+			for i in range(tablelength):
+				pos = prim.eval(i / (tablelength - 1), 0)
+				xchan[i] = pos.x
+				ychan[i] = pos.y
+				zchan[i] = pos.z
 
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -781,6 +793,64 @@ class PatternLoader(ExtensionBase):
 		comp.par.externaltox.expr = '{!r} if mod.os.path.exists({!r}) else ""'.format(filename, filename)
 		comp.save(filename)
 
+
+# class _ExtrusionReattacher(LoggableSubComponent):
+# 	def __init__(self, hostobj, panelsop):
+# 		super().__init__(hostobj, logprefix='ExtrusionReattacher')
+# 		self.panelsop = panelsop
+#
+# 	def ReattachExtrudedFaces(self, sop, insop):
+# 		_copyAndClearSOP(sop, self.panelsop)
+# 		frontgroup = insop.primGroups['extrudeFront']
+# 		backgroup = insop.primGroups['extrudeBack']
+# 		sidegroup = insop.primGroups['extrudeSide']
+#
+# 		for extrudefacein in insop.prims:
+# 			if extrudefacein in frontgroup:
+# 				facetype = 'front'
+# 			elif extrudefacein in backgroup:
+# 				facetype = 'back'
+# 			elif extrudefacein in sidegroup:
+# 				facetype = 'side'
+# 			else:
+# 				continue
+# 			basispoly, vertexmap = self._GetBasisPolyAndVertexMap(extrudefacein, facetype)
+# 			if not basispoly:
+# 				continue
+# 			poly = sop.appendPoly(len(extrudefacein), addPoints=True, closed=True)
+#
+# 			pass
+# 		pass
+#
+# 	def _GetBasisPolyAndVertexMap(self, face, facetype):
+# 		isside = facetype == 'side'
+# 		for basispoly in self.panelsop.prims:
+# 			vertexmap = self._GetVertexMap(face, basispoly)
+# 			if not vertexmap:
+# 				continue
+# 			if isside:
+# 				pass
+# 		return None, None
+# 		pass
+#
+# 	def _GetVertexMap(self, face, basispoly):
+# 		vertexmap = {}
+# 		for facevert in face:
+# 			basisvert = self._GetMatchingVertex(facevert, basispoly)
+# 			if basisvert is None:
+# 				return None
+# 			vertexmap[facevert.index] = basisvert
+# 		return vertexmap
+#
+# 	@staticmethod
+# 	def _GetMatchingVertex(facevert, basispoly):
+# 		facept = facevert.point
+# 		for basisvert in basispoly:
+# 			basispt = basisvert.point
+# 			if facept.x == basispt.x and facept.y == basispt.y and facept.z == basispt.z:
+# 				return basisvert
+# 		return None
+
 class _SvgParser(LoggableSubComponent):
 	def __init__(self, hostobj, settings: PatternSettings):
 		super().__init__(hostobj=hostobj, logprefix='SvgParser')
@@ -971,6 +1041,13 @@ def fixFaceFlipping(sop):
 			for i in range(n):
 				prim[i].point = origpoints[-i]
 				_setAttrDataFromTuple(prim[i].uv, origuvs[-i])
+
+def _copyAndClearSOP(outsop, insop):
+	outsop.copy(insop)
+	while len(outsop.prims):
+		outsop.prims[0].destroy()
+	while len(outsop.points):
+		outsop.points[0].destroy()
 
 def _attrDataToTuple(attrdata):
 	return tuple(attrdata[i] for i in range(len(attrdata)))
