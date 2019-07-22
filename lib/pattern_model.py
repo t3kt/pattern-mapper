@@ -47,8 +47,8 @@ class _BaseEnum(Enum):
 class ShapeInfo(BaseDataObject):
 	def __init__(
 			self,
-			shapeindex: int,
-			shapename: str,
+			shapeindex: int=0,
+			shapename: str=None,
 			shapepath: str=None,
 			parentpath: str=None,
 			color: Iterable[Union[float, int]]=None,

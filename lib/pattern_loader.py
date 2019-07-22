@@ -137,6 +137,36 @@ class PatternBuilder(ExtensionBase):
 		merger = _ShapeDeduplicator(self, self.patterndata, self.patternsettings)
 		merger.MergeDuplicates()
 
+	@loggedmethod
+	def _ApplyDepthLayeringToShapes(self):
+		if not self.patternsettings:
+			self._LoadPatternSettings()
+		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
+		for group in self.patterndata.groups:
+			if group.depthlayer is None:
+				continue
+			for shapeindex in group.shapeindices:
+				shape = self.patterndata.getShapeByIndex(shapeindex)
+				if shape.depthlayer == group.depthlayer:
+					continue
+				if shape.depthlayer is not None:
+					self._LogEvent('Conflicting layers for shape {}: {} != {}'.format(
+						shapeindex, shape.depthlayer, group.depthlayer))
+					continue
+				shape.depthlayer = group.depthlayer
+				shape.center[2] = group.depth
+
+		defaultlayer = layeringspec.defaultlayer
+		layerdist = layeringspec.layerdistance or 0.1
+		for shape in self.patterndata.shapes:
+			if shape.depthlayer is None:
+				shape.depthlayer = defaultlayer
+				if defaultlayer is not None:
+					shape.center[2] = defaultlayer * layerdist
+			z = shape.center[2]
+			for point in shape.points:
+				point.pos[2] = z
+
 	def _GetPatternJson(self, minify=True):
 		obj = self.patterndata and self.patterndata.ToJsonDict() or {}
 		return json.dumps(obj, indent=None if minify else '  ', sort_keys=True)
@@ -155,6 +185,226 @@ class PatternBuilder(ExtensionBase):
 				['shapes', len(self.patterndata.shapes)],
 				['groups', len(self.patterndata.groups)],
 			])
+
+class PatternLoader2(ExtensionBase):
+	def __init__(self, ownerComp):
+		super().__init__(ownerComp)
+		self.patterndata = None  # type: PatternData
+
+	@loggedmethod
+	def LoadPattern(self):
+		patternjson = self.op('pattern_json').text
+		patternobj = json.loads(patternjson) if patternjson else {}
+		if not patternobj:
+			self.patterndata = PatternData()
+		else:
+			# there's a parser issue for the group gen specs, but probably don't even need the settings for this
+			if 'settings' in patternobj:
+				del patternobj['settings']
+			self.patterndata = PatternData.FromJsonDict(patternobj)
+		sop = self.op('build_geometry')
+		self._BuildGeometry(sop)
+		self._AssignGeometryGroups(sop)
+		self._BuildGroupTable(self.op('set_group_table'))
+		self._BuildSequenceStepTable(self.op('set_sequence_step_table'))
+		self._BuildShapeAttrTable(self.op('set_shape_attr_table'))
+		self._BuildShapeGroupSequenceIndices(self.op('set_shape_group_sequence_indices'))
+		self._BuildShapeDefaultStateTable(self.op('set_shape_default_state_table'))
+
+	@loggedmethod
+	def _BuildGeometry(self, sop):
+		sop.clear()
+		sop.primAttribs.create('Cd')
+		sop.primAttribs.create('shapeIndex', 0)
+		sop.primAttribs.create('duplicate', 0)
+		# distance around path (absolute), distance around path (relative to shape length)
+		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
+		for shape in self.patterndata.shapes:
+			# if shape.isduplicate:
+			# 	continue
+			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
+			poly.shapeIndex[0] = shape.shapeindex
+			poly.duplicate[0] = int(shape.isduplicate)
+			if shape.color:
+				poly.Cd[0] = shape.color[0] / 255.0
+				poly.Cd[1] = shape.color[1] / 255.0
+				poly.Cd[2] = shape.color[2] / 255.0
+			else:
+				poly.Cd[0] = poly.Cd[1] = poly.Cd[2] = 1
+			poly.Cd[3] = 1
+			for i, pathpt in enumerate(shape.points):
+				vertex = poly[i]
+				vertex.point.x = pathpt.pos[0]
+				vertex.point.y = pathpt.pos[1]
+				vertex.point.z = pathpt.pos[2]
+				vertex.absRelDist[0] = pathpt.absdist
+				vertex.absRelDist[1] = pathpt.reldist
+
+	@loggedmethod
+	def _AssignGeometryGroups(self, sop):
+		if not self.patterndata:
+			return
+		for group in self.patterndata.groups:
+			primgroup = sop.primGroups.get(group.groupname)
+			if primgroup is None:
+				sop.createPrimGroup(group.groupname)
+				primgroup = sop.primGroups[group.groupname]
+			for shapeindex in group.shapeindices:
+				primgroup.add(sop.prims[shapeindex])
+
+	@loggedmethod
+	def ConvertShapePathsToPanels(self, sop, insop):
+		sop.copy(insop)
+		while len(sop.prims):
+			sop.prims[0].destroy()
+		while len(sop.points):
+			sop.points[0].destroy()
+		for srcpoly in insop.prims:
+			poly = sop.appendPoly(len(srcpoly) - 1, addPoints=True, closed=True)
+			# for some reason using getattr() on points/prims/vertices/etc causes TD to crash
+			# so they need to be hard-coded
+			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
+			poly.shapeIndex[0] = srcpoly.shapeIndex[0]
+			poly.duplicate[0] = srcpoly.duplicate[0]
+			for vertex in poly:
+				srcvertex = srcpoly[vertex.index]
+				vertex.point.x = srcvertex.point.x
+				vertex.point.y = srcvertex.point.y
+				vertex.point.z = srcvertex.point.z
+				_copyAttrVals(toattr=vertex.absRelDist, fromattr=srcvertex.absRelDist)
+				_copyAttrVals(toattr=vertex.uv, fromattr=srcvertex.uv)
+				_copyAttrVals(toattr=vertex.centerPos, fromattr=srcvertex.centerPos)
+		for g in sop.primGroups.values():
+			g.destroy()
+		self._AssignGeometryGroups(sop)
+
+	@loggedmethod
+	def _BuildGroupTable(self, dat):
+		dat.clear()
+		dat.appendRow([
+			'groupname',
+			'grouppath',
+			'inferencetype',
+			'inferredfromvalue',
+			'depthlayer',
+			'depth',
+			'sequencelength',
+			'shapecount',
+			'shapes',
+		])
+		for groupinfo in self.patterndata.groups:
+			dat.appendRow([
+				groupinfo.groupname or '',
+				groupinfo.grouppath or '',
+				groupinfo.inferencetype or '',
+				groupinfo.inferredfromvalue if groupinfo.inferredfromvalue is not None else '',
+				formatValue(groupinfo.depthlayer, nonevalue=''),
+				formatValue(groupinfo.depth, nonevalue=''),
+				len(groupinfo.sequencesteps),
+				len(groupinfo.shapeindices),
+				' '.join(map(str, groupinfo.shapeindices)),
+			])
+
+	@loggedmethod
+	def _BuildSequenceStepTable(self, dat):
+		dat.clear()
+		dat.appendRow([
+			'groupname',
+			'sequenceindex',
+			'isdefault',
+			'inferredfromvalue',
+			'shapes',
+		])
+		if not self.patterndata.groups:
+			return
+		for groupinfo in self.patterndata.groups:
+			for step in groupinfo.sequencesteps:
+				if not step.shapeindices:
+					continue
+				dat.appendRow([
+					groupinfo.groupname,
+					step.sequenceindex,
+					int(step.isdefault or 0),
+					step.inferredfromvalue if step.inferredfromvalue is not None else '',
+					' '.join(map(str, step.shapeindices)),
+				])
+
+	@loggedmethod
+	def _BuildShapeAttrTable(self, dat):
+		dat.clear()
+		dat.appendRow([
+			'shapeindex', 'shapename', 'shapepath', 'parentpath',
+			'colorr', 'colorg', 'colorb',
+			'colorh', 'colors', 'colorv',
+			'centerx', 'centery', 'centerz',
+			'centerangle', 'centerdist',
+			'shapelength',
+			'depthlayer',
+			'istriangle', 'dupcount', 'radius',
+		])
+		for shape in self.patterndata.shapes:
+			r = dat.numRows
+			dat.appendRow([])
+			dat[r, 'shapeindex'] = shape.shapeindex
+			dat[r, 'shapename'] = shape.shapename or ''
+			dat[r, 'shapepath'] = shape.shapepath or ''
+			dat[r, 'parentpath'] = shape.parentpath or ''
+			color = shape.color or [0, 0, 0]
+			dat[r, 'colorr'] = formatValue(color[0])
+			dat[r, 'colorg'] = formatValue(color[1])
+			dat[r, 'colorb'] = formatValue(color[2])
+			hsvcolor = shape.hsvcolor or [0, 0, 0]
+			dat[r, 'colorh'] = formatValue(hsvcolor[0])
+			dat[r, 'colors'] = formatValue(hsvcolor[1])
+			dat[r, 'colorv'] = formatValue(hsvcolor[2])
+			if shape.center:
+				dat[r, 'centerx'] = formatValue(shape.center[0])
+				dat[r, 'centery'] = formatValue(shape.center[1])
+				dat[r, 'centerz'] = formatValue(shape.center[2])
+				distance, angle = cartesiantopolar(shape.center[0], shape.center[1])
+				dat[r, 'centerangle'] = formatValue(angle)
+				dat[r, 'centerdist'] = formatValue(distance)
+			dat[r, 'shapelength'] = formatValue(shape.shapelength, nonevalue='')
+			dat[r, 'depthlayer'] = formatValue(shape.depthlayer, nonevalue='')
+			dat[r, 'istriangle'] = formatValue(int(shape.istriangle))
+			dat[r, 'dupcount'] = formatValue(shape.dupcount)
+			dat[r, 'radius'] = formatValue(shape.radius)
+
+	# Build a chop with a channel for each group and a sample for each shape.
+	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
+	# is not in that group.
+	@loggedmethod
+	def _BuildShapeGroupSequenceIndices(self, chop):
+		chop.clear()
+		numshapes = len(self.patterndata.shapes)
+		chop.numSamples = numshapes
+		if not self.patterndata.groups:
+			return
+		for group in self.patterndata.groups:
+			chan = chop.appendChan(group.groupname)
+			shapesteps = [-1] * numshapes
+			for step in group.sequencesteps:
+				for shapeindex in step.shapeindices:
+					if shapesteps[shapeindex] == -1:
+						shapesteps[shapeindex] = step.sequenceindex
+			for shapeindex in range(numshapes):
+				chan[shapeindex] = shapesteps[shapeindex]
+
+	@loggedmethod
+	def _BuildShapeDefaultStateTable(self, dat):
+		builder = ShapeStatesBuilder(self, dat)
+		builder.Build(self.patterndata)
+
+	@staticmethod
+	def SetUVLayerToLocalPos(sop, uvlayer: int):
+		for prim in sop.prims:
+			for vertex in prim:
+				vertex.uv[(uvlayer * 3) + 0] = remap(vertex.point.x, prim.min.x, prim.max.x, 0, 1)
+				vertex.uv[(uvlayer * 3) + 1] = remap(vertex.point.y, prim.min.y, prim.max.y, 0, 1)
+
+	@staticmethod
+	def FixFaceFlipping(sop):
+		fixFaceFlipping(sop)
 
 class PatternLoader(ExtensionBase):
 	def __init__(self, ownerComp):
