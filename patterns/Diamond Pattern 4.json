@@ -1,0 +1,90 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "fixtrianglecenters": true,
+  "groups": [
+    {
+      "groupname": "blue",
+      "paths": "^.*/g\\[id=blue\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple1",
+      "paths": "^.*/g\\[id=purple1\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple2",
+      "paths": "^.*/g\\[id=purple2\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple3",
+      "paths": "^.*/g\\[id=purple3\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple4",
+      "paths": "^.*/g\\[id=purple4\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple5",
+      "paths": "^.*/g\\[id=purple5\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple6",
+      "paths": "^.*/g\\[id=purple6\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "purple7",
+      "paths": "^.*/g\\[id=purple7\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal1",
+      "paths": "^.*/g\\[id=teal1\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal2",
+      "paths": "^.*/g\\[id=teal2\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal3",
+      "paths": "^.*/g\\[id=teal3\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal4",
+      "paths": "^.*/g\\[id=teal4\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal5",
+      "paths": "^.*/g\\[id=teal5\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal6",
+      "paths": "^.*/g\\[id=teal6\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal7",
+      "paths": "^.*/g\\[id=teal7\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "teal",
+      "groups": "teal*"
+    },
+    {
+      "groupname": "purple",
+      "groups": "purple*"
+    }
+  ]
+}

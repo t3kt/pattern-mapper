@@ -67,6 +67,7 @@ class PatternBuilder(ExtensionBase):
 		self._LoadPatternFromSvg(svgxml)
 		self._BuildGroups()
 		self._MergeDuplicateShapes()
+		self._ApplyDepthLayeringToShapes()
 		self.FillInfoTable(self.ownerComp.op('build_info'))
 		self.BuildOutput()
 		if self.ownerComp.par.Autosave:
@@ -103,20 +104,6 @@ class PatternBuilder(ExtensionBase):
 		obj = json.loads(jsondat.text) if jsondat.text else {}
 		self.patternsettings = PatternSettings.FromJsonDict(obj)
 		self.patterndata.settings = self.patternsettings
-
-	@loggedmethod
-	def _BuildGroups(self):
-		if not self.patternsettings:
-			self._LoadPatternSettings()
-		generators = GroupGenerators(
-			hostobj=self,
-			context=self.patterndata,
-			patternsettings=self.patternsettings)
-		if self.patternsettings.autogroup in (None, True):
-			generators.extractInferredGroups()
-		generators.runGenerators()
-		generators.applyDepthLayering()
-		generators.cleanTemporaryGroups()
 
 	@loggedmethod
 	def _BuildGroups(self):
@@ -210,6 +197,7 @@ class PatternLoader2(ExtensionBase):
 		self._BuildShapeAttrTable(self.op('set_shape_attr_table'))
 		self._BuildShapeGroupSequenceIndices(self.op('set_shape_group_sequence_indices'))
 		self._BuildShapeDefaultStateTable(self.op('set_shape_default_state_table'))
+		self.op('shape_panels').cook(force=True)
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):

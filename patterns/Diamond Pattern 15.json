@@ -1,0 +1,55 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "fixtrianglecenters": true,
+  "depthlayering": {"mode": "manual", "layerdistance":  0.01},
+  "groups": [
+    {"groupname": "blue1_1", "paths": "^.*/g\\[id=blue1_1\\]", "sequenceby": "value"},
+    {"groupname": "blue1_2", "paths": "^.*/g\\[id=blue1_2\\]", "sequenceby": "value"},
+    {"groupname": "blue1_3", "paths": "^.*/g\\[id=blue1_3\\]", "sequenceby": "value"},
+    {"groupname": "blue1_4", "paths": "^.*/g\\[id=blue1_4\\]", "sequenceby": "value"},
+    {"groupname": "blue2_1", "paths": "^.*/g\\[id=blue2_1\\]", "sequenceby": "value"},
+    {"groupname": "blue2_2", "paths": "^.*/g\\[id=blue2_2\\]", "sequenceby": "value"},
+    {"groupname": "blue2_3", "paths": "^.*/g\\[id=blue2_3\\]", "sequenceby": "value"},
+    {"groupname": "blue2_4", "paths": "^.*/g\\[id=blue2_4\\]", "sequenceby": "value"},
+
+    {"groupname": "purple1_1", "paths": "^.*/g\\[id=purple1_1\\]", "sequenceby": "value"},
+    {"groupname": "purple1_2", "paths": "^.*/g\\[id=purple1_2\\]", "sequenceby": "value"},
+    {"groupname": "purple1_3", "paths": "^.*/g\\[id=purple1_3\\]", "sequenceby": "value"},
+    {"groupname": "purple1_4", "paths": "^.*/g\\[id=purple1_4\\]", "sequenceby": "value"},
+    {"groupname": "purple2_1", "paths": "^.*/g\\[id=purple2_1\\]", "sequenceby": "value"},
+    {"groupname": "purple2_2", "paths": "^.*/g\\[id=purple2_2\\]", "sequenceby": "value"},
+    {"groupname": "purple2_3", "paths": "^.*/g\\[id=purple2_3\\]", "sequenceby": "value"},
+    {"groupname": "purple2_4", "paths": "^.*/g\\[id=purple2_4\\]", "sequenceby": "value"},
+
+    {"groupname": "green1_1a", "paths": "^.*/g\\[id=green1_1a\\]", "sequenceby": "value"},
+    {"groupname": "green1_2a", "paths": "^.*/g\\[id=green1_2a\\]", "sequenceby": "value"},
+    {"groupname": "green1_3a", "paths": "^.*/g\\[id=green1_3a\\]", "sequenceby": "value"},
+    {"groupname": "green1_4a", "paths": "^.*/g\\[id=green1_4a\\]", "sequenceby": "value"},
+    {"groupname": "green2_1a", "paths": "^.*/g\\[id=green2_1a\\]", "sequenceby": "value"},
+    {"groupname": "green2_2a", "paths": "^.*/g\\[id=green2_2a\\]", "sequenceby": "value"},
+    {"groupname": "green2_3a", "paths": "^.*/g\\[id=green2_3a\\]", "sequenceby": "value"},
+    {"groupname": "green2_4a", "paths": "^.*/g\\[id=green2_4a\\]", "sequenceby": "value"},
+
+    {"groupname": "green1_1b", "paths": "^.*/g\\[id=green1_1b\\]", "sequenceby": "value"},
+    {"groupname": "green1_2b", "paths": "^.*/g\\[id=green1_2b\\]", "sequenceby": "value"},
+    {"groupname": "green1_3b", "paths": "^.*/g\\[id=green1_3b\\]", "sequenceby": "value"},
+    {"groupname": "green1_4b", "paths": "^.*/g\\[id=green1_4b\\]", "sequenceby": "value"},
+    {"groupname": "green2_1b", "paths": "^.*/g\\[id=green2_1b\\]", "sequenceby": "value"},
+    {"groupname": "green2_2b", "paths": "^.*/g\\[id=green2_2b\\]", "sequenceby": "value"},
+    {"groupname": "green2_3b", "paths": "^.*/g\\[id=green2_3b\\]", "sequenceby": "value"},
+    {"groupname": "green2_4b", "paths": "^.*/g\\[id=green2_4b\\]", "sequenceby": "value"},
+
+    {"groupname":  "blue1", "groups":  "blue1_*", "depthlayer": 5},
+    {"groupname":  "blue2", "groups":  "blue2_*", "depthlayer": 3},
+    {"groupname":  "blue", "groups":  "blue1 blue2"},
+
+    {"groupname":  "purple1", "groups":  "purple1_*", "depthlayer": 1},
+    {"groupname":  "purple2", "groups":  "purple2_*", "depthlayer": 4},
+    {"groupname":  "purple", "groups":  "purple1 purple2"},
+
+    {"groupname":  "green1", "groups":  "green1_*", "depthlayer": 0},
+    {"groupname":  "green2", "groups":  "green2_*", "depthlayer": 2},
+    {"groupname":  "green", "groups":  "green1 green2"}
+  ]
+}
