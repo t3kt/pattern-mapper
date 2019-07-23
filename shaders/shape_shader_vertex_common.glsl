@@ -2,7 +2,6 @@
 
 #include "shape_shader_common"
 
-uniform int uShapeCount;
 uniform sampler2D sColors;
 
 uniform sampler2D sTransforms;
