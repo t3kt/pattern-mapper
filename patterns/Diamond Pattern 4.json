@@ -11,72 +11,86 @@
     {
       "groupname": "purple1",
       "paths": "^.*/g\\[id=purple1\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 0
     },
     {
       "groupname": "purple2",
       "paths": "^.*/g\\[id=purple2\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 51.42857142857143
     },
     {
       "groupname": "purple3",
       "paths": "^.*/g\\[id=purple3\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 102.85714285714286
     },
     {
       "groupname": "purple4",
       "paths": "^.*/g\\[id=purple4\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 154.28571428571428
     },
     {
       "groupname": "purple5",
       "paths": "^.*/g\\[id=purple5\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 205.71428571428572
     },
     {
       "groupname": "purple6",
       "paths": "^.*/g\\[id=purple6\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 257.14285714285717
     },
     {
       "groupname": "purple7",
       "paths": "^.*/g\\[id=purple7\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 308.57142857142856
     },
     {
       "groupname": "teal1",
       "paths": "^.*/g\\[id=teal1\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 25.714285714285715
     },
     {
       "groupname": "teal2",
       "paths": "^.*/g\\[id=teal2\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 77.14285714285714
     },
     {
       "groupname": "teal3",
       "paths": "^.*/g\\[id=teal3\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 128.57142857142858
     },
     {
       "groupname": "teal4",
       "paths": "^.*/g\\[id=teal4\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 180
     },
     {
       "groupname": "teal5",
       "paths": "^.*/g\\[id=teal5\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 231.42857142857142
     },
     {
       "groupname": "teal6",
       "paths": "^.*/g\\[id=teal6\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 282.85714285714283
     },
     {
       "groupname": "teal7",
       "paths": "^.*/g\\[id=teal7\\]",
-      "sequenceby": "value"
+      "sequenceby": "value",
+      "rotateaxis": 334.2857142857143
     },
     {
       "groupname": "teal",

@@ -254,6 +254,7 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 		self.sequencer = None  # type: _ShapeSequencer
 		self.temporary = groupspec.temporary
 		self.depthlayer = groupspec.depthlayer
+		self.rotateaxis = groupspec.rotateaxis
 		self.mergename = groupspec.mergeto
 		self.mergecombiner = _GroupCombiner(self) if groupspec.mergeto else None
 
@@ -277,7 +278,8 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 			context: PatternData,
 			shapeindices: List[int]=None,
 			autosequence=False,
-			addtomerge=True):
+			addtomerge=True,
+			includeaxis=True):
 		if autosequence and shapeindices and self.sequencer:
 			steps = self.sequencer.sequenceShapes(shapeindices, context)
 		else:
@@ -287,7 +289,8 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 			shapeindices=shapeindices,
 			sequencesteps=steps,
 			temporary=self.temporary,
-			depthlayer=self.depthlayer)
+			depthlayer=self.depthlayer,
+			rotateaxis=self.rotateaxis if includeaxis else None)
 		if addtomerge and self.mergecombiner:
 			self.mergecombiner.addGroup(group)
 		return group
@@ -301,6 +304,7 @@ class _GroupGenerator(LoggableSubComponent, ABC):
 				self.mergename,
 				context=context,
 				addtomerge=False,
+				includeaxis=False,
 			)
 			mergedgroup.temporary = False
 			if self.mergecombiner.buildInto(mergedgroup, boolop=BoolOpNames.OR):

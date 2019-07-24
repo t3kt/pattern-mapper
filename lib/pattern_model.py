@@ -1,5 +1,4 @@
 from abc import ABC
-from collections import deque
 from enum import Enum
 
 print('pattern_model.py loading...')
@@ -44,6 +43,11 @@ class _BaseEnum(Enum):
 #
 # 	return property(_getter)
 
+_RGBAColor = Tuple[float, float, float, float]
+_UVOffset = Union[Tuple[float, float], Tuple[float, float, float]]
+_XYZ = Union[Tuple[float, float], Tuple[float, float, float]]
+_ValueListSpec = Union[str, List[Union[str, float]]]
+
 class ShapeInfo(BaseDataObject):
 	def __init__(
 			self,
@@ -51,13 +55,14 @@ class ShapeInfo(BaseDataObject):
 			shapename: str=None,
 			shapepath: str=None,
 			parentpath: str=None,
-			color: Iterable[Union[float, int]]=None,
-			center: Iterable[Union[float, int]]=None,
+			color: _RGBAColor=None,
+			center: _XYZ=None,
 			shapelength: float=None,
 			depthlayer: int=None,
 			points: Iterable['PointData']=None,
 			dupcount: int=None,
 			radius: float=None,
+			rotateaxis: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapeindex = shapeindex
@@ -71,6 +76,7 @@ class ShapeInfo(BaseDataObject):
 		self.points = list(points or [])
 		self.dupcount = dupcount or 0
 		self.radius = radius
+		self.rotateaxis = rotateaxis
 
 	@property
 	def isduplicate(self):
@@ -164,19 +170,22 @@ class ShapeInfo(BaseDataObject):
 		return False
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(self.attrs, {
-			'shapeindex': self.shapeindex,
-			'shapename': self.shapename,
-			'shapepath': self.shapepath,
-			'parentpath': self.parentpath,
-			'color': self.color,
-			'center': self.center,
-			'shapelength': self.shapelength,
-			'depthlayer': self.depthlayer,
-			'dupcount': self.dupcount,
-			'radius': self.radius,
-			'points': PointData.ToJsonDicts(self.points),
-		}))
+		return cleandict(mergedicts(
+			self.attrs,
+			{
+				'shapeindex': self.shapeindex,
+				'shapename': self.shapename,
+				'shapepath': self.shapepath,
+				'parentpath': self.parentpath,
+				'color': self.color,
+				'center': self.center,
+				'shapelength': self.shapelength,
+				'depthlayer': self.depthlayer,
+				'dupcount': self.dupcount,
+				'radius': self.radius,
+				'rotateaxis': self.rotateaxis,
+				'points': PointData.ToJsonDicts(self.points),
+			}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
@@ -187,7 +196,7 @@ class ShapeInfo(BaseDataObject):
 class PointData(BaseDataObject):
 	def __init__(
 			self,
-			pos: Iterable[float]=None,
+			pos: _XYZ=None,
 			absdist: float=None,
 			reldist: float=None,
 			**attrs):
@@ -273,6 +282,7 @@ class GroupInfo(BaseDataObject):
 			shapeindices: List[int]=None,
 			sequencesteps: List[SequenceStep]=None,
 			temporary: bool=None,
+			rotateaxis: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
@@ -285,6 +295,7 @@ class GroupInfo(BaseDataObject):
 		self.shapeindices.sort()
 		self.sequencesteps = list(sequencesteps or [])
 		self.temporary = temporary
+		self.rotateaxis = rotateaxis
 
 	def replaceIndices(self, replacements: Dict[int, int]):
 		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
@@ -302,6 +313,7 @@ class GroupInfo(BaseDataObject):
 			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 			'temporary': self.temporary,
+			'rotateaxis': self.rotateaxis,
 		}))
 
 	@classmethod
@@ -407,8 +419,6 @@ class SequenceBySpec(BaseDataObject):
 			return cls(attr=obj)
 		return cls(**obj)
 
-_ValueListSpec = Union[str, List[Union[str, float]]]
-
 class GroupGenSpec(BaseDataObject, ABC):
 	def __init__(
 			self,
@@ -418,6 +428,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			temporary: bool=None,
 			depthlayer: int=None,
 			mergeto: str=None,
+			rotateaxis: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groupname = groupname
@@ -429,6 +440,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			self.temporary = temporary
 		self.depthlayer = depthlayer
 		self.mergeto = mergeto
+		self.rotateaxis = rotateaxis
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -438,6 +450,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 			'temporary': self.temporary,
 			'depthlayer': self.depthlayer,
 			'mergeto': self.mergeto,
+			'rotateaxis': self.rotateaxis,
 		}))
 
 	@classmethod
@@ -622,10 +635,6 @@ class DepthLayeringSpec(BaseDataObject):
 		if isinstance(obj, str):
 			return cls(mode=obj)
 		return cls(**obj)
-
-_RGBAColor = Tuple[float, float, float, float]
-_UVOffset = Union[Tuple[float, float], Tuple[float, float, float]]
-_XYZ = Union[Tuple[float, float], Tuple[float, float, float]]
 
 class TransformSpec(BaseDataObject):
 	def __init__(
@@ -1304,10 +1313,13 @@ class PatternData(BaseDataObject):
 
 	def ToJsonDict(self):
 		return cleandict({
-			'shapes': ShapeInfo.ToJsonDicts(self.shapes),
-			'groups': GroupInfo.ToJsonDicts(self.groups),
+			'shapes': ShapeInfo.ToJsonDicts(
+				sorted(self.shapes, key=lambda s: s.shapeindex)),
+			'groups': GroupInfo.ToJsonDicts(
+				sorted(self.groups, key=lambda g: g.groupname)),
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
-			'groupshapesates': GroupShapeState.ToJsonDicts(self.groupshapestates),
+			'groupshapesates': GroupShapeState.ToJsonDicts(
+				sorted(self.groupshapestates, key=lambda g: g.groupname)),
 			'title': self.title,
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
 			'svgwidth': formatValue(self.svgwidth, nonevalue=None),

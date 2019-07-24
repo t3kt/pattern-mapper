@@ -68,6 +68,7 @@ class PatternBuilder(ExtensionBase):
 		self._BuildGroups()
 		self._MergeDuplicateShapes()
 		self._ApplyDepthLayeringToShapes()
+		self._ApplyRotateAxesToShapes()
 		self.FillInfoTable(self.ownerComp.op('build_info'))
 		self.BuildOutput()
 		if self.ownerComp.par.Autosave:
@@ -107,8 +108,6 @@ class PatternBuilder(ExtensionBase):
 
 	@loggedmethod
 	def _BuildGroups(self):
-		if not self.patternsettings:
-			self._LoadPatternSettings()
 		generators = GroupGenerators(
 			hostobj=self,
 			context=self.patterndata,
@@ -126,8 +125,6 @@ class PatternBuilder(ExtensionBase):
 
 	@loggedmethod
 	def _ApplyDepthLayeringToShapes(self):
-		if not self.patternsettings:
-			self._LoadPatternSettings()
 		layeringspec = self.patternsettings.depthlayering or DepthLayeringSpec()
 		for group in self.patterndata.groups:
 			if group.depthlayer is None:
@@ -153,6 +150,21 @@ class PatternBuilder(ExtensionBase):
 			z = shape.center[2]
 			for point in shape.points:
 				point.pos[2] = z
+
+	@loggedmethod
+	def _ApplyRotateAxesToShapes(self):
+		for group in self.patterndata.groups:
+			if group.rotateaxis is None:
+				continue
+			for shapeindex in group.shapeindices:
+				shape = self.patterndata.getShapeByIndex(shapeindex)
+				if shape.rotateaxis == group.rotateaxis:
+					continue
+				if shape.rotateaxis is not None:
+					self._LogEvent('Conflicting rotate axes for shape {}: {} != {}'.format(
+						shapeindex, shape.rotateaxis, group.rotateaxis))
+					continue
+				shape.rotateaxis = group.rotateaxis
 
 	def _GetPatternJson(self, minify=True):
 		obj = self.patterndata and self.patterndata.ToJsonDict() or {}
@@ -325,6 +337,7 @@ class PatternLoader2(ExtensionBase):
 			'shapelength',
 			'depthlayer',
 			'istriangle', 'dupcount', 'radius',
+			'rotateaxis',
 		])
 		for shape in self.patterndata.shapes:
 			r = dat.numRows
@@ -353,6 +366,7 @@ class PatternLoader2(ExtensionBase):
 			dat[r, 'istriangle'] = formatValue(int(shape.istriangle))
 			dat[r, 'dupcount'] = formatValue(shape.dupcount)
 			dat[r, 'radius'] = formatValue(shape.radius)
+			dat[r, 'rotateaxis'] = formatValue(shape.rotateaxis, nonevalue='0')
 
 	# Build a chop with a channel for each group and a sample for each shape.
 	# For each sample and group, the value is either the sequenceIndex, or -1 if the shape
