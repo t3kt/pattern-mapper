@@ -89,8 +89,11 @@ void scaleRotateTranslate(
 		in vec3 scale,
 		in vec3 rotate,
 		in vec3 translate,
-		in vec3 pivot) {
+		in vec3 pivot,
+		in vec3 rotateAxis) {
 	pos.xyz -= pivot;
+	pos *= rotationXYZ(-radians(rotateAxis));
 	pos *= scaleRotateTranslateMatrix(scale, rotate, translate);
+	pos *= rotationXYZ(radians(rotateAxis));
 	pos.xyz += pivot;
 }

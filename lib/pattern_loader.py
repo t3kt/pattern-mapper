@@ -217,6 +217,7 @@ class PatternLoader2(ExtensionBase):
 		sop.primAttribs.create('Cd')
 		sop.primAttribs.create('shapeIndex', 0)
 		sop.primAttribs.create('duplicate', 0)
+		sop.primAttribs.create('rotateAxis', (0.0, 0.0, 0.0))
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
 		for shape in self.patterndata.shapes:
@@ -225,6 +226,9 @@ class PatternLoader2(ExtensionBase):
 			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
 			poly.shapeIndex[0] = shape.shapeindex
 			poly.duplicate[0] = int(shape.isduplicate)
+			poly.rotateAxis[0] = 0
+			poly.rotateAxis[1] = 0
+			poly.rotateAxis[2] = shape.rotateaxis or 0
 			if shape.color:
 				poly.Cd[0] = shape.color[0] / 255.0
 				poly.Cd[1] = shape.color[1] / 255.0
@@ -262,6 +266,10 @@ class PatternLoader2(ExtensionBase):
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
 			poly.shapeIndex[0] = srcpoly.shapeIndex[0]
 			poly.duplicate[0] = srcpoly.duplicate[0]
+			if hasattr(srcpoly, 'rotateAxis') and hasattr(poly, 'rotateAxis'):
+				poly.rotateAxis[0] = srcpoly.rotateAxis[0]
+				poly.rotateAxis[1] = srcpoly.rotateAxis[1]
+				poly.rotateAxis[2] = srcpoly.rotateAxis[2]
 			for vertex in poly:
 				srcvertex = srcpoly[vertex.index]
 				vertex.point.x = srcvertex.point.x

@@ -10,6 +10,7 @@ uniform sampler2D sAttrs;
 
 in vec3 centerPos;
 in int shapeIndex;
+in vec3 rotateAxis;
 
 vec3 getTexCoordForUVMode(in VertexAttrs attrs, int uvMode) {
 	switch (uvMode) {
@@ -42,7 +43,8 @@ TexLayerAttrs loadTexLayerAttrs(in int shapeIndex, in VertexAttrs attrs, in int 
 		scalexyz_uniformscale.xyz * scalexyz_uniformscale.w,
 		rotatexyz,
 		translatexyz,
-		pivotxyz);
+		pivotxyz,
+		vec3(0));
 	texAttrs.texCoord = texCoord.xyz;
 
 	return texAttrs;
@@ -91,11 +93,13 @@ VertexAttrs loadVertexAttrs() {
 		scaleRotateTranslate(
 			worldSpacePos,
 			globalScale, globalRotate, globalTranslate,
-			vec3(0));
+			vec3(0),
+			rotateAxis);
 		scaleRotateTranslate(
 			worldSpacePos,
 			localScale, localRotate, localTranslate,
-			centerPos);
+			centerPos,
+			rotateAxis);
 	}
 
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
