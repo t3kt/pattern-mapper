@@ -180,10 +180,10 @@ class ShapeInfo(BaseDataObject):
 				'color': self.color,
 				'center': self.center,
 				'shapelength': self.shapelength,
-				'depthlayer': self.depthlayer,
-				'dupcount': self.dupcount,
-				'radius': self.radius,
-				'rotateaxis': self.rotateaxis,
+				'depthlayer': self.depthlayer or None,
+				'dupcount': self.dupcount or None,
+				'radius': self.radius or None,
+				'rotateaxis': self.rotateaxis or None,
 				'points': PointData.ToJsonDicts(self.points),
 			}))
 
@@ -248,7 +248,7 @@ class SequenceStep(BaseDataObject):
 		return cleandict(mergedicts(self.attrs, {
 			'sequenceindex': self.sequenceindex,
 			'shapeindices': formatValueList(self.shapeindices),
-			'isdefault': self.isdefault,
+			'isdefault': self.isdefault or None,
 			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
 		}))
 
@@ -306,14 +306,14 @@ class GroupInfo(BaseDataObject):
 		return cleandict(mergedicts(self.attrs, {
 			'groupname': self.groupname,
 			'grouppath': self.grouppath,
-			'inferencetype': self.inferencetype,
+			'inferencetype': self.inferencetype or None,
 			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
-			'depthlayer': self.depthlayer,
-			'depth': self.depth,
+			'depthlayer': self.depthlayer or None,
+			'depth': self.depth or None,
 			'shapeindices': formatValueList(self.shapeindices),
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
-			'temporary': self.temporary,
-			'rotateaxis': self.rotateaxis,
+			'temporary': self.temporary or None,
+			'rotateaxis': self.rotateaxis or None,
 		}))
 
 	@classmethod
@@ -410,7 +410,7 @@ class SequenceBySpec(BaseDataObject):
 		return cleandict(mergedicts(self.attrs, {
 			'attr': self.attr,
 			'rounddigits': self.rounddigits,
-			'reverse': self.reverse,
+			'reverse': self.reverse or None,
 		}))
 
 	@classmethod
@@ -447,10 +447,10 @@ class GroupGenSpec(BaseDataObject, ABC):
 			'groupname': self.groupname,
 			'suffixes': self.suffixes,
 			'sequenceby': SequenceBySpec.ToOptionalJsonDict(self.sequenceby),
-			'temporary': self.temporary,
-			'depthlayer': self.depthlayer,
-			'mergeto': self.mergeto,
-			'rotateaxis': self.rotateaxis,
+			'temporary': self.temporary or None,
+			'depthlayer': self.depthlayer or None,
+			'mergeto': self.mergeto or None,
+			'rotateaxis': self.rotateaxis or None,
 		}))
 
 	@classmethod
@@ -496,7 +496,7 @@ class PathGroupGenSpec(GroupGenSpec):
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'path': self.paths,
-			'groupatdepth': self.groupatdepth,
+			'groupatdepth': self.groupatdepth or None,
 		}))
 
 class BoundMode(_BaseEnum):
@@ -1201,15 +1201,15 @@ class PatternSettings(BaseDataObject):
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
-			'autogroup': self.autogroup,
+			'autogroup': self.autogroup or None,
 			'groups': GroupGenSpec.ToJsonDicts(self.groups),
-			'rescale': self.rescale,
-			'recenter': self.recenter,
+			'rescale': self.rescale or None,
+			'recenter': self.recenter or None,
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
 			'groupshapestates': GroupShapeState.ToJsonDicts(self.groupshapestates),
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
-			'fixtrianglecenters': self.fixtrianglecenters,
-			'mergedups': self.mergedups,
+			'fixtrianglecenters': self.fixtrianglecenters or None,
+			'mergedups': self.mergedups or None,
 		}))
 
 	@classmethod
@@ -1319,7 +1319,7 @@ class PatternData(BaseDataObject):
 				sorted(self.groups, key=lambda g: g.groupname)),
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
 			'groupshapesates': GroupShapeState.ToJsonDicts(
-				sorted(self.groupshapestates, key=lambda g: g.groupname)),
+				sorted(self.groupshapestates, key=lambda g: formatValueList(g.group))),
 			'title': self.title,
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
 			'svgwidth': formatValue(self.svgwidth, nonevalue=None),
