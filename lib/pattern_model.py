@@ -1184,7 +1184,6 @@ class PatternSettings(BaseDataObject):
 			rescale: bool=None,
 			recenter: Union[bool, str]=None,  # str is a reference to a shapename
 			defaultshapestate: ShapeState=None,
-			groupshapestates: List[GroupShapeState]=None,
 			fixtrianglecenters: bool=None,
 			mergedups: Union[bool, float]=None,  # number is a distance tolerance
 			**attrs):
@@ -1193,7 +1192,6 @@ class PatternSettings(BaseDataObject):
 		self.rescale = rescale
 		self.recenter = recenter
 		self.defaultshapestate = defaultshapestate
-		self.groupshapestates = list(groupshapestates or [])
 		self.autogroup = autogroup
 		self.depthlayering = depthlayering
 		self.fixtrianglecenters = fixtrianglecenters
@@ -1206,7 +1204,6 @@ class PatternSettings(BaseDataObject):
 			'rescale': self.rescale or None,
 			'recenter': self.recenter or None,
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
-			'groupshapestates': GroupShapeState.ToJsonDicts(self.groupshapestates),
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 			'fixtrianglecenters': self.fixtrianglecenters or None,
 			'mergedups': self.mergedups or None,
@@ -1218,8 +1215,7 @@ class PatternSettings(BaseDataObject):
 			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
 			depthlayering=DepthLayeringSpec.FromOptionalJsonDict(obj.get('depthlayering')),
 			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
-			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
-			**excludekeys(obj, ['groups', 'depthlayering', 'defaultshapestate', 'groupshapestates'])
+			**excludekeys(obj, ['groups', 'depthlayering', 'defaultshapestate'])
 		)
 
 
@@ -1229,7 +1225,6 @@ class PatternData(BaseDataObject):
 			shapes: List[ShapeInfo]=None,
 			groups: List[GroupInfo]=None,
 			defaultshapestate: ShapeState=None,
-			groupshapestates: List[GroupShapeState]=None,
 			settings: PatternSettings=None,
 			title: str=None,
 			svgwidth: float=None,
@@ -1242,7 +1237,6 @@ class PatternData(BaseDataObject):
 			for group in groups:
 				self.addGroup(group)
 		self.defaultshapestate = defaultshapestate  # type: ShapeState
-		self.groupshapestates = list(groupshapestates or [])  # type: List[GroupShapeState]
 		self.title = title
 		self.settings = settings
 		self.svgwidth = svgwidth
@@ -1300,7 +1294,7 @@ class PatternData(BaseDataObject):
 		self.defaultshapestate = shapestate.Clone() if shapestate else None
 
 	def addGroupShapeStates(self, groupstates: Iterable[GroupShapeState]):
-		self.groupshapestates += groupstates
+		raise NotImplementedError() # REMOVE ME!
 
 	def removeGroup(self, group: GroupInfo):
 		if group in self.groups:
@@ -1318,8 +1312,6 @@ class PatternData(BaseDataObject):
 			'groups': GroupInfo.ToJsonDicts(
 				sorted(self.groups, key=lambda g: g.groupname)),
 			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
-			'groupshapesates': GroupShapeState.ToJsonDicts(
-				sorted(self.groupshapestates, key=lambda g: formatValueList(g.group))),
 			'title': self.title,
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
 			'svgwidth': formatValue(self.svgwidth, nonevalue=None),
@@ -1332,6 +1324,5 @@ class PatternData(BaseDataObject):
 			shapes=ShapeInfo.FromJsonDicts(obj.get('shapes')),
 			groups=GroupInfo.FromJsonDicts(obj.get('groups')),
 			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
-			groupshapestates=GroupShapeState.FromJsonDicts(obj.get('groupshapestates')),
 			settings=PatternSettings.FromOptionalJsonDict(obj.get('settings')),
 		)

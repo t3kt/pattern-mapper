@@ -195,18 +195,12 @@ class ShapeStateEditor(_SettingsEditor):
 
 	def GetState(self, filtered=True, channelsonly=True) -> Union[ShapeState, GroupShapeState]:
 		obj = self.GetStateDict(filtered=filtered, channelsonly=channelsonly)
-		if (not channelsonly) and self.ownerComp.par.Isgroup:
-			state = GroupShapeState.FromParamsDict(obj)
-			state.group = self.ownerComp.par.Group.eval()
-			return state
 		return ShapeState.FromParamsDict(obj)
 
 	def SetState(self, state: ShapeState, clearmissing=True):
 		obj = state.ToParamsDict()
 		self.SetStateDict(obj, clearmissing=clearmissing)
-		if isinstance(state, GroupShapeState):
-			self._groupnamepargroup.setVals({'Group': state.group}, clearmissing=clearmissing)
-		elif clearmissing:
+		if clearmissing:
 			self.ownerComp.par.Group = ''
 			self.ownerComp.par.Isgroup = False
 
@@ -225,9 +219,6 @@ class ShapeStatesBuilder(LoggableSubComponent):
 		self.dat.setSize(1 + n, self.dat.numCols)
 		if patterndata.defaultshapestate:
 			self._AddStates(patterndata.defaultshapestate, range(n))
-		for groupstate in patterndata.groupshapestates:
-			shapeindices = patterndata.getShapeIndicesByGroupPattern(parseValueList(groupstate.group))
-			self._AddStates(groupstate, shapeindices)
 
 	def _AddStates(self, shapestate: ShapeState, shapeindices: Iterable[int]):
 		obj = shapestate.ToParamsDict()
