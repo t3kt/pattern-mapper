@@ -1228,8 +1228,9 @@ class PatternData(BaseDataObject):
 			settings: PatternSettings=None,
 			title: str=None,
 			svgwidth: float=None,
-			svgheight: float=None):
-		super().__init__()
+			svgheight: float=None,
+			**attrs):
+		super().__init__(**attrs)
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
@@ -1293,20 +1294,18 @@ class PatternData(BaseDataObject):
 	def setDefaultShapeState(self, shapestate: ShapeState):
 		self.defaultshapestate = shapestate.Clone() if shapestate else None
 
-	def addGroupShapeStates(self, groupstates: Iterable[GroupShapeState]):
-		raise NotImplementedError() # REMOVE ME!
-
-	def removeGroup(self, group: GroupInfo):
-		if group in self.groups:
+	def removeTemporaryGroups(self):
+		toremove = [group for group in self.groups if group.temporary]
+		for group in toremove:
 			self.groups.remove(group)
-		if group.groupname and group.groupname in self.groupsbyname:
-			del self.groupsbyname[group.groupname]
+			if group.groupname and group.groupname in self.groupsbyname:
+				del self.groupsbyname[group.groupname]
 
 	def __repr__(self):
 		return 'PatternData({} shapes, {} groups)'.format(len(self.shapes), len(self.groups))
 
 	def ToJsonDict(self):
-		return cleandict({
+		return cleandict(mergedicts(self.attrs, {
 			'shapes': ShapeInfo.ToJsonDicts(
 				sorted(self.shapes, key=lambda s: s.shapeindex)),
 			'groups': GroupInfo.ToJsonDicts(
@@ -1316,7 +1315,7 @@ class PatternData(BaseDataObject):
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
 			'svgwidth': formatValue(self.svgwidth, nonevalue=None),
 			'svgheight': formatValue(self.svgheight, nonevalue=None),
-		})
+		}))
 
 	@classmethod
 	def FromJsonDict(cls, obj):
@@ -1325,4 +1324,5 @@ class PatternData(BaseDataObject):
 			groups=GroupInfo.FromJsonDicts(obj.get('groups')),
 			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
 			settings=PatternSettings.FromOptionalJsonDict(obj.get('settings')),
+			**excludekeys(obj, ['shapes', 'groups', 'defaultshapestate', 'settings'])
 		)

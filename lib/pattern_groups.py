@@ -228,11 +228,8 @@ class GroupGenerators(LoggableSubComponent):
 			combiner.buildInto(combinedgroup, boolop=BoolOpNames.OR)
 			self.context.addGroup(combinedgroup)
 
-	@loggedmethod
 	def cleanTemporaryGroups(self):
-		for group in list(self.context.groups):
-			if group.temporary:
-				self.context.removeGroup(group)
+		self.context.removeTemporaryGroups()
 
 def _integerprefix(val: str, defval: int=None):
 	if not val:
