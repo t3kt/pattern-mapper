@@ -432,8 +432,9 @@ class PatternLoader(ExtensionBase):
 		if not self.patterndata or not self.patterndata.title:
 			return
 		name = self.patterndata.title
-		filename = str(pathlib.PurePath(self.ownerComp.par.Outputdir.eval() or '.').joinpath(
-			self.patterndata.title + '.tox')).replace('\\', '/')
+		filebase = str(pathlib.PurePath(self.ownerComp.par.Outputdir.eval() or '.').joinpath(
+			self.patterndata.title)).replace('\\', '/')
+		filename = filebase + '.tox'
 		holder = self.op('export_holder')
 		for o in holder.ops('*'):
 			o.destroy()
@@ -464,6 +465,8 @@ class PatternLoader(ExtensionBase):
 		comp.save(filename)
 		ui.status = 'Exported pattern TOX: {}'.format(filename)
 		comp.destroy()
+		thumbfile = filebase + '.png'
+		self.ownerComp.op('thumbnail').save(thumbfile)
 
 class _SvgParser(LoggableSubComponent):
 	def __init__(self, hostobj, settings: PatternSettings):
