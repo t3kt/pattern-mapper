@@ -25,7 +25,8 @@ def Log(msg, file=None):
 		_LoggerTimestamp(),
 		msg,
 		file=file)
-	file.flush()
+	if file:
+		file.flush()
 
 class IndentedLogger:
 	def __init__(self, outfile=None):
@@ -82,8 +83,8 @@ def _InitFileLog():
 	f.flush()
 	return IndentedLogger(outfile=_Tee(sys.stdout, f))
 
-#_logger = IndentedLogger()
-_logger = _InitFileLog()
+_logger = IndentedLogger()
+# _logger = _InitFileLog()
 
 class LoggableBase:
 	def _GetLogId(self) -> Optional[str]:
