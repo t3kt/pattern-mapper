@@ -89,6 +89,76 @@
     {
       "groupname": "purple",
       "groups": "purple*"
+    },
+    {
+      "groupname": "greenArm1",
+      "paths": "^.*/g\\[id=green1\\]/g\\[0\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 36,
+      "temporary": true
+    },
+    {
+      "groupname": "greenArm2",
+      "paths": "^.*/g\\[id=green1\\]/g\\[1\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 108,
+      "temporary": true
+    },
+    {
+      "groupname": "greenArm3",
+      "paths": "^.*/g\\[id=green1\\]/g\\[2\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 180,
+      "temporary": true
+    },
+    {
+      "groupname": "greenArm4",
+      "paths": "^.*/g\\[id=green1\\]/g\\[3\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 252,
+      "temporary": true
+    },
+    {
+      "groupname": "greenArm5",
+      "paths": "^.*/g\\[id=green1\\]/g\\[4\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 324,
+      "temporary": true
+    },
+    {
+      "groupname": "blueArm1",
+      "paths": "^.*/g\\[id=blue1\\]/g\\[0\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 216,
+      "temporary": true
+    },
+    {
+      "groupname": "blueArm2",
+      "paths": "^.*/g\\[id=blue1\\]/g\\[1\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 288,
+      "temporary": true
+    },
+    {
+      "groupname": "blueArm3",
+      "paths": "^.*/g\\[id=blue1\\]/g\\[2\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 0,
+      "temporary": true
+    },
+    {
+      "groupname": "blueArm4",
+      "paths": "^.*/g\\[id=blue1\\]/g\\[3\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 72,
+      "temporary": true
+    },
+    {
+      "groupname": "blueArm5",
+      "paths": "^.*/g\\[id=blue1\\]/g\\[4\\]",
+      "sequenceby": "value",
+      "_rotateaxis": 144,
+      "temporary": true
     }
   ]
 }

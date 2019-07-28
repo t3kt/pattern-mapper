@@ -50,6 +50,66 @@
       "sequenceby": "value"
     },
     {
+      "groupname": "arm1",
+      "paths": "^.*\\[id=[a-z]+1\\]",
+      "rotateaxis": 0
+    },
+    {
+      "groupname": "arm2",
+      "paths": "^.*\\[id=[a-z]+2\\]",
+      "rotateaxis": 60
+    },
+    {
+      "groupname": "arm3",
+      "paths": "^.*\\[id=[a-z]+3\\]",
+      "rotateaxis": 120
+    },
+    {
+      "groupname": "arm4",
+      "paths": "^.*\\[id=[a-z]+4\\]",
+      "rotateaxis": 180
+    },
+    {
+      "groupname": "arm5",
+      "paths": "^.*\\[id=[a-z]+5\\]",
+      "rotateaxis": 240
+    },
+    {
+      "groupname": "arm6",
+      "paths": "^.*\\[id=[a-z]+6\\]",
+      "rotateaxis": 300
+    },
+    {
+      "groupname": "arm1x",
+      "paths": "^.*\\[id=[a-z]+1x\\]",
+      "rotateaxis": 30
+    },
+    {
+      "groupname": "arm2x",
+      "paths": "^.*\\[id=[a-z]+2x\\]",
+      "rotateaxis": 90
+    },
+    {
+      "groupname": "arm3x",
+      "paths": "^.*\\[id=[a-z]+3x\\]",
+      "rotateaxis": 150
+    },
+    {
+      "groupname": "arm4x",
+      "paths": "^.*\\[id=[a-z]+4x\\]",
+      "rotateaxis": 210
+    },
+    {
+      "groupname": "arm5x",
+      "paths": "^.*\\[id=[a-z]+5x\\]",
+      "rotateaxis": 270
+    },
+    {
+      "groupname": "arm6x",
+      "paths": "^.*\\[id=[a-z]+6x\\]",
+      "rotateaxis": 330
+    },
+    {
       "suffixes": "primarySlice1 primarySlice2 primarySlice3",
       "anglemin": "0",
       "anglemax": "120",
