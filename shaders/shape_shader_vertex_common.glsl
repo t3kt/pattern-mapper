@@ -50,7 +50,47 @@ TexLayerAttrs loadTexLayerAttrs(in int shapeIndex, in VertexAttrs attrs, in int 
 	return texAttrs;
 }
 
-VertexAttrs loadVertexAttrs() {
+struct TransformSettings {
+	vec3 localScale;
+	vec3 localRotate;
+	vec3 localTranslate;
+	vec3 globalScale;
+	vec3 globalRotate;
+	vec3 globalTranslate;
+};
+
+TransformSettings loadTransformSettings() {
+	TransformSettings settings;
+	vec4 localScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0);
+	settings.localScale = localScaleXYZUniform.xyz * localScaleXYZUniform.w;
+	settings.localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
+	settings.localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
+
+	vec4 globalScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0);
+	settings.globalScale = globalScaleXYZUniform.xyz * globalScaleXYZUniform.w;
+	settings.globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
+	settings.globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
+	return settings;
+}
+
+void applyTransform(inout vec4 pos, in TransformSettings transformSettings) {
+	scaleRotateTranslate(
+		pos,
+		transformSettings.globalScale,
+		transformSettings.globalRotate,
+		transformSettings.globalTranslate,
+		vec3(0),
+		rotateAxis);
+	scaleRotateTranslate(
+		pos,
+		transformSettings.localScale,
+		transformSettings.localRotate,
+		transformSettings.localTranslate,
+		centerPos,
+		rotateAxis);
+}
+
+VertexAttrs loadVertexAttrs(in TransformSettings transformSettings) {
 	VertexAttrs attrs;
 
 	{ // Avoid duplicate variable defs
@@ -80,26 +120,7 @@ VertexAttrs loadVertexAttrs() {
 	if (!attrs.visible) {
 		worldSpacePos = vec4(-1000.0);
 	} else {
-		vec4 localScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 0), 0);
-		vec3 localScale = localScaleXYZUniform.xyz * localScaleXYZUniform.w;
-		vec3 localRotate = texelFetch(sTransforms, ivec2(shapeIndex, 1), 0).xyz;
-		vec3 localTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 2), 0).xyz;
-
-		vec4 globalScaleXYZUniform = texelFetch(sTransforms, ivec2(shapeIndex, 3), 0);
-		vec3 globalScale = globalScaleXYZUniform.xyz * globalScaleXYZUniform.w;
-		vec3 globalRotate = texelFetch(sTransforms, ivec2(shapeIndex, 4), 0).xyz;
-		vec3 globalTranslate = texelFetch(sTransforms, ivec2(shapeIndex, 5), 0).xyz;
-
-		scaleRotateTranslate(
-			worldSpacePos,
-			globalScale, globalRotate, globalTranslate,
-			vec3(0),
-			rotateAxis);
-		scaleRotateTranslate(
-			worldSpacePos,
-			localScale, localRotate, localTranslate,
-			centerPos,
-			rotateAxis);
+		applyTransform(worldSpacePos, transformSettings);
 	}
 
 	vec3 uvUnwrapCoord = TDInstanceTexCoord(TDUVUnwrapCoord());
@@ -130,4 +151,9 @@ VertexAttrs loadVertexAttrs() {
 #endif // TD_PICKING_ACTIVE
 
 	return attrs;
+}
+
+VertexAttrs loadVertexAttrs() {
+	TransformSettings transformSettings = loadTransformSettings();
+	return loadVertexAttrs(transformSettings);
 }

@@ -38,7 +38,7 @@ void main()
 	vec3 diffuseSum = vec3(0.0, 0.0, 0.0);
 	vec3 specularSum = vec3(0.0, 0.0, 0.0);
 
-	vec2 texCoord0 = iVert.attrs.texCoord0.st;
+	vec2 texCoord0 = iVert.attrs.faceTexCoord.st;
 	vec4 heightMapColor = texture(sHeightMap, texCoord0.st);
 	vec4 normalMap = texture(sNormalMap, texCoord0.st);
 	vec3 worldSpaceNorm = iVert.tangentToWorld[2];

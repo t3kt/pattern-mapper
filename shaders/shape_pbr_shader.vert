@@ -22,7 +22,8 @@ out Vertex
 
 void main()
 {
-	oVert.attrs = loadVertexAttrs();
+	TransformSettings transformSettings = loadTransformSettings();
+	oVert.attrs = loadVertexAttrs(transformSettings);
 
 	// First deform the vertex and normal
 	// TDDeform always returns values in world space
@@ -41,6 +42,9 @@ void main()
 	oVert.cameraIndex = cameraIndex;
 	oVert.attrs.color = TDInstanceColor(Cd);
 	vec3 worldSpaceNorm = normalize(TDDeformNorm(N));
+	vec4 worldSpaceNorm4 = vec4(worldSpaceNorm, 0);
+	applyTransform(worldSpaceNorm4, transformSettings);
+	worldSpaceNorm = worldSpaceNorm4.xyz;
 
 	vec3 worldSpaceTangent = TDDeformNorm(T.xyz);
 	worldSpaceTangent.xyz = normalize(worldSpaceTangent.xyz);
@@ -49,6 +53,7 @@ void main()
 	// T.w contains the handedness of the tangent
 	// It will be used to flip the bi-normal if needed
 	oVert.tangentToWorld = TDCreateTBNMatrix(worldSpaceNorm, worldSpaceTangent, T.w);
+//	scaleRotateTranslate(oVert.tangentToWorld, )
 
 #else // TD_PICKING_ACTIVE
 
