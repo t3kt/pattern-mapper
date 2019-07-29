@@ -51,62 +51,62 @@
     },
     {
       "groupname": "arm1",
-      "paths": "^.*\\[id=[a-z]+1\\]",
+      "paths": "^.*\\[id=[a-z]+1[ab]?\\]",
       "rotateaxis": 0
     },
     {
       "groupname": "arm2",
-      "paths": "^.*\\[id=[a-z]+2\\]",
+      "paths": "^.*\\[id=[a-z]+2[ab]?\\]",
       "rotateaxis": 60
     },
     {
       "groupname": "arm3",
-      "paths": "^.*\\[id=[a-z]+3\\]",
+      "paths": "^.*\\[id=[a-z]+3[ab]?\\]",
       "rotateaxis": 120
     },
     {
       "groupname": "arm4",
-      "paths": "^.*\\[id=[a-z]+4\\]",
+      "paths": "^.*\\[id=[a-z]+4[ab]?\\]",
       "rotateaxis": 180
     },
     {
       "groupname": "arm5",
-      "paths": "^.*\\[id=[a-z]+5\\]",
+      "paths": "^.*\\[id=[a-z]+5[ab]?\\]",
       "rotateaxis": 240
     },
     {
       "groupname": "arm6",
-      "paths": "^.*\\[id=[a-z]+6\\]",
+      "paths": "^.*\\[id=[a-z]+6[ab]?\\]",
       "rotateaxis": 300
     },
     {
       "groupname": "arm1x",
-      "paths": "^.*\\[id=[a-z]+1x\\]",
+      "paths": "^.*\\[id=[a-z]+1x[ab]?\\]",
       "rotateaxis": 30
     },
     {
       "groupname": "arm2x",
-      "paths": "^.*\\[id=[a-z]+2x\\]",
+      "paths": "^.*\\[id=[a-z]+2x[ab]?\\]",
       "rotateaxis": 90
     },
     {
       "groupname": "arm3x",
-      "paths": "^.*\\[id=[a-z]+3x\\]",
+      "paths": "^.*\\[id=[a-z]+3x[ab]?\\]",
       "rotateaxis": 150
     },
     {
       "groupname": "arm4x",
-      "paths": "^.*\\[id=[a-z]+4x\\]",
+      "paths": "^.*\\[id=[a-z]+4x[ab]?\\]",
       "rotateaxis": 210
     },
     {
       "groupname": "arm5x",
-      "paths": "^.*\\[id=[a-z]+5x\\]",
+      "paths": "^.*\\[id=[a-z]+5x[ab]?\\]",
       "rotateaxis": 270
     },
     {
       "groupname": "arm6x",
-      "paths": "^.*\\[id=[a-z]+6x\\]",
+      "paths": "^.*\\[id=[a-z]+6x[ab]?\\]",
       "rotateaxis": 330
     },
     {
