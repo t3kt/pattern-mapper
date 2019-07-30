@@ -77,15 +77,19 @@ mat4 translateMatrix(in vec3 t) {
 		0.0, 0.0, 0.0, 1.0);
 }
 
+mat4 scaleMatrix(in vec3 s) {
+	return mat4(
+		s.x, 0.0, 0.0, 0.0,
+		0.0, s.y, 0.0, 0.0,
+		0.0, 0.0, s.z, 0.0,
+		0.0, 0.0, 0.0, 1.0);
+}
+
 mat4 scaleRotateTranslateMatrix(in vec3 scale, in vec3 rotate, in vec3 translate) {
 	// does scale then rotate then translate (even those these look like they are in reverse order below)
 	mat4 m = translateMatrix(translate);
 	m *= rotationXYZ(radians(rotate));
-	return m * mat4(
-		scale.x, 0.0, 0.0, 0.0,
-		0.0, scale.y, 0.0, 0.0,
-		0.0, 0.0, scale.z, 0.0,
-		0.0, 0.0, 0.0, 1.0);
+	return m * scaleMatrix(scale);
 }
 
 void scaleRotateTranslate(
