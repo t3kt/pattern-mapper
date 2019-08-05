@@ -1,0 +1,107 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "fixtrianglecenters": true,
+  "groups": [
+    {
+      "groupname": "blue1",
+      "paths": "^.*/g\\[id=blue1\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "blue2",
+      "paths": "^.*/g\\[id=blue2\\]",
+      "sequenceby": "value",
+      "rotateaxis": 72
+    },
+    {
+      "groupname": "blue3",
+      "paths": "^.*/g\\[id=blue3\\]",
+      "sequenceby": "value",
+      "rotateaxis": 144
+    },
+    {
+      "groupname": "blue4",
+      "paths": "^.*/g\\[id=blue4\\]",
+      "sequenceby": "value",
+      "rotateaxis": 216
+    },
+    {
+      "groupname": "blue5",
+      "paths": "^.*/g\\[id=blue5\\]",
+      "sequenceby": "value",
+      "rotateaxis": 288
+    },
+    {
+      "groupname": "green1",
+      "paths": "^.*/g\\[id=green1\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "green2",
+      "paths": "^.*/g\\[id=green2\\]",
+      "sequenceby": "value",
+      "rotateaxis": 72
+    },
+    {
+      "groupname": "green3",
+      "paths": "^.*/g\\[id=green3\\]",
+      "sequenceby": "value",
+      "rotateaxis": 144
+    },
+    {
+      "groupname": "green4",
+      "paths": "^.*/g\\[id=green4\\]",
+      "sequenceby": "value",
+      "rotateaxis": 216
+    },
+    {
+      "groupname": "green5",
+      "paths": "^.*/g\\[id=green5\\]",
+      "sequenceby": "value",
+      "rotateaxis": 288
+    },
+    {
+      "groupname": "purple1",
+      "paths": "^.*/g\\[id=purple1\\]",
+      "sequenceby": "value",
+      "rotateaxis": 36
+    },
+    {
+      "groupname": "purple2",
+      "paths": "^.*/g\\[id=purple2\\]",
+      "sequenceby": "value",
+      "rotateaxis": 108
+    },
+    {
+      "groupname": "purple3",
+      "paths": "^.*/g\\[id=purple3\\]",
+      "sequenceby": "value",
+      "rotateaxis": 180
+    },
+    {
+      "groupname": "purple4",
+      "paths": "^.*/g\\[id=purple4\\]",
+      "sequenceby": "value",
+      "rotateaxis": 252
+    },
+    {
+      "groupname": "purple5",
+      "paths": "^.*/g\\[id=purple5\\]",
+      "sequenceby": "value",
+      "rotateaxis": 324
+    },
+    {
+      "groupname": "blue",
+      "groups": "blue*"
+    },
+    {
+      "groupname": "green",
+      "groups": "green*"
+    },
+    {
+      "groupname": "purple",
+      "groups": "purple*"
+    }
+  ]
+}
