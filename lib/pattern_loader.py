@@ -209,6 +209,8 @@ class PatternLoader(ExtensionBase):
 		self._BuildShapeGroupSequenceIndices(self.op('set_shape_group_sequence_indices'))
 		self._BuildShapeDefaultStateTable(self.op('set_shape_default_state_table'))
 		self.op('shape_panels').cook(force=True)
+		if self.par.Autoexport:
+			self.ExportTox()
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):
