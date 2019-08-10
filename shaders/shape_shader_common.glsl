@@ -88,7 +88,8 @@ mat4 scaleMatrix(in vec3 s) {
 mat4 scaleRotateTranslateMatrix(in vec3 scale, in vec3 rotate, in vec3 translate) {
 	mat4 m = scaleMatrix(scale);
 	m *= rotationXYZ(radians(rotate));
-	return m * translateMatrix(translate);
+	m *= translateMatrix(translate);
+	return m;
 }
 
 void scaleRotateTranslate(
@@ -100,21 +101,11 @@ void scaleRotateTranslate(
 		in vec3 rotateAxis) {
 	pos.xyz -= pivot;
 	pos *= rotationXYZ(-radians(rotateAxis));
-	pos *= scaleRotateTranslateMatrix(scale, rotate, translate);
+
+	pos *= scaleMatrix(scale);
+	pos *= rotationXYZ(rotate);
+	pos.xyz += translate;
+
 	pos *= rotationXYZ(radians(rotateAxis));
 	pos.xyz += pivot;
-}
-
-void scaleRotateTranslate(
-		inout mat4 m,
-		in vec3 scale,
-		in vec3 rotate,
-		in vec3 translate,
-		in vec3 pivot,
-		in vec3 rotateAxis) {
-	m *= translateMatrix(-pivot);
-	m *= rotationXYZ(-radians(rotateAxis));
-	m *= scaleRotateTranslateMatrix(scale, rotate, translate);
-	m *= rotationXYZ(radians(rotateAxis));
-	m *= translateMatrix(pivot);
 }
