@@ -157,28 +157,59 @@ class LightingLoader(ExtensionBase):
 		chop.appendChan('strip')
 		chop.appendChan('segment')
 		chop.appendChan('indexinsegment')
+		chop.appendChan('ratioinsegment')
+		chop.appendChan('indexinstrip')
 		chop.appendChan('shape')
 		chop.appendChan('vertex')
 		if not self.lightpattern:
 			chop.numSamples = 0
 			return
-		lightobjs = []
-		for stripindex, strip in enumerate(self.lightpattern.strips):
-			for segindex, segment in enumerate(strip.segments):
-				for light in range(segment.count):
-					lightobjs.append((
-						stripindex,
-						segindex,
-						light,
-						segment.shape,
-						tdu.remap(light, 0, segment.count - 1, segment.start, segment.end),
-					))
+		lightobjs = _lightInfosFromPattern(self.lightpattern)
 		self._LogEvent('light objs: {!r}'.format(lightobjs))
 		chop.numSamples = len(lightobjs)
-		for lightindex, (strip, segment, indexinsegment, shape, vertex) in enumerate(lightobjs):
-			chop['strip'][lightindex] = strip
-			chop['segment'][lightindex] = segment
-			chop['indexinsegment'][lightindex] = indexinsegment
-			chop['shape'][lightindex] = shape
-			chop['vertex'][lightindex] = vertex
+		for lightindex, light in enumerate(lightobjs):
+			chop['strip'][lightindex] = light.strip
+			chop['segment'][lightindex] = light.segment
+			chop['indexinsegment'][lightindex] = light.indexinseg
+			chop['ratioinsegment'][lightindex] = light.ratioinseg
+			chop['indexinstrip'][lightindex] = light.indexinstrip
+			chop['shape'][lightindex] = light.shape
+			chop['vertex'][lightindex] = light.vertex
 		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
+
+def _lightInfosFromPattern(lightpattern: LightPattern):
+	lights = []
+	for stripindex, strip in enumerate(lightpattern.strips):
+		indexinstrip = 0
+		for segindex, segment in enumerate(strip.segments):
+			for light in range(segment.count):
+				lights.append(_LightInfo(
+					strip=stripindex,
+					segment=segindex,
+					indexinseg=light,
+					indexinstrip=indexinstrip,
+					ratioinseg=light / (segment.count - 1),
+					shape=segment.shape,
+					vertex=tdu.remap(light, 0, segment.count - 1, segment.start, segment.end),
+				))
+				indexinstrip += 1
+	return lights
+
+class _LightInfo:
+	def __init__(
+			self,
+			strip: int,
+			segment: int,
+			indexinseg: int,
+			indexinstrip: int,
+			ratioinseg: float,
+			shape: int,
+			vertex: float,
+		):
+		self.strip = strip
+		self.segment = segment
+		self.indexinseg = indexinseg
+		self.indexinstrip = indexinstrip
+		self.ratioinseg = ratioinseg
+		self.shape = shape
+		self.vertex = vertex
