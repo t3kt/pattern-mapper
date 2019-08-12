@@ -83,11 +83,11 @@ class LightPattern(BaseDataObject):
 		return {'strips': LightStrip.ToJsonDicts(self.strips)}
 
 	@property
-	def rows(self):
+	def maxstriplength(self):
 		return max(s.lightcount for s in self.strips)
 
 	@property
-	def cols(self):
+	def stripcount(self):
 		return len(self.strips)
 
 	@classmethod
@@ -107,6 +107,7 @@ class LightingLoader(ExtensionBase):
 		self.BuildStripTable(self.op('set_strip_table'))
 		self.BuildSegmentTable(self.op('set_segment_table'))
 		self.BuildLightValues(self.op('set_light_vals'))
+		self.BuildLightMapValues(self.op('set_light_map_vals'))
 
 	@loggedmethod
 	def BuildStripTable(self, dat):
@@ -165,7 +166,7 @@ class LightingLoader(ExtensionBase):
 			chop.numSamples = 0
 			return
 		lightobjs = _lightInfosFromPattern(self.lightpattern)
-		self._LogEvent('light objs: {!r}'.format(lightobjs))
+		# self._LogEvent('light objs: {!r}'.format(lightobjs))
 		chop.numSamples = len(lightobjs)
 		for lightindex, light in enumerate(lightobjs):
 			chop['strip'][lightindex] = light.strip
@@ -177,22 +178,54 @@ class LightingLoader(ExtensionBase):
 			chop['vertex'][lightindex] = light.vertex
 		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
+	@loggedmethod
+	def BuildLightMapValues(self, chop):
+		chop.clear()
+		if not self.lightpattern:
+			chop.numSamples = 0
+			return
+		n = self.lightpattern.maxstriplength
+		chop.numSamples = n
+		for stripindex, strip in enumerate(self.lightpattern.strips):
+			lightobjs = _lightInfosFromStrip(stripindex, strip)
+			segmentchan = chop.appendChan('segment{}'.format(stripindex))
+			indexinstripchan = chop.appendChan('indexinstrip{}'.format(stripindex))
+			shapechan = chop.appendChan('shape{}'.format(stripindex))
+			vertexchan = chop.appendChan('vertex{}'.format(stripindex))
+			for i in range(n):
+				if i >= len(lightobjs):
+					segmentchan[i] = -1
+					indexinstripchan[i] = -1
+					shapechan[i] = -1
+					vertexchan[i] = -1
+				else:
+					lightobj = lightobjs[i]
+					segmentchan[i] = lightobj.segment
+					indexinstripchan[i] = lightobj.indexinstrip
+					vertexchan[i] = lightobj.vertex
+		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
+
+def _lightInfosFromStrip(stripindex: int, strip: LightStrip):
+	lights = []
+	indexinstrip = 0
+	for segindex, segment in enumerate(strip.segments):
+		for light in range(segment.count):
+			lights.append(_LightInfo(
+				strip=stripindex,
+				segment=segindex,
+				indexinseg=light,
+				indexinstrip=indexinstrip,
+				ratioinseg=light / (segment.count - 1),
+				shape=segment.shape,
+				vertex=tdu.remap(light, 0, segment.count - 1, segment.start, segment.end),
+			))
+			indexinstrip += 1
+	return lights
+
 def _lightInfosFromPattern(lightpattern: LightPattern):
 	lights = []
 	for stripindex, strip in enumerate(lightpattern.strips):
-		indexinstrip = 0
-		for segindex, segment in enumerate(strip.segments):
-			for light in range(segment.count):
-				lights.append(_LightInfo(
-					strip=stripindex,
-					segment=segindex,
-					indexinseg=light,
-					indexinstrip=indexinstrip,
-					ratioinseg=light / (segment.count - 1),
-					shape=segment.shape,
-					vertex=tdu.remap(light, 0, segment.count - 1, segment.start, segment.end),
-				))
-				indexinstrip += 1
+		lights += _lightInfosFromStrip(stripindex, strip)
 	return lights
 
 class _LightInfo:
