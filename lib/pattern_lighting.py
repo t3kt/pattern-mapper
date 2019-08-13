@@ -1,3 +1,5 @@
+from math import ceil, floor
+
 print('pattern_lighting.py loading...')
 
 from typing import Dict, List, Union
@@ -11,88 +13,7 @@ try:
 except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, ExtensionBase, loggedmethod
 
-class LightSegment(BaseDataObject):
-	def __init__(
-			self,
-			shape: int,
-			start: int=0,
-			end: int=1,
-			count: int=3):
-		super().__init__()
-		self.shape = shape
-		self.start = start
-		self.end = end
-		self.count = count
-
-	def ToJsonDict(self):
-		return {'shape': self.shape, 'start': self.start, 'end': self.end, 'count': self.count}
-
-	def __str__(self):
-		return '{},{},{},{}'.format(self.shape, self.start, self.end, self.count)
-
-	@classmethod
-	def Parse(cls, val: Union[str, Dict]):
-		if isinstance(val, str):
-			parts = val.split(',')
-			return cls(int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3]) if len(parts) > 3 else 3)
-		if isinstance(val, dict):
-			return cls(**val)
-		raise Exception('Invalid light segment value: {!r}'.format(val))
-
-class LightStrip(BaseDataObject):
-	def __init__(
-			self,
-			segments: Union[str, List[LightSegment]]=None):
-		super().__init__()
-		if isinstance(segments, str):
-			segstrs = segments.split(' ')
-			self.segments = [LightSegment.Parse(s) for s in segstrs]
-		else:
-			self.segments = list(segments or [])
-
-	def ToJsonDict(self):
-		return {'segments': [str(s) for s in self.segments]}
-
-	@property
-	def lightcount(self):
-		return sum(s.count for s in self.segments)
-
-	@classmethod
-	def Parse(cls, val: Union[str, Dict, List[Union[str, Dict]]]):
-		if isinstance(val, str):
-			parts = val.split(' ')
-			return cls(segments=[LightSegment.Parse(v) for v in parts])
-		if isinstance(val, dict):
-			return cls(segments=[LightSegment.Parse(v) for v in val.get('segments') or []])
-		if isinstance(val, (list, tuple)):
-			return cls(
-				segments=[LightSegment.Parse(v) for v in val])
-		raise Exception('Invalid light strip value: {!r}'.format(val))
-
-	def __str__(self):
-		return ' '.join(str(segment) for segment in self.segments)
-
-class LightPattern(BaseDataObject):
-	def __init__(
-			self,
-			strips: List[LightStrip]=None):
-		super().__init__()
-		self.strips = list(strips or [])
-
-	def ToJsonDict(self):
-		return {'strips': LightStrip.ToJsonDicts(self.strips)}
-
-	@property
-	def maxstriplength(self):
-		return max(s.lightcount for s in self.strips)
-
-	@property
-	def stripcount(self):
-		return len(self.strips)
-
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(strips=[LightStrip.Parse(s) for s in (obj.get('strips') or [])])
+from pattern_model import LightStrip, LightPattern, LightSegment
 
 class LightingLoader(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -205,6 +126,64 @@ class LightingLoader(ExtensionBase):
 					vertexchan[i] = lightobj.vertex
 		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
+	@loggedmethod
+	def BuildLightUVs(self, chop, lightattrschop, shapepanelsop):
+		chop.clear()
+		for name in [
+			'pathu', 'pathv', 'pathw',
+			'faceu', 'facev', 'facew',
+			'globalu', 'globalv', 'globalw',
+		]:
+			chop.appendChan(name)
+		n = lightattrschop.numSamples
+		chop.numSamples = n
+		primsbyindex = {
+			int(prim.shapeIndex[0]): prim
+			for prim in shapepanelsop.prims
+			if prim.shapeIndex[0] >= 0
+		}
+		for i in range(n):
+			shapeindex = lightattrschop['shape'][i]
+			poly = primsbyindex.get(shapeindex)
+			if poly is None:
+				pathuv, faceuv, globaluv = _vertuvs(None)
+			else:
+				vertex = lightattrschop['vertex'][i]
+				vert1 = poly[int(ceil(vertex))]
+				pathuv, faceuv, globaluv = _vertuvs(vert1)
+				if int(vertex) < vertex:
+					vert2 = poly[int(floor(vertex))]
+					pathuv2, faceuv2, globaluv2 = _vertuvs(vert2)
+					ratio = vertex - int(vertex)
+					pathuv = _lerptuple(ratio, pathuv, pathuv2)
+				# 	faceuv = _lerptuple(ratio, faceuv, faceuv2)
+				# 	globaluv = _lerptuple(ratio, globaluv, globaluv2)
+			chop['pathu'][i] = pathuv[0]
+			chop['pathv'][i] = pathuv[1]
+			chop['pathw'][i] = pathuv[2]
+			chop['faceu'][i] = faceuv[0]
+			chop['facev'][i] = faceuv[1]
+			chop['facew'][i] = faceuv[2]
+			chop['globalu'][i] = globaluv[0]
+			chop['globalv'][i] = globaluv[1]
+			chop['globalw'][i] = globaluv[2]
+
+def _vertuvs(vertex):
+	if vertex is None:
+		return (0, 0, 0), (0, 0, 0), (0, 0, 0)
+	# i don't think slices work properly for vertex attr values.. hence the manual indexing
+	pathuv = vertex.uv[0], vertex.uv[1], vertex.uv[2]
+	faceuv = vertex.uv[3], vertex.uv[4], vertex.uv[5]
+	globaluv = vertex.uv[6], vertex.uv[7], vertex.uv[8]
+	return pathuv, faceuv, globaluv
+
+def _lerp(x, low, high):
+	# or could just use tdu.remap()
+	return low + (high - low) * x
+
+def _lerptuple(x, lows, highs):
+	return tuple(_lerp(x, low, highs[i]) for i, low in enumerate(lows))
+
 def _lightInfosFromStrip(stripindex: int, strip: LightStrip):
 	lights = []
 	indexinstrip = 0
@@ -238,6 +217,7 @@ class _LightInfo:
 			ratioinseg: float,
 			shape: int,
 			vertex: float,
+			lightindex: int = None
 		):
 		self.strip = strip
 		self.segment = segment
@@ -246,3 +226,9 @@ class _LightInfo:
 		self.ratioinseg = ratioinseg
 		self.shape = shape
 		self.vertex = vertex
+
+class _LightPatternMap:
+	def __init__(self, lightpattern: LightPattern):
+		self.lightpattern = lightpattern
+		self.lights = []  # type: List[_LightInfo]
+		pass
