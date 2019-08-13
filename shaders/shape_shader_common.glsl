@@ -11,7 +11,7 @@ struct VertexAttrs {
 	flat bool visible;
 	flat vec4 color;
 	vec3 worldSpacePos;
-	vec2 texCoord0;
+	vec2 pathTexCoord;
 	vec3 faceTexCoord;
 	vec3 globalTexCoord;
 	flat int shapeIndex;

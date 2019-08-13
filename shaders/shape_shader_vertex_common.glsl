@@ -16,7 +16,7 @@ vec3 getTexCoordForUVMode(in VertexAttrs attrs, int uvMode) {
 	switch (uvMode) {
 		case UVMODE_GLOBAL: return attrs.globalTexCoord;
 		case UVMODE_LOCAL: return attrs.faceTexCoord;
-		case UVMODE_PATH: return vec3(attrs.texCoord0, 0.0);
+		case UVMODE_PATH: return vec3(attrs.pathTexCoord, 0.0);
 	}
 	return vec3(0.0);
 }
@@ -95,7 +95,7 @@ VertexAttrs loadVertexAttrs(in TransformSettings transformSettings) {
 
 	{ // Avoid duplicate variable defs
 		vec3 texcoord = TDInstanceTexCoord(uv[0]);
-		attrs.texCoord0.st = texcoord.st;
+		attrs.pathTexCoord.st = texcoord.st;
 	}
 
 	{ // Avoid duplicate variable defs
