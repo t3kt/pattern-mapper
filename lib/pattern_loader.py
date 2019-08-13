@@ -217,7 +217,6 @@ class PatternLoader(ExtensionBase):
 		sop.clear()
 		sop.primAttribs.create('Cd')
 		sop.primAttribs.create('shapeIndex', 0)
-		sop.primAttribs.create('duplicate', 0)
 		sop.primAttribs.create('rotateAxis', (0.0, 0.0, 0.0))
 		# distance around path (absolute), distance around path (relative to shape length)
 		sop.vertexAttribs.create('absRelDist', (0.0, 0.0))
@@ -226,7 +225,6 @@ class PatternLoader(ExtensionBase):
 			# 	continue
 			poly = sop.appendPoly(len(shape.points), addPoints=True, closed=False)
 			poly.shapeIndex[0] = shape.shapeindex
-			poly.duplicate[0] = int(shape.isduplicate)
 			poly.rotateAxis[0] = 0
 			poly.rotateAxis[1] = 0
 			poly.rotateAxis[2] = shape.rotateaxis or 0
@@ -266,7 +264,6 @@ class PatternLoader(ExtensionBase):
 			# so they need to be hard-coded
 			_copyAttrVals(toattr=poly.Cd, fromattr=srcpoly.Cd)
 			poly.shapeIndex[0] = srcpoly.shapeIndex[0]
-			poly.duplicate[0] = srcpoly.duplicate[0]
 			if hasattr(srcpoly, 'rotateAxis') and hasattr(poly, 'rotateAxis'):
 				poly.rotateAxis[0] = srcpoly.rotateAxis[0]
 				poly.rotateAxis[1] = srcpoly.rotateAxis[1]
