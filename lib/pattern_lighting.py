@@ -13,7 +13,7 @@ try:
 except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, ExtensionBase, loggedmethod
 
-from pattern_model import LightStrip, LightPattern, LightSegment
+from pattern_model import LightStrip, LightPattern
 
 class LightingLoader(ExtensionBase):
 	def __init__(self, ownerComp):
@@ -73,6 +73,9 @@ class LightingLoader(ExtensionBase):
 					segment.end,
 				])
 
+	def _GetLightPatternMap(self):
+		return _LightPatternMap(self.lightpattern)
+
 	@loggedmethod
 	def BuildLightValues(self, chop):
 		chop.clear()
@@ -86,17 +89,17 @@ class LightingLoader(ExtensionBase):
 		if not self.lightpattern:
 			chop.numSamples = 0
 			return
-		lightobjs = _lightInfosFromPattern(self.lightpattern)
+		lightmap = self._GetLightPatternMap()
 		# self._LogEvent('light objs: {!r}'.format(lightobjs))
-		chop.numSamples = len(lightobjs)
-		for lightindex, light in enumerate(lightobjs):
-			chop['strip'][lightindex] = light.strip
-			chop['segment'][lightindex] = light.segment
-			chop['indexinsegment'][lightindex] = light.indexinseg
-			chop['ratioinsegment'][lightindex] = light.ratioinseg
-			chop['indexinstrip'][lightindex] = light.indexinstrip
-			chop['shape'][lightindex] = light.shape
-			chop['vertex'][lightindex] = light.vertex
+		chop.numSamples = len(lightmap.lights)
+		for light in lightmap.lights:
+			chop['strip'][light.lightindex] = light.strip
+			chop['segment'][light.lightindex] = light.segment
+			chop['indexinsegment'][light.lightindex] = light.indexinseg
+			chop['ratioinsegment'][light.lightindex] = light.ratioinseg
+			chop['indexinstrip'][light.lightindex] = light.indexinstrip
+			chop['shape'][light.lightindex] = light.shape
+			chop['vertex'][light.lightindex] = light.vertex
 		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
 	@loggedmethod
@@ -107,29 +110,31 @@ class LightingLoader(ExtensionBase):
 			return
 		n = self.lightpattern.maxstriplength
 		chop.numSamples = n
-		for stripindex, strip in enumerate(self.lightpattern.strips):
-			lightobjs = _lightInfosFromStrip(stripindex, strip)
+		lightmap = self._GetLightPatternMap()
+		for stripindex, striplights in enumerate(lightmap.lightsbystrip):
+			lightindexchan = chop.appendChan('lightindex{}'.format(stripindex))
 			segmentchan = chop.appendChan('segment{}'.format(stripindex))
-			indexinstripchan = chop.appendChan('indexinstrip{}'.format(stripindex))
 			shapechan = chop.appendChan('shape{}'.format(stripindex))
 			vertexchan = chop.appendChan('vertex{}'.format(stripindex))
 			for i in range(n):
-				if i >= len(lightobjs):
+				if i >= len(striplights):
+					lightindexchan[i] = -1
 					segmentchan[i] = -1
-					indexinstripchan[i] = -1
 					shapechan[i] = -1
 					vertexchan[i] = -1
 				else:
-					lightobj = lightobjs[i]
+					lightobj = striplights[i]
+					lightindexchan[i] = lightobj.lightindex
+					lightobj = striplights[i]
 					segmentchan[i] = lightobj.segment
-					indexinstripchan[i] = lightobj.indexinstrip
 					vertexchan[i] = lightobj.vertex
 		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
 	@loggedmethod
-	def BuildLightUVs(self, chop, lightattrschop, shapepanelsop):
+	def BuildLightCoords(self, chop, lightattrschop, shapepanelsop):
 		chop.clear()
 		for name in [
+			'tx', 'ty', 'tz',
 			'pathu', 'pathv', 'pathw',
 			'faceu', 'facev', 'facew',
 			'globalu', 'globalv', 'globalw',
@@ -146,18 +151,22 @@ class LightingLoader(ExtensionBase):
 			shapeindex = lightattrschop['shape'][i]
 			poly = primsbyindex.get(shapeindex)
 			if poly is None:
-				pathuv, faceuv, globaluv = _vertuvs(None)
+				pos, pathuv, faceuv, globaluv = _vertcoords(None)
 			else:
 				vertex = lightattrschop['vertex'][i]
 				vert1 = poly[int(ceil(vertex))]
-				pathuv, faceuv, globaluv = _vertuvs(vert1)
+				pos, pathuv, faceuv, globaluv = _vertcoords(vert1)
 				if int(vertex) < vertex:
 					vert2 = poly[int(floor(vertex))]
-					pathuv2, faceuv2, globaluv2 = _vertuvs(vert2)
+					pos2, pathuv2, faceuv2, globaluv2 = _vertcoords(vert2)
 					ratio = vertex - int(vertex)
+					pos = _lerptuple(ratio, pos, pos2)
 					pathuv = _lerptuple(ratio, pathuv, pathuv2)
 				# 	faceuv = _lerptuple(ratio, faceuv, faceuv2)
 				# 	globaluv = _lerptuple(ratio, globaluv, globaluv2)
+			chop['tx'][i] = pos[0]
+			chop['ty'][i] = pos[1]
+			chop['tz'][i] = pos[2]
 			chop['pathu'][i] = pathuv[0]
 			chop['pathv'][i] = pathuv[1]
 			chop['pathw'][i] = pathuv[2]
@@ -168,14 +177,15 @@ class LightingLoader(ExtensionBase):
 			chop['globalv'][i] = globaluv[1]
 			chop['globalw'][i] = globaluv[2]
 
-def _vertuvs(vertex):
+def _vertcoords(vertex):
 	if vertex is None:
-		return (0, 0, 0), (0, 0, 0), (0, 0, 0)
+		return (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)
 	# i don't think slices work properly for vertex attr values.. hence the manual indexing
+	pos = vertex.point.x, vertex.point.y, vertex.point.z
 	pathuv = vertex.uv[0], vertex.uv[1], vertex.uv[2]
 	faceuv = vertex.uv[3], vertex.uv[4], vertex.uv[5]
 	globaluv = vertex.uv[6], vertex.uv[7], vertex.uv[8]
-	return pathuv, faceuv, globaluv
+	return pos, pathuv, faceuv, globaluv
 
 def _lerp(x, low, high):
 	# or could just use tdu.remap()
@@ -207,7 +217,7 @@ def _lightInfosFromPattern(lightpattern: LightPattern):
 		lights += _lightInfosFromStrip(stripindex, strip)
 	return lights
 
-class _LightInfo:
+class _LightInfo(BaseDataObject):
 	def __init__(
 			self,
 			strip: int,
@@ -226,9 +236,46 @@ class _LightInfo:
 		self.ratioinseg = ratioinseg
 		self.shape = shape
 		self.vertex = vertex
+		self.lightindex = lightindex
+		super().__init__()
+
+	def ToJsonDict(self):
+		return cleandict({
+			'strip': self.strip,
+			'segment': self.segment,
+			'indexinseg': self.indexinseg,
+			'indexinstrip': self.indexinstrip,
+			'ratioinseg': self.ratioinseg,
+			'shape': self.shape,
+			'vertex': self.vertex,
+			'lightindex': self.lightindex,
+		})
 
 class _LightPatternMap:
 	def __init__(self, lightpattern: LightPattern):
-		self.lightpattern = lightpattern
+		self.lightpattern = lightpattern or LightPattern()
 		self.lights = []  # type: List[_LightInfo]
-		pass
+		self.lightsbystrip = []  # type: List[List[_LightInfo]]
+		self.lightsbystrip = [
+			[] for _ in self.lightpattern.strips
+		]
+		if lightpattern.strips:
+			lightindex = 0
+			for stripindex, strip in enumerate(lightpattern.strips):
+				indexinstrip = 0
+				for segindex, segment in enumerate(strip.segments):
+					for indexinseg in range(segment.count):
+						light = _LightInfo(
+							strip=stripindex,
+							segment=segindex,
+							indexinseg=indexinseg,
+							indexinstrip=indexinstrip,
+							ratioinseg=indexinseg / (segment.count - 1),
+							shape=segment.shape,
+							# TODO: better handling of wrapping around from the last vertex to the first
+							vertex=tdu.remap(indexinseg, 0, segment.count - 1, segment.start, segment.end),
+							lightindex=lightindex)
+						indexinstrip += 1
+						lightindex += 1
+						self.lightsbystrip[stripindex].append(light)
+						self.lights.append(light)
