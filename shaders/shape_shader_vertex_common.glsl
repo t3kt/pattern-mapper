@@ -12,42 +12,8 @@ in vec3 centerPos;
 in int shapeIndex;
 in vec3 rotateAxis;
 
-vec3 getTexCoordForUVMode(in VertexAttrs attrs, int uvMode) {
-	switch (uvMode) {
-		case UVMODE_GLOBAL: return attrs.globalTexCoord;
-		case UVMODE_LOCAL: return attrs.faceTexCoord;
-		case UVMODE_PATH: return vec3(attrs.pathTexCoord, 0.0);
-	}
-	return vec3(0.0);
-}
-
 TexLayerAttrs loadTexLayerAttrs(in int shapeIndex, in VertexAttrs attrs, in int row) {
-	TexLayerAttrs texAttrs;
-
-	int vOffset = row * 5;
-
-	vec4 uvmode_texindex_comp_alpha = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 0), 0);
-	vec4 scalexyz_uniformscale = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 1), 0);
-	vec3 rotatexyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 2), 0).rgb;
-	vec3 translatexyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 3), 0).rgb;
-	vec3 pivotxyz = texelFetch(sTexParams, ivec2(shapeIndex, vOffset + 4), 0).rgb;
-
-	int uvMode = int(round(uvmode_texindex_comp_alpha.r));
-	texAttrs.textureIndex = int(round(uvmode_texindex_comp_alpha.g));
-	texAttrs.compositeMode = int(round(uvmode_texindex_comp_alpha.b));
-	texAttrs.level = uvmode_texindex_comp_alpha.a;
-
-	vec4 texCoord = vec4(getTexCoordForUVMode(attrs, uvMode), 0.0);
-	scaleRotateTranslate(
-		texCoord,
-		scalexyz_uniformscale.xyz * scalexyz_uniformscale.w,
-		rotatexyz,
-		translatexyz,
-		pivotxyz,
-		vec3(0));
-	texAttrs.texCoord = texCoord.xyz;
-
-	return texAttrs;
+	return loadTexLayerAttrs(sTexParams, shapeIndex, attrs, row);
 }
 
 struct TransformSettings {

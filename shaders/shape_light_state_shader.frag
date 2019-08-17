@@ -4,7 +4,8 @@
 
 #define sLightMap sTD2DInputs[0]
 #define sColors sTD2DInputs[1]
-#define sAttrs sTD2DInputs[2]
+#define sAttrs sTD2DInputs[3]
+#define sTexParams sTD2DInputs[2]
 
 /*
 r: light index (global), aka the sample
@@ -27,7 +28,7 @@ void main() {
     if (lightIndex < 0) {
         color = vec4(0);
     } else {
-        color = lightMapVals;
+        color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
     }
     fragColor = TDOutputSwizzle(color);
 }
