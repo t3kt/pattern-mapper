@@ -8,6 +8,11 @@ import json
 if False:
 	from ._stubs import *
 
+TDF = op.TDModules.mod.TDFunctions
+
+if False:
+	import TDFunctions as TDF
+
 try:
 	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, ExtensionBase, loggedmethod
 except ImportError:
@@ -18,13 +23,16 @@ from pattern_model import LightStrip, LightPattern
 class LightingLoader(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
-		self.lightpattern = LightPattern()
+		TDF.createProperty(self, 'LightPattern', value=LightPattern(), dependable=True)
+		if False:
+			self.LightPattern = None  # type: LightPattern
+		self.LoadPattern()
 
 	@loggedmethod
 	def LoadPattern(self):
 		patternjson = self.op('lighting_json').text
 		patternobj = json.loads(patternjson) if patternjson else {}
-		self.lightpattern = LightPattern.FromJsonDict(patternobj)
+		self.LightPattern = LightPattern.FromJsonDict(patternobj)
 		self.BuildStripTable(self.op('set_strip_table'))
 		self.BuildSegmentTable(self.op('set_segment_table'))
 		self.BuildLightValues(self.op('set_light_vals'))
@@ -39,9 +47,9 @@ class LightingLoader(ExtensionBase):
 			'lightcount',
 			'segments',
 		])
-		if not self.lightpattern:
+		if not self.LightPattern:
 			return
-		for stripindex, strip in enumerate(self.lightpattern.strips):
+		for stripindex, strip in enumerate(self.LightPattern.strips):
 			dat.appendRow([
 				stripindex,
 				len(strip.segments),
@@ -60,9 +68,9 @@ class LightingLoader(ExtensionBase):
 			'start',
 			'end',
 		])
-		if not self.lightpattern:
+		if not self.LightPattern:
 			return
-		for stripindex, strip in enumerate(self.lightpattern.strips):
+		for stripindex, strip in enumerate(self.LightPattern.strips):
 			for segindex, segment in enumerate(strip.segments):
 				dat.appendRow([
 					stripindex,
@@ -74,7 +82,7 @@ class LightingLoader(ExtensionBase):
 				])
 
 	def _GetLightPatternMap(self):
-		return _LightPatternMap(self.lightpattern)
+		return _LightPatternMap(self.LightPattern)
 
 	@loggedmethod
 	def BuildLightValues(self, chop):
@@ -86,7 +94,7 @@ class LightingLoader(ExtensionBase):
 		chop.appendChan('indexinstrip')
 		chop.appendChan('shape')
 		chop.appendChan('vertex')
-		if not self.lightpattern:
+		if not self.LightPattern:
 			chop.numSamples = 0
 			return
 		lightmap = self._GetLightPatternMap()
@@ -100,15 +108,14 @@ class LightingLoader(ExtensionBase):
 			chop['indexinstrip'][light.lightindex] = light.indexinstrip
 			chop['shape'][light.lightindex] = light.shape
 			chop['vertex'][light.lightindex] = light.vertex
-		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
 	@loggedmethod
 	def BuildLightMapValues(self, chop):
 		chop.clear()
-		if not self.lightpattern:
+		if not self.LightPattern:
 			chop.numSamples = 0
 			return
-		n = self.lightpattern.maxstriplength
+		n = self.LightPattern.maxstriplength
 		chop.numSamples = n
 		lightmap = self._GetLightPatternMap()
 		for stripindex, striplights in enumerate(lightmap.lightsbystrip):
@@ -128,7 +135,6 @@ class LightingLoader(ExtensionBase):
 					lightobj = striplights[i]
 					segmentchan[i] = lightobj.segment
 					vertexchan[i] = lightobj.vertex
-		chop.cook(force=True)  # not sure why this is needed but it seems to be at the moment
 
 	@loggedmethod
 	def BuildLightCoords(self, chop, lightattrschop, shapepanelsop):
