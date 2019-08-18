@@ -150,13 +150,13 @@ TexLayerAttrs loadTexLayerAttrs(
 	return texAttrs;
 }
 
-VertexAttrs loadBasicVertexAttrs(
+void loadBasicVertexAttrs(
+	inout VertexAttrs attrs,
 	in int shapeIndex,
 	in sampler2D sTexParams,
 	in sampler2D sColors,
 	in sampler2D sAttrs) {
-	VertexAttrs attrs;
-
+	
 	attrs.shapeIndex = shapeIndex;
 	attrs.color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
 	attrs.visible = texelFetch(sAttrs, ivec2(shapeIndex, 0), 0).r > 0.5;
@@ -170,6 +170,4 @@ VertexAttrs loadBasicVertexAttrs(
 	attrs.texLayer3 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 2);
 	attrs.texLayer4 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 3);
 	#endif
-
-	return attrs;
 }
