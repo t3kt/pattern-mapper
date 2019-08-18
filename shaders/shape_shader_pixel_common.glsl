@@ -2,10 +2,12 @@
 
 #include "shape_shader_common"
 
-uniform sampler2D sTexture1;
-uniform sampler2D sTexture2;
 
-vec4 getTextureColor(in VertexAttrs attrs, in TexLayerAttrs texAttrs) {
+vec4 getTextureColor(
+	in VertexAttrs attrs,
+	in TexLayerAttrs texAttrs,
+	in sampler2D sTexture1,
+	in sampler2D sTexture2) {
 	int textureIndex = texAttrs.textureIndex;
 	if (textureIndex == 0) {
 		return texture(sTexture1, texAttrs.texCoord.xy);
@@ -38,13 +40,15 @@ vec4 compositeColors(vec4 color1, vec4 color2, int compositeMode) {
 void applyTexture(
 	inout vec4 color,
 	in VertexAttrs attrs,
-	in TexLayerAttrs texAttrs) {
+	in TexLayerAttrs texAttrs,
+	in sampler2D sTexture1,
+	in sampler2D sTexture2) {
 
 	if (texAttrs.level <= 0.0) {
 		return;
 	}
 
-	vec4 texColor = getTextureColor(attrs, texAttrs);
+	vec4 texColor = getTextureColor(attrs, texAttrs, sTexture1, sTexture2);
 
 	vec4 compedColor = compositeColors(color, texColor, texAttrs.compositeMode);
 
