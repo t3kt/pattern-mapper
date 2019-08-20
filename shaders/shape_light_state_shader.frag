@@ -13,6 +13,7 @@ a: vertex
 #define sLightMap sTD2DInputs[0]
 
 #define sColors sTD2DInputs[1]
+#define uColorsInfo uTD2DInfos[1]
 
 #define sAttrs sTD2DInputs[3]
 
@@ -32,13 +33,15 @@ a: vertex
 */
 #define sLightCoords sTD2DInputs[6]
 
+uniform int uLightCount;
 
 void loadLightAttrs(inout VertexAttrs attrs, int lightIndex, int shapeIndex) {
 }
 
 out vec4 fragColor;
 void main() {
-    vec4 lightMapVals = texelFetch(sLightMap, ivec2(vUV.st * uTD2DInfos[0].res.zw), 0);
+//    vec4 lightMapVals = texelFetch(sLightMap, ivec2(vUV.st * uTD2DInfos[0].res.zw), 0);
+    vec4 lightMapVals = texture(sLightMap, vUV.st);
     int lightIndex = int(lightMapVals.r);
     int segIndex = int(lightMapVals.g);
     int shapeIndex = int(lightMapVals.b);
@@ -59,8 +62,12 @@ void main() {
     } else {
 //        color = attrs.color;
 //        color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
-		applyTexture(color, attrs, attrs.pathTex, sTexture1, sTexture2);
-//        color = lightMapVals;
+//        color = vec4(uColorsInfo.res.z);
+//        color = vec4(shapeIndex);
+//        color = vec4(vec2(vUV.st * uTD2DInfos[0].res.zw), 0, 1);
+//        color = texture(sColors, vec2(float(shapeIndex) / (uColorsInfo.res.z - 1.0), 0));
+//		applyTexture(color, attrs, attrs.pathTex, sTexture1, sTexture2);
+        color = lightMapVals;
     }
     fragColor = TDOutputSwizzle(color);
 }
