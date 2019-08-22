@@ -134,6 +134,7 @@ class LightingLoader(ExtensionBase):
 					lightindexchan[i] = lightobj.lightindex
 					lightobj = striplights[i]
 					segmentchan[i] = lightobj.segment
+					shapechan[i] = lightobj.shape
 					vertexchan[i] = lightobj.vertex
 
 	@loggedmethod

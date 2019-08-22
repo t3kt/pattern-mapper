@@ -60,14 +60,15 @@ void main() {
     if (lightIndex < 0) {
         color = vec4(0);
     } else {
-//        color = attrs.color;
+        color = attrs.color;
 //        color = texelFetch(sColors, ivec2(shapeIndex, 0), 0);
 //        color = vec4(uColorsInfo.res.z);
 //        color = vec4(shapeIndex);
 //        color = vec4(vec2(vUV.st * uTD2DInfos[0].res.zw), 0, 1);
 //        color = texture(sColors, vec2(float(shapeIndex) / (uColorsInfo.res.z - 1.0), 0));
-//		applyTexture(color, attrs, attrs.pathTex, sTexture1, sTexture2);
-        color = lightMapVals;
+		applyTexture(color, attrs, attrs.pathTex, sTexture1, sTexture2);
+//        color = lightMapVals;
+//        color = vec4(attrs.globalTexCoord, 1);
     }
     fragColor = TDOutputSwizzle(color);
 }
