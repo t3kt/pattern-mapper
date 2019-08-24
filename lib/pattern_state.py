@@ -187,8 +187,6 @@ class ShapeStateEditor(_SettingsEditor):
 				_ParGroup.ForTextureLayer(o, 'Includepathtex', 'Pathtex'),
 				_ParGroup.ForTextureLayer(o, 'Includetexlayer1', 'Texlayer1'),
 				_ParGroup.ForTextureLayer(o, 'Includetexlayer2', 'Texlayer2'),
-				_ParGroup.ForTextureLayer(o, 'Includetexlayer3', 'Texlayer3'),
-				_ParGroup.ForTextureLayer(o, 'Includetexlayer4', 'Texlayer4'),
 				self._groupnamepargroup,
 			]
 		)

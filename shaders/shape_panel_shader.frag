@@ -20,8 +20,6 @@ void main()
 	} else {
 		applyTexture(color, iVert.attrs, iVert.attrs.texLayer1, sTexture1, sTexture2);
 		applyTexture(color, iVert.attrs, iVert.attrs.texLayer2, sTexture1, sTexture2);
-		applyTexture(color, iVert.attrs, iVert.attrs.texLayer3, sTexture1, sTexture2);
-		applyTexture(color, iVert.attrs, iVert.attrs.texLayer4, sTexture1, sTexture2);
 	}
 
 	TDAlphaTest(color.a);

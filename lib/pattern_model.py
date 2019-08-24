@@ -1018,8 +1018,6 @@ class ShapeState(BaseDataObject):
 			self.globaltransform and self.globaltransform.ToParamsDict(prefix='Global'),
 			self.texturelayer1 and self.texturelayer1.ToParamsDict(prefix='Texlayer1'),
 			self.texturelayer2 and self.texturelayer2.ToParamsDict(prefix='Texlayer2'),
-			self.texturelayer3 and self.texturelayer3.ToParamsDict(prefix='Texlayer3'),
-			self.texturelayer4 and self.texturelayer4.ToParamsDict(prefix='Texlayer4'),
 			self.pathtexture and self.pathtexture.ToParamsDict(prefix='Pathtex'),
 		))
 
@@ -1034,8 +1032,6 @@ class ShapeState(BaseDataObject):
 			globaltransform=TransformSpec.FromParamsDict(obj, prefix='Global'),
 			texturelayer1=TextureLayer.FromParamsDict(obj, prefix='Texlayer1'),
 			texturelayer2=TextureLayer.FromParamsDict(obj, prefix='Texlayer2'),
-			texturelayer3=TextureLayer.FromParamsDict(obj, prefix='Texlayer3'),
-			texturelayer4=TextureLayer.FromParamsDict(obj, prefix='Texlayer4'),
 			pathtexture=TextureLayer.FromParamsDict(obj, prefix='Pathtex'),
 		)
 
@@ -1050,8 +1046,6 @@ class ShapeState(BaseDataObject):
 		names += TransformSpec.AllParamNames('Global')
 		names += TextureLayer.AllParamNames('Texlayer1')
 		names += TextureLayer.AllParamNames('Texlayer2')
-		names += TextureLayer.AllParamNames('Texlayer3')
-		names += TextureLayer.AllParamNames('Texlayer4')
 		names += TextureLayer.AllParamNames('Pathtex')
 		return names
 
@@ -1111,15 +1105,6 @@ class ShapeState(BaseDataObject):
 			page.appendToggle('Includetexlayer2', label='Include Texture Layer 2'),
 			startSection=True)
 		TextureLayer.CreatePars(page, 'Texlayer2', 'Layer 2 ')
-		page = o.appendCustomPage('Textures 3-4')
-		setattrs(
-			page.appendToggle('Includetexlayer3', label='Include Texture Layer 3'),
-			startSection=True)
-		TextureLayer.CreatePars(page, 'Texlayer3', 'Layer 3 ')
-		setattrs(
-			page.appendToggle('Includetexlayer4', label='Include Texture Layer 4'),
-			startSection=True)
-		TextureLayer.CreatePars(page, 'Texlayer4', 'Layer 4 ')
 
 	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
 	# 	addDictRow(dat, mergedicts(

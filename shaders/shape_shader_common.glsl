@@ -22,8 +22,6 @@ struct VertexAttrs {
 	#ifdef PANEL_MODE
 	TexLayerAttrs texLayer1;
 	TexLayerAttrs texLayer2;
-	TexLayerAttrs texLayer3;
-	TexLayerAttrs texLayer4;
 	#endif
 };
 
@@ -167,7 +165,5 @@ void loadBasicVertexAttrs(
 	#ifdef PANEL_MODE
 	attrs.texLayer1 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 0);
 	attrs.texLayer2 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 1);
-	attrs.texLayer3 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 2);
-	attrs.texLayer4 = loadTexLayerAttrs(sTexParams, shapeIndex, attrs, 3);
 	#endif
 }

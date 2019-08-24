@@ -153,8 +153,6 @@ void loadVertexAttrs(inout VertexAttrs attrs, in TransformSettings transformSett
 	#ifdef PANEL_MODE
 	attrs.texLayer1 = loadTexLayerAttrs(shapeIndex, attrs, 0);
 	attrs.texLayer2 = loadTexLayerAttrs(shapeIndex, attrs, 1);
-	attrs.texLayer3 = loadTexLayerAttrs(shapeIndex, attrs, 2);
-	attrs.texLayer4 = loadTexLayerAttrs(shapeIndex, attrs, 3);
 	#endif
 
 	// This is here to ensure we only execute lighting etc. code
