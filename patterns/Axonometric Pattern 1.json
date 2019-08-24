@@ -1,0 +1,72 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "mergedups": 0.0001,
+  "groups": [
+    {
+      "groupname": "RightFaces",
+      "paths": "^.*/g\\[id=RightFaces\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "LeftFaces",
+      "paths": "^.*/g\\[id=LeftFaces\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "UpFaces",
+      "paths": "^.*/g\\[id=UpFaces\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "GreenSections",
+      "paths": "^.*/g\\[id=GreenSections\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PurpleSections",
+      "paths": "^.*/g\\[id=PurpleSections\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "BluePaths",
+      "paths": "^.*/g\\[id=BluePaths\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "BlueCenter",
+      "paths": "^.*/g\\[id=BlueCenter\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "BlueBlocks",
+      "paths": "^.*/g\\[id=BlueBlocks\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PinkPanels",
+      "paths": "^.*/g\\[id=PinkPanels\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "OuterGreen",
+      "paths": "^.*/g\\[id=OuterGreen\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "LeftSlices",
+      "paths": "^.*/g\\[id=LeftSlices\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "UpSlices",
+      "paths": "^.*/g\\[id=UpSlices\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "RightSlices",
+      "paths": "^.*/g\\[id=RightSlices\\]",
+      "sequenceby": "value"
+    }
+  ]
+}
