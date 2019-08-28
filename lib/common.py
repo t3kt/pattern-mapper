@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+from dataclasses import dataclass, asdict
 import json
 import math
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -8,7 +9,7 @@ import sys
 print('common.py loading...')
 
 if False:
-	from common.lib._stubs import *
+	from _stubs import *
 
 
 _TimestampFormat = '[%H:%M:%S]'
@@ -211,6 +212,50 @@ def setattrs(obj, **attrs):
 	else:
 		for k, v in attrs.items():
 			setattr(obj, k, v)
+
+@dataclass
+class BaseDataObject2:
+
+	def ToJsonDict(self) -> dict:
+		return asdict(self)
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(**obj)
+
+	@classmethod
+	def FromJsonDicts(cls, objs: List[Dict]):
+		return [cls.FromJsonDict(obj) for obj in objs] if objs else []
+
+	@classmethod
+	def FromOptionalJsonDict(cls, obj, default=None):
+		return cls.FromJsonDict(obj) if obj else default
+
+	@classmethod
+	def FromJsonDictMap(cls, objs: Dict[str, Dict]):
+		if not objs:
+			return {}
+		results = {}
+		for key, obj in objs.items():
+			val = cls.FromOptionalJsonDict(obj)
+			if val:
+				results[key] = val
+		return results
+
+	@classmethod
+	def ToJsonDicts(cls, nodes: 'Iterable[BaseDataObject2]'):
+		return [n.ToJsonDict() for n in nodes] if nodes else []
+
+	@classmethod
+	def ToOptionalJsonDict(cls, obj: 'BaseDataObject2'):
+		return obj.ToJsonDict() if obj is not None else None
+
+	@classmethod
+	def ToJsonDictMap(cls, nodes: 'Dict[str, BaseDataObject2]'):
+		return {
+			path: node.ToJsonDict()
+			for path, node in nodes.items()
+		} if nodes else {}
 
 class BaseDataObject:
 	def __init__(self, **attrs):

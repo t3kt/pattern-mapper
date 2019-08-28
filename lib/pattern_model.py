@@ -1,5 +1,6 @@
 from abc import ABC
 from enum import Enum
+from dataclasses import dataclass, field, InitVar
 
 print('pattern_model.py loading...')
 
@@ -10,9 +11,9 @@ if False:
 	from ._stubs import *
 
 try:
-	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs
+	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs, BaseDataObject2
 except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs
+	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs, BaseDataObject2
 
 try:
 	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow, averagePoints, triangleCenter
@@ -193,27 +194,14 @@ class ShapeInfo(BaseDataObject):
 			points=PointData.FromJsonDicts(obj.get('points')),
 			**excludekeys(obj, ['points']))
 
-class PointData(BaseDataObject):
-	def __init__(
-			self,
-			pos: _XYZ=None,
-			absdist: float=None,
-			reldist: float=None,
-			**attrs):
-		super().__init__(**attrs)
-		self.pos = list(pos or [0, 0, 0])  # type: List[float]
-		self.absdist = absdist
-		self.reldist = reldist
+@dataclass
+class PointData(BaseDataObject2):
+	pos: _XYZ
+	absdist: float = 0
+	reldist: float = 0
 
 	def isEquivalentTo(self, other: 'PointData', tolerance=0.0):
 		return other is not None and _arePositionsInRange(self.pos, other.pos, tolerance)
-
-	def ToJsonDict(self):
-		return cleandict(mergedicts(self.attrs, {
-			'pos': self.pos,
-			'absdist': self.absdist,
-			'reldist': self.reldist,
-		}))
 
 def _arePositionsInRange(pos1, pos2, tolerance=0.0):
 	if pos1 is None or pos2 is None:
@@ -226,31 +214,27 @@ def _firstIndexWhere(items, test):
 			return i
 	return -1
 
-class SequenceStep(BaseDataObject):
-	def __init__(
-			self,
-			sequenceindex=0,
-			shapeindices: List[int]=None,
-			isdefault: bool=None,
-			inferredfromvalue: Any=None,
-			**attrs):
-		super().__init__(**attrs)
-		self.sequenceindex = sequenceindex
-		self.shapeindices = list(shapeindices or [])
+@dataclass
+class SequenceStep(BaseDataObject2):
+	sequenceindex: int = 0
+	shapeindices: List[int] = None
+	isdefault: bool = None
+	inferredfromvalue: Any = None
+
+	def __post_init__(self):
+		self.shapeindices = list(self.shapeindices or [])
 		self.shapeindices.sort()
-		self.isdefault = isdefault
-		self.inferredfromvalue = inferredfromvalue
 
 	def replaceIndices(self, replacements: Dict[int, int]):
 		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(self.attrs, {
+		return cleandict({
 			'sequenceindex': self.sequenceindex,
 			'shapeindices': formatValueList(self.shapeindices),
 			'isdefault': self.isdefault or None,
 			'inferredfromvalue': formatValue(self.inferredfromvalue, nonevalue=None),
-		}))
+		})
 
 	@classmethod
 	def FromJsonDict(cls, obj):
@@ -270,32 +254,23 @@ def _replaceIndices(indexlist: List[int], replacements: Dict[int, int]):
 			newlist.append(newindex)
 	return newlist
 
-class GroupInfo(BaseDataObject):
-	def __init__(
-			self,
-			groupname,
-			grouppath=None,
-			inferencetype: str=None,
-			inferredfromvalue: Any=None,
-			depthlayer: Union[int, str]=None,
-			depth: float=None,
-			shapeindices: List[int]=None,
-			sequencesteps: List[SequenceStep]=None,
-			temporary: bool=None,
-			rotateaxis: float=None,
-			**attrs):
-		super().__init__(**attrs)
-		self.groupname = groupname
-		self.grouppath = grouppath
-		self.inferencetype = inferencetype
-		self.inferredfromvalue = inferredfromvalue
-		self.depthlayer = depthlayer
-		self.depth = depth
-		self.shapeindices = list(shapeindices or [])
+@dataclass
+class GroupInfo(BaseDataObject2):
+	groupname: str
+	grouppath: str = None
+	inferencetype: str = None
+	inferredfromvalue: Any = None
+	depthlayer: Union[int, str] = None
+	depth: float = None
+	shapeindices: List[int] = None
+	sequencesteps: List[SequenceStep] = None
+	temporary: bool = None
+	rotateaxis: float = None
+
+	def __post_init__(self):
+		self.shapeindices = list(self.shapeindices or [])
 		self.shapeindices.sort()
-		self.sequencesteps = list(sequencesteps or [])
-		self.temporary = temporary
-		self.rotateaxis = rotateaxis
+		self.sequencesteps = list(self.sequencesteps or [])
 
 	def replaceIndices(self, replacements: Dict[int, int]):
 		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
@@ -303,7 +278,7 @@ class GroupInfo(BaseDataObject):
 			step.replaceIndices(replacements)
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(self.attrs, {
+		return cleandict({
 			'groupname': self.groupname,
 			'grouppath': self.grouppath,
 			'inferencetype': self.inferencetype or None,
@@ -314,7 +289,7 @@ class GroupInfo(BaseDataObject):
 			'sequencesteps': SequenceStep.ToJsonDicts(self.sequencesteps),
 			'temporary': self.temporary or None,
 			'rotateaxis': self.rotateaxis or None,
-		}))
+		})
 
 	@classmethod
 	def FromJsonDict(cls, obj):
@@ -394,24 +369,18 @@ class SequenceByTypes:
 	hsv = hue, saturation, value
 	xy = x, y
 
-class SequenceBySpec(BaseDataObject):
-	def __init__(
-			self,
-			attr: str,
-			rounddigits: int=None,
-			reverse: bool=None,
-			**attrs):
-		super().__init__(**attrs)
-		self.attr = attr
-		self.rounddigits = rounddigits
-		self.reverse = reverse
+@dataclass
+class SequenceBySpec(BaseDataObject2):
+	attr: str
+	rounddigits: int = None
+	reverse: bool = None
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(self.attrs, {
+		return cleandict({
 			'attr': self.attr,
 			'rounddigits': self.rounddigits,
 			'reverse': self.reverse or None,
-		}))
+		})
 
 	@classmethod
 	def FromJsonDict(cls, obj):
