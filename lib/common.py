@@ -217,7 +217,7 @@ def setattrs(obj, **attrs):
 class BaseDataObject2:
 
 	def ToJsonDict(self) -> dict:
-		return asdict(self)
+		return cleandict(asdict(self))
 
 	@classmethod
 	def FromJsonDict(cls, obj):

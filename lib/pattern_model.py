@@ -110,7 +110,7 @@ class ShapeInfo(BaseDataObject):
 		)
 
 	@property
-	def _pointsWithoutOpenLoop(self):
+	def _pointsWithoutOpenLoop(self) -> List['PointData']:
 		if self.isopenloop:
 			return self.points[:-1]
 		else:
@@ -171,8 +171,7 @@ class ShapeInfo(BaseDataObject):
 		return False
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(
-			self.attrs,
+		return cleandict(
 			{
 				'shapeindex': self.shapeindex,
 				'shapename': self.shapename,
@@ -186,7 +185,7 @@ class ShapeInfo(BaseDataObject):
 				'radius': self.radius or None,
 				'rotateaxis': self.rotateaxis or None,
 				'points': PointData.ToJsonDicts(self.points),
-			}))
+			})
 
 	@classmethod
 	def FromJsonDict(cls, obj):
