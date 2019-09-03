@@ -49,35 +49,26 @@ _UVOffset = Union[Tuple[float, float], Tuple[float, float, float]]
 _XYZ = Union[Tuple[float, float], Tuple[float, float, float]]
 _ValueListSpec = Union[str, List[Union[str, float]]]
 
-class ShapeInfo(BaseDataObject):
-	def __init__(
-			self,
-			shapeindex: int=0,
-			shapename: str=None,
-			shapepath: str=None,
-			parentpath: str=None,
-			color: _RGBAColor=None,
-			center: _XYZ=None,
-			shapelength: float=None,
-			depthlayer: int=None,
-			points: Iterable['PointData']=None,
-			dupcount: int=None,
-			radius: float=None,
-			rotateaxis: float=None,
-			**attrs):
-		super().__init__(**attrs)
-		self.shapeindex = shapeindex
-		self.shapename = shapename
-		self.shapepath = shapepath
-		self.parentpath = parentpath
-		self.color = list(color) if color else None
-		self.center = list(center) if center else None
-		self.shapelength = shapelength
-		self.depthlayer = depthlayer
-		self.points = list(points or [])
-		self.dupcount = dupcount or 0
-		self.radius = radius
-		self.rotateaxis = rotateaxis
+@dataclass
+class ShapeInfo(BaseDataObject2):
+	shapeindex: int = 0
+	shapename: str = None
+	shapepath: str = None
+	parentpath: str = None
+	color: _RGBAColor = None
+	center: _XYZ = None
+	shapelength: float = None
+	depthlayer: int = None
+	points: List['PointData'] = None
+	dupcount: int = None
+	radius: float = None
+	rotateaxis: float = None
+
+	def __post_init__(self):
+		self.color = list(self.color) if self.color else None
+		self.center = list(self.center) if self.center else None
+		self.points = list(self.points or [])
+		self.dupcount = self.dupcount or 0
 
 	@property
 	def isduplicate(self):
@@ -577,26 +568,12 @@ class GroupDepthModes:
 		groupnameprefix: groupnameprefix, 'prefix': groupnameprefix,
 	}
 
-class DepthLayeringSpec(BaseDataObject):
-	def __init__(
-			self,
-			mode: str=None,
-			condense: Optional[bool]=None,
-			layerdistance: Optional[float]=None,
-			defaultlayer: Optional[int]=None):
-		super().__init__()
-		self.mode = mode
-		self.condense = condense
-		self.layerdistance = layerdistance
-		self.defaultlayer = defaultlayer
-
-	def ToJsonDict(self):
-		return cleandict({
-			'mode': self.mode,
-			'condense': self.condense,
-			'layerdistance': self.layerdistance,
-			'defaultlayer': self.defaultlayer,
-		})
+@dataclass
+class DepthLayeringSpec(BaseDataObject2):
+	mode: str = None
+	condense: Optional[bool] = None
+	layerdistance: Optional[float] = None
+	defaultlayer: Optional[int] = None
 
 	@classmethod
 	def FromJsonDict(cls, obj):
