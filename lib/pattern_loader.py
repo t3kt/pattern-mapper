@@ -62,7 +62,6 @@ class PatternBuilder(ExtensionBase):
 		svgxml = svgxmlop.text
 		self._LoadPatternSettings()
 		self.patterndata.title = pathlib.PurePath(self.ownerComp.par.Svgfile.eval()).stem or ''
-		self.patterndata.setDefaultShapeState(self.patternsettings.defaultshapestate)
 		self._LoadPatternFromSvg(svgxml)
 		self._BuildGroups()
 		self._MergeDuplicateShapes()

@@ -215,8 +215,6 @@ class ShapeStatesBuilder(LoggableSubComponent):
 			return
 		n = len(patterndata.shapes)
 		self.dat.setSize(1 + n, self.dat.numCols)
-		if patterndata.defaultshapestate:
-			self._AddStates(patterndata.defaultshapestate, range(n))
 
 	def _AddStates(self, shapestate: ShapeState, shapeindices: Iterable[int]):
 		obj = shapestate.ToParamsDict()
