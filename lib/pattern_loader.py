@@ -447,6 +447,7 @@ class PatternLoader(ExtensionBase):
 		self._LogEvent('template: {!r}'.format(template))
 		comp = holder.copy(template, name=name)
 		for srcname in [
+			'metadata',
 			'shapes',
 			'shape_panels',
 			'shape_attrs',
