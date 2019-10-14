@@ -364,8 +364,27 @@ class BaseDataObject:
 def addDictRow(dat, obj: Dict[str, Any]):
 	r = dat.numRows
 	dat.appendRow([])
+	setDictRow(dat, r, obj)
+
+def setDictRow(dat, rowkey: Union[str, int], obj: Dict[str, Any], clearmissing=False):
 	for key, val in obj.items():
-		dat[r, key] = formatValue(val, nonevalue='')
+		dat[rowkey, key] = formatValue(val, nonevalue='')
+	if clearmissing:
+		for col in dat.row(0):
+			if col.val not in obj:
+				col.val = ''
+
+def getRowDict(dat, rowkey: Union[str, int]):
+	if dat.numRows <= 1:
+		return {}
+	headercells = dat.row(0)
+	valuecells = dat.row(rowkey)
+	if not valuecells:
+		return {}
+	return {
+		headercells[i].val: parseValue(valuecells[i])
+		for i in range(dat.numCols)
+	}
 
 def hextorgb(hexcolor: str):
 	if not hexcolor:
@@ -570,6 +589,8 @@ def formatValue(val, nonevalue=NULL_PLACEHOLDER):
 		return val
 	if val is None:
 		return nonevalue
+	if isinstance(val, bool):
+		return str(int(val))
 	if isinstance(val, float) and int(val) == val:
 		return str(int(val))
 	return str(val)

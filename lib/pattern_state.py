@@ -12,9 +12,9 @@ except ImportError:
 	from .common import LoggableSubComponent, ExtensionBase
 
 try:
-	from common import cleandict, excludekeys, mergedicts
+	from common import cleandict, excludekeys, mergedicts, addDictRow, getRowDict, setDictRow
 except ImportError:
-	from .common import cleandict, excludekeys, mergedicts
+	from .common import cleandict, excludekeys, mergedicts, addDictRow, getRowDict, setDictRow
 
 try:
 	from common import parseValue, parseValueList, formatValue, formatValueList
@@ -289,16 +289,35 @@ class _x_GroupShapeStateEditorManager(ExtensionBase):
 class PatternStatesManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
-		self.defaultshapestate = None  # type: ShapeState
-		self.groupshapestates = []  # type: List[ShapeState]
+		self.statetable = self.op('group_shape_states')
 
 	def LoadStates(self):
 		dat = self.op('states_json')
 		dat.par.loadonstartpulse.pulse()
 		jsontext = dat.text
 		obj = json.loads(jsontext) if jsontext else {}
-
-		pass
+		states = PatternStates.FromJsonDict(obj)
+		self.ClearStates()
+		self.SaveStateToRow(states.defaultshapestate or ShapeState.DefaultState())
+		for state in states.groupshapestates:
+			self.SaveStateToRow(state)
 
 	def SaveStates(self, filename: str=None):
 		pass
+
+	def ClearStates(self):
+		self.statetable.clear()
+		self.statetable.appendRow(ShapeState.AllParamNames())
+
+	def _GetStateFromRow(self, rowindex: int):
+		stateobj = getRowDict(self.statetable, rowindex)
+		return ShapeState.FromParamsDict(stateobj)
+
+	def SaveStateToRow(self, state: ShapeState, row: int=None):
+		if state is None:
+			state = ShapeState()
+		stateobj = state.ToParamsDict() or {}
+		if row is None:
+			addDictRow(self.statetable, stateobj)
+		else:
+			setDictRow(self.statetable, row, stateobj, clearmissing=True)

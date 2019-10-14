@@ -784,6 +784,16 @@ class TextureLayer(BaseDataObject):
 		self.composite = CompositeOp.ByName(composite, default=CompositeOp.over)  # type: CompositeOp
 		self.alpha = alpha or 0
 
+	@classmethod
+	def DefaultTextureLayer(cls, path=False):
+		return TextureLayer(
+			uvmode=TexCoordMode.path.name if path else TexCoordMode.glob.name,
+			textureindex=0,
+			transform=TransformSpec.DefaultTransformSpec(),
+			composite=CompositeOp.over.name,
+			alpha=0,
+		)
+
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
 			'uvmode': self.uvmode.name,
@@ -874,8 +884,6 @@ class ShapeState(BaseDataObject):
 			globaltransform: TransformSpec=None,
 			texturelayer1: TextureLayer=None,
 			texturelayer2: TextureLayer=None,
-			texturelayer3: TextureLayer=None,
-			texturelayer4: TextureLayer=None,
 			pathtexture: TextureLayer=None,
 			**attrs):
 		super().__init__(**attrs)
@@ -888,8 +896,6 @@ class ShapeState(BaseDataObject):
 		self.globaltransform = globaltransform
 		self.texturelayer1 = texturelayer1
 		self.texturelayer2 = texturelayer2
-		self.texturelayer3 = texturelayer3
-		self.texturelayer4 = texturelayer4
 		self.pathtexture = pathtexture
 
 	@classmethod
@@ -901,11 +907,9 @@ class ShapeState(BaseDataObject):
 			panelcolor=(1, 1, 1, 1),
 			localtransform=TransformSpec.DefaultTransformSpec(),
 			globaltransform=TransformSpec.DefaultTransformSpec(),
-			texturelayer1=TextureLayer(),
-			texturelayer2=TextureLayer(),
-			texturelayer3=TextureLayer(),
-			texturelayer4=TextureLayer(),
-			pathtexture=TextureLayer(),
+			texturelayer1=TextureLayer.DefaultTextureLayer(),
+			texturelayer2=TextureLayer.DefaultTextureLayer(),
+			pathtexture=TextureLayer.DefaultTextureLayer(path=True),
 		)
 
 	def MergedWith(self, override: 'ShapeState'):
@@ -921,8 +925,6 @@ class ShapeState(BaseDataObject):
 			globaltransform=TransformSpec.CloneFirst(override.globaltransform, self.globaltransform),
 			texturelayer1=TextureLayer.CloneFirst(override.texturelayer1, self.texturelayer1),
 			texturelayer2=TextureLayer.CloneFirst(override.texturelayer2, self.texturelayer2),
-			texturelayer3=TextureLayer.CloneFirst(override.texturelayer3, self.texturelayer3),
-			texturelayer4=TextureLayer.CloneFirst(override.texturelayer4, self.texturelayer4),
 			pathtexture=TextureLayer.CloneFirst(override.pathtexture, self.pathtexture),
 		)
 
@@ -937,8 +939,6 @@ class ShapeState(BaseDataObject):
 			'globaltransform': TransformSpec.ToOptionalJsonDict(self.globaltransform),
 			'texturelayer1': TextureLayer.ToOptionalJsonDict(self.texturelayer1),
 			'texturelayer2': TextureLayer.ToOptionalJsonDict(self.texturelayer2),
-			'texturelayer3': TextureLayer.ToOptionalJsonDict(self.texturelayer3),
-			'texturelayer4': TextureLayer.ToOptionalJsonDict(self.texturelayer4),
 			'pathtexture': TextureLayer.ToOptionalJsonDict(self.pathtexture),
 		}))
 
@@ -950,12 +950,10 @@ class ShapeState(BaseDataObject):
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
 			texturelayer1=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer1')),
 			texturelayer2=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer2')),
-			texturelayer3=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer3')),
-			texturelayer4=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer4')),
 			pathtexture=TextureLayer.FromOptionalJsonDict(obj.get('pathtexture')),
 			**excludekeys(obj, [
 				'localtransform', 'globaltransform',
-				'texturelayer1', 'texturelayer2', 'texturelayer3', 'texturelayer4', 'pathtexture',
+				'texturelayer1', 'texturelayer2', 'pathtexture',
 			]))
 
 	def ToParamsDict(self):
@@ -1060,12 +1058,6 @@ class ShapeState(BaseDataObject):
 			page.appendToggle('Includetexlayer2', label='Include Texture Layer 2'),
 			startSection=True)
 		TextureLayer.CreatePars(page, 'Texlayer2', 'Layer 2 ')
-
-	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
-	# 	addDictRow(dat, mergedicts(
-	# 		self.ToParamsDict(),
-	# 		attrs,
-	# 	))
 
 	def __bool__(self):
 		return bool(self.pathcolor or self.panelcolor or self.localtransform or self.globaltransform)

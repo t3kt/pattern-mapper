@@ -199,6 +199,7 @@ class PatternLoader(ExtensionBase):
 			if 'settings' in patternobj:
 				del patternobj['settings']
 			self.patterndata = PatternData.FromJsonDict(patternobj)
+		self._BuildMetadata(self.op('set_metadata'))
 		sop = self.op('build_geometry')
 		self._BuildGeometry(sop)
 		self._AssignGeometryGroups(sop)
@@ -210,6 +211,11 @@ class PatternLoader(ExtensionBase):
 		self.op('shape_panels').cook(force=True)
 		if self.par.Autoexport:
 			self.ExportTox()
+
+	@loggedmethod
+	def _BuildMetadata(self, dat):
+		dat.clear()
+		dat.appendRow(['title', (self.patterndata.title if self.patterndata else None) or ''])
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):
