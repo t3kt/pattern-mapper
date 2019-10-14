@@ -290,6 +290,8 @@ class PatternStatesManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.statetable = self.op('group_shape_states')
+		self.statenamedialog = self.op('state_name_dialog')
+		self.editstatenameindex = None
 
 	def LoadStates(self):
 		dat = self.op('states_json')
@@ -321,3 +323,22 @@ class PatternStatesManager(ExtensionBase):
 			addDictRow(self.statetable, stateobj)
 		else:
 			setDictRow(self.statetable, row, stateobj, clearmissing=True)
+
+	def PromptForNewState(self):
+		self.editstatenameindex = None
+		self.statenamedialog.par.Value = ''
+		self.statenamedialog.openViewer()
+
+	def OnStateNameDialogOk(self):
+		name = self.statenamedialog.par.Value.eval()
+		if self.editstatenameindex is None:
+			if name:
+				self.SaveStateToRow(ShapeState(group=name))
+		else:
+			self.statetable[self.editstatenameindex, 'Group'] = name or ''
+		self.editstatenameindex = None
+		self.statenamedialog.closeViewer()
+
+	def OnStateNameDialogCancel(self):
+		self.editstatenameindex = None
+		self.statenamedialog.closeViewer()
