@@ -865,6 +865,7 @@ class TextureLayer(BaseDataObject):
 class ShapeState(BaseDataObject):
 	def __init__(
 			self,
+			group: _ValueListSpec=None,
 			pathvisible: bool=None,
 			panelvisible: bool=None,
 			pathcolor: _RGBAColor=None,
@@ -878,6 +879,7 @@ class ShapeState(BaseDataObject):
 			pathtexture: TextureLayer=None,
 			**attrs):
 		super().__init__(**attrs)
+		self.group = group
 		self.pathvisible = pathvisible
 		self.panelvisible = panelvisible
 		self.pathcolor = tuple(pathcolor) if pathcolor else None
@@ -910,6 +912,7 @@ class ShapeState(BaseDataObject):
 		if not override:
 			return self.Clone()
 		return ShapeState(
+			group=override.group or self.group,
 			pathvisible=override.pathvisible if override.pathvisible is not None else self.pathvisible,
 			panelvisible=override.panelvisible if override.panelvisible is not None else self.panelvisible,
 			pathcolor=override.pathcolor or self.pathcolor,
@@ -925,6 +928,7 @@ class ShapeState(BaseDataObject):
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
+			'group': self.group,
 			'pathvisible': self.pathvisible,
 			'panelvisible': self.panelvisible,
 			'pathcolor': self.pathcolor,
@@ -941,6 +945,7 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def FromJsonDict(cls, obj):
 		return cls(
+			group=obj.get('group'),
 			localtransform=TransformSpec.FromOptionalJsonDict(obj.get('localtransform')),
 			globaltransform=TransformSpec.FromOptionalJsonDict(obj.get('globaltransform')),
 			texturelayer1=TextureLayer.FromOptionalJsonDict(obj.get('texturelayer1')),
@@ -955,6 +960,7 @@ class ShapeState(BaseDataObject):
 
 	def ToParamsDict(self):
 		return cleandict(mergedicts(
+			self.group is not None and {'Group': self.group},
 			self.pathvisible is not None and {'Pathvisible': self.pathvisible},
 			self.panelvisible is not None and {'Panelvisible': self.panelvisible},
 			_colorTupleToDict('Pathcolor', self.pathcolor),
@@ -969,8 +975,9 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def FromParamsDict(cls, obj):
 		return cls(
-			pathvisible=obj.get('pathvisible'),
-			panelvisible=obj.get('panelvisible'),
+			group=obj.get('Proup'),
+			pathvisible=obj.get('Pathvisible'),
+			panelvisible=obj.get('Panelvisible'),
 			pathcolor=_TupleFromDict(obj, 'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora', default=1),
 			panelcolor=_TupleFromDict(obj, 'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora', default=1),
 			localtransform=TransformSpec.FromParamsDict(obj, prefix='Local'),
@@ -983,6 +990,7 @@ class ShapeState(BaseDataObject):
 	@classmethod
 	def AllParamNames(cls):
 		names = [
+			'Group',
 			'Pathvisible', 'Panelvisible',
 			'Pathcolorr', 'Pathcolorg', 'Pathcolorb', 'Pathcolora',
 			'Panelcolorr', 'Panelcolorg', 'Panelcolorb', 'Panelcolora',
@@ -996,6 +1004,8 @@ class ShapeState(BaseDataObject):
 
 	@classmethod
 	def CreatePars(cls, o):
+		page = o.appendCustomPage('Group')
+		page.appendStr('Group', label='Group')
 		page = o.appendCustomPage('Path')
 		setattrs(
 			page.appendToggle('Includepathvisible', label='Include Path Visible'),
@@ -1078,32 +1088,26 @@ def _colorTupleToDict(prefix: str, color: _RGBAColor):
 		}
 	raise Exception('Invalid color: {!r}'.format(color))
 
-class GroupShapeState(ShapeState):
-	def __init__(
-			self,
-			group: _ValueListSpec=None,
-			pathcolor: _RGBAColor=None,
-			panelcolor: _RGBAColor=None,
-			localtransform: TransformSpec=None,
-			globaltransform: TransformSpec=None,
-			**attrs):
-		super().__init__(
-			pathcolor=pathcolor,
-			panelcolor=panelcolor,
-			localtransform=localtransform,
-			globaltransform=globaltransform,
-			**attrs)
-		self.group = group
+@dataclass
+class PatternStates(BaseDataObject2):
+	defaultshapestate: ShapeState = None
+	groupshapestates: List[ShapeState] = None
+
+	def __post_init__(self):
+		self.groupshapestates = list(self.groupshapestates or [])
 
 	def ToJsonDict(self):
-		return cleandict(mergedicts(super().ToJsonDict(), {
-			'group': self.group,
-		}))
+		return cleandict({
+			'defaultshapestate': ShapeState.ToOptionalJsonDict(self.defaultshapestate),
+			'groupshapestates': ShapeState.ToJsonDicts(self.groupshapestates),
+		})
 
-	# def AddToParamsTable(self, dat, attrs: Dict[str, Any]=None):
-	# 	super().AddToParamsTable(
-	# 		dat,
-	# 		mergedicts({'group': self.group}, attrs))
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			defaultshapestate=ShapeState.FromOptionalJsonDict(obj.get('defaultshapestate')),
+			groupshapestates=ShapeState.FromOptionalJsonDict(obj.get('groupshapestates')))
+
 
 class LightSegment(BaseDataObject):
 	def __init__(
