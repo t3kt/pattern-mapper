@@ -66,6 +66,9 @@ class PatternStatesManager(ExtensionBase):
 			oktext='Create',
 			ok=_ok)
 
+	def DeleteStateRow(self, row: int):
+		self.statetable.deleteRow(row)
+
 
 def _ShowPromptDialog(
 		title=None,
