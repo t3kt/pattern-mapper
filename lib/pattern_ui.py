@@ -91,6 +91,26 @@ class PatternStatesManager(ExtensionBase):
 			oktext='Create',
 			ok=_ok)
 
+	def PromptEditStateName(self, row: int=None):
+		if row is None:
+			row = self._GetSelectedRow()
+
+		def _ok(name=None):
+			if name is not None:
+				self.RenameStateRow(row, name)
+		_ShowPromptDialog(
+			title='Edit state',
+			text='Enter group name(s) for state',
+			oktext='Save',
+			ok=_ok)
+
+	def RenameStateRow(self, row: int, name: str):
+		print('RenameStateRow(row: {!r}, name: {!r})'.format(row, name))
+		self.statetable[row, 'Group'] = name or ''
+		if row == self._GetSelectedRow():
+			self.stateeditor.par.Isgroup = bool(name)
+			self.stateeditor.par.Group = name or ''
+
 	def DeleteStateRow(self, row: int):
 		self.statetable.deleteRow(row)
 
@@ -108,8 +128,11 @@ class PatternStatesManager(ExtensionBase):
 		if self.isloadingstatefromtable:
 			return
 		state = self.stateeditor.GetState(filtered=True, channelsonly=False)
-		row = int(self.op('iparStatesManager').par.Selectedgroupstateindex) + 1
+		row = self._GetSelectedRow()
 		self.SaveStateToRow(state, row)
+
+	def _GetSelectedRow(self):
+		return int(self.op('iparStatesManager').par.Selectedgroupstateindex) + 1
 
 def _ShowPromptDialog(
 		title=None,
