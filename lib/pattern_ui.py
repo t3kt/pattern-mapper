@@ -18,12 +18,15 @@ except ImportError:
 	from .common import cleandict, excludekeys, mergedicts, addDictRow, getRowDict, setDictRow
 
 from pattern_model import ShapeState, PatternStates
-
+from pattern_state import ShapeStateEditor
 
 class PatternStatesManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.statetable = self.op('group_shape_states')
+		self.stateeditor = self.op('shape_state_editor')  # type: ShapeStateEditor
+		self.statesjson = self.op('states_json')
+		self.isloadingstatefromtable = False
 
 	def LoadStates(self):
 		dat = self.op('states_json')
@@ -37,24 +40,46 @@ class PatternStatesManager(ExtensionBase):
 			self.SaveStateToRow(state)
 
 	def SaveStates(self, filename: str=None):
-		pass
+		states = self._BuildStates()
+		statesobj = states.ToJsonDict()
+		statesjson = json.dumps(statesobj, indent='  ')
+		self.statesjson.text = statesjson
+		# TODO: save to file?
+
+	def _BuildStates(self):
+		states = PatternStates()
+		for row in range(1, self.statetable.numRows):
+			state = self._GetStateFromRow(row)
+			if not state.group and not states.defaultshapestate:
+				states.defaultshapestate = state
+			else:
+				states.groupshapestates.append(state)
+		return states
 
 	def ClearStates(self):
 		self.statetable.clear()
-		self.statetable.appendRow(ShapeState.AllParamNames())
+		self.statetable.appendRow(['Group', 'JSON'])
 
 	def _GetStateFromRow(self, rowindex: int):
-		stateobj = getRowDict(self.statetable, rowindex)
-		return ShapeState.FromParamsDict(stateobj)
+		statename = self.statetable[rowindex, 'Group'] or ''
+		statejson = str(self.statetable[rowindex, 'JSON'] or '')
+		stateobj = json.loads(statejson) if statejson else {}
+		state = ShapeState.FromParamsDict(stateobj)
+		state.group = statename
+		return state
 
 	def SaveStateToRow(self, state: ShapeState, row: int=None):
+		if self.statetable.numRows < 0 or self.statetable.numCols < 2 or self.statetable[0,0] != 'Group' or self.statetable[0, 1] != 'JSON':
+			self.ClearStates()
 		if state is None:
 			state = ShapeState()
-		stateobj = state.ToParamsDict() or {}
-		if row is None:
-			addDictRow(self.statetable, stateobj)
+		stateobj = state.ToJsonDict() or {}
+		statejson = json.dumps(stateobj)
+		if row is None or row > (self.statetable.numRows - 1):
+			self.statetable.appendRow([state.group or '', statejson])
 		else:
-			setDictRow(self.statetable, row, stateobj, clearmissing=True)
+			self.statetable[row, 'Group'] = state.group or ''
+			self.statetable[row, 'JSON'] = statejson
 
 	def PromptForNewState(self):
 		def _ok(name=None):
@@ -69,6 +94,22 @@ class PatternStatesManager(ExtensionBase):
 	def DeleteStateRow(self, row: int):
 		self.statetable.deleteRow(row)
 
+	def OnSelectStateRow(self, row: int):
+		state = self._GetStateFromRow(row)
+		self.isloadingstatefromtable = True
+		try:
+			self.stateeditor.SetState(state, True)
+			self.stateeditor.par.Isgroup = bool(state.group)
+			self.stateeditor.par.Group = state.group or ''
+		finally:
+			self.isloadingstatefromtable = False
+
+	def OnStateEditorParChange(self, par):
+		if self.isloadingstatefromtable:
+			return
+		state = self.stateeditor.GetState(filtered=True, channelsonly=False)
+		row = int(self.op('iparStatesManager').par.Selectedgroupstateindex) + 1
+		self.SaveStateToRow(state, row)
 
 def _ShowPromptDialog(
 		title=None,

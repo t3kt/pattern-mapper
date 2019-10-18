@@ -25,13 +25,19 @@ class _BaseEnum(Enum):
 	def ByName(cls, name: str, default=None):
 		if name in (None, ''):
 			return default
-		return cls[name]
+		try:
+			return cls[name]
+		except KeyError:
+			return default
 
 	@classmethod
 	def ByValue(cls, value: Union[str, int], default=None):
 		if value in (None, ''):
 			return default
-		return cls(value)
+		try:
+			return cls(value)
+		except KeyError:
+			return default
 
 # def _defaultedgetter(getdefault: Callable):
 # 	attrname = getdefault.__name__

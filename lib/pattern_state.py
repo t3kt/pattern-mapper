@@ -54,6 +54,9 @@ class _ParGroup:
 		matchedany = False
 		for p in self.pars:
 			if p.name in obj:
+				val = obj[p.name]
+				if hasattr(val, 'val'):
+					pass
 				p.val = obj[p.name]
 				matchedany = True
 		if matchedany:
