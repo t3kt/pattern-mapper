@@ -202,9 +202,6 @@ class ShapeStateEditor(_SettingsEditor):
 	def SetState(self, state: ShapeState, clearmissing=True):
 		obj = state.ToParamsDict()
 		self.SetStateDict(obj, clearmissing=clearmissing)
-		if clearmissing:
-			self.ownerComp.par.Group = ''
-			self.ownerComp.par.Isgroup = False
 
 
 class ShapeStatesBuilder(LoggableSubComponent):

@@ -146,6 +146,10 @@ class PatternStatesManager(ExtensionBase):
 	def RenameState(self, i: int, name: str):
 		statedict = self._GetStateDict(i)
 		statedict['Group'] = name or ''
+		if i == self._SelectedIndex:
+			self.stateeditor.SetStateDict({'Group': name or ''}, clearmissing=False)
+			self.stateeditor.par.Isgroup = True
+			self.stateeditor.par.Group = name or ''
 
 	def DeleteState(self, i: int):
 		if 0 <= i < self.GroupStateCount:
@@ -154,10 +158,10 @@ class PatternStatesManager(ExtensionBase):
 	def OnSelectState(self, i: int):
 		self.isloadingstate = True
 		try:
-			state = self._GetState(i) or ShapeState()
-			self.stateeditor.SetState(state, True)
-			self.stateeditor.par.Isgroup = bool(state.group)
-			self.stateeditor.par.Group = state.group or ''
+			statedict = self._GetStateDict(i) or {}
+			self.stateeditor.SetStateDict(statedict, clearmissing=True)
+			self.stateeditor.par.Isgroup = True
+			self.stateeditor.par.Group = statedict.get('Group', None) or ''
 		finally:
 			self.isloadingstate = False
 
