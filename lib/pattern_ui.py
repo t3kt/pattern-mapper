@@ -6,6 +6,7 @@ import json
 if False:
 	from ._stubs import *
 	from ._stubs.PopDialogExt import PopDialogExt
+	from ._stubs.PopMenuExt import PopMenuExt
 
 try:
 	from common import ExtensionBase
@@ -73,7 +74,8 @@ class PatternStatesManager(ExtensionBase):
 
 	def _BuildStates(self):
 		states = PatternStates()
-		for state in self.groupstates:
+		for statedict in self.groupstates:
+			state = ShapeState.FromParamsDict(statedict)
 			if not state.group and not states.defaultshapestate:
 				states.defaultshapestate = state
 			else:
@@ -99,8 +101,11 @@ class PatternStatesManager(ExtensionBase):
 		return [g or '(default)' for g in self.GroupStateNames]
 
 	def _GetStateDict(self, i: int) -> 'Optional[DependDict[str, Any]]':
-		if 0 <= i < self.GroupStateCount:
+		if self._IsValidIndex(i):
 			return self.groupstates[i]
+
+	def _IsValidIndex(self, i: int):
+		return i is not None and 0 <= i < self.GroupStateCount
 
 	def _GetState(self, i: int) -> Optional[ShapeState]:
 		statedict = self._GetStateDict(i)
@@ -133,6 +138,9 @@ class PatternStatesManager(ExtensionBase):
 	def PromptEditStateName(self, i: int=None):
 		if i is None:
 			i = self._SelectedIndex
+		statedict = self._GetStateDict(i)
+		if statedict is None:
+			return
 
 		def _ok(name=None):
 			if name is not None:
@@ -140,6 +148,7 @@ class PatternStatesManager(ExtensionBase):
 		_ShowPromptDialog(
 			title='Edit state',
 			text='Enter group name(s) for state',
+			default=statedict.get('Group') or '',
 			oktext='Save',
 			ok=_ok)
 
@@ -197,6 +206,23 @@ class PatternStatesManager(ExtensionBase):
 	def _SelectedStateDict(self):
 		return self._GetStateDict(self._SelectedIndex)
 
+	def OpenStateContextMenu(self, stateButton):
+		i = stateButton.digits
+		if not self._IsValidIndex(i):
+			return
+		menuitems = [
+			MenuItem(
+				'Rename',
+				callback=lambda: self.PromptEditStateName(i)),
+			MenuItem(
+				'Delete',
+				callback=lambda: self.DeleteState(i))
+		]
+		menus.fromButton(stateButton).Show(
+			menuitems,
+			autoClose=True,
+		)
+
 def _ShowPromptDialog(
 		title=None,
 		text=None,
@@ -224,3 +250,160 @@ def _ShowPromptDialog(
 		buttons=[oktext, canceltext],
 		enterButton=1, escButton=2, escOnClickAway=True,
 		callback=_callback)
+
+
+class MenuItem:
+	def __init__(
+			self,
+			text,
+			disabled=False,
+			dividerafter=False,
+			highlighted=False,
+			checked=None,
+			hassubmenu=False,
+			callback=None):
+		self.text = text
+		self.disabled = disabled
+		self.dividerafter = dividerafter
+		self.highlighted = highlighted
+		self.checked = checked
+		self.hassubmenu = hassubmenu
+		self.callback = callback
+
+def ParToggleItem(
+		par,
+		text=None,
+		callback=None,
+		**kwargs):
+	def _callback():
+		par.val = not par
+		if callback:
+			callback()
+	return MenuItem(
+		text or par.label,
+		checked=par.eval(),
+		callback=_callback,
+		**kwargs)
+
+def ParEnumItems(par):
+	def _valitem(value, label):
+		return MenuItem(
+			label,
+			checked=par == value,
+			callback=lambda: setattr(par, 'val', value))
+	return [
+		_valitem(v, l)
+		for v, l in zip(par.menuNames, par.menuLabels)
+	]
+
+def ViewOpItem(
+		o: 'OP',
+		text,
+		unique=True,
+		borders=True,
+		**kwargs):
+	return MenuItem(
+		text,
+		callback=lambda: o.openViewer(unique=unique, borders=borders),
+		**kwargs)
+
+class MenuDivider:
+	pass
+
+def _PreprocessItems(rawitems: List[Union[MenuItem, MenuDivider]]):
+	if not rawitems:
+		return []
+	processeditems = []
+	previtem = None
+	for item in rawitems:
+		if not item:
+			continue
+		if isinstance(item, MenuDivider):
+			if previtem:
+				previtem.dividerafter = True
+			previtem = None
+		else:
+			previtem = item
+			processeditems.append(item)
+	return processeditems
+
+
+class _MenuOpener:
+	def __init__(self, applyPosition):
+		self.applyPosition = applyPosition
+
+	def Show(
+			self,
+			items: List[Union[MenuItem, MenuDivider]],
+			callback=None,
+			callbackDetails=None,
+			autoClose=None,
+			rolloverCallback=None,
+			allowStickySubMenus=None):
+		items = _PreprocessItems(items)
+		if not items:
+			return
+
+		popmenu = _getPopMenu()
+
+		if not callback:
+			def _callback(info):
+				i = info['index']
+				if i < 0 or i >= len(items):
+					return
+				item = items[i]
+				if not item or item.disabled or not item.callback:
+					return
+				item.callback()
+			callback = _callback
+
+		if self.applyPosition:
+			self.applyPosition(popmenu)
+
+		popmenu.Open(
+			items=[item.text for item in items],
+			highlightedItems=[
+				item.text for item in items if item.highlighted],
+			disabledItems=[
+				item.text for item in items if item.disabled],
+			dividersAfterItems=[
+				item.text for item in items if item.dividerafter],
+			checkedItems={
+				item.text: item.checked
+				for item in items
+				if item.checked is not None
+			},
+			subMenuItems=[
+				item.text for item in items if item.hassubmenu],
+			callback=callback,
+			callbackDetails=callbackDetails,
+			autoClose=autoClose,
+			rolloverCallback=rolloverCallback,
+			allowStickySubMenus=allowStickySubMenus)
+
+def _getPopMenu():
+	popmenu = op.TDResources.op('popMenu')  # type: PopMenuExt
+	return popmenu
+
+class menus:
+
+	@staticmethod
+	def fromMouse(h='Left', v='Top', offset=(0, 0)):
+		def _applyPosition(
+				popmenu  # type: PopMenuExt
+		):
+			popmenu.SetPlacement(hAlign=h, vAlign=v, alignOffset=offset, matchWidth=False)
+		return _MenuOpener(_applyPosition)
+
+	@staticmethod
+	def fromButton(buttonComp, h='Left', v='Bottom', matchWidth=False, offset=(0, 0)):
+		if not buttonComp:
+			return menus.fromMouse(h=h, v=v, offset=offset)
+
+		def _applyPosition(
+				popmenu  # type: PopMenuExt
+		):
+			popmenu.SetPlacement(
+				buttonComp=buttonComp,
+				hAttach=h, vAttach=v, matchWidth=matchWidth, alignOffset=offset)
+		return _MenuOpener(_applyPosition)
