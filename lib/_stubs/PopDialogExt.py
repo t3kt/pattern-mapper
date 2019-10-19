@@ -17,6 +17,7 @@
 
 from TDStoreTools import StorageManager
 
+
 class PopDialogExt:
 
 	def __init__(self, ownerComp):
@@ -30,20 +31,20 @@ class PopDialogExt:
 		self.windowComp = ownerComp.op('popDialogWindow')
 		self.details = None
 		storedItems = [
-			{'name':'EnteredText', 'default':''}
+			{'name': 'EnteredText', 'default': ''}
 		]
 		self.stored = StorageManager(self, ownerComp, storedItems)
 		ownerComp.op('text/sizer').module.updateHeight()
 
-	def OpenDefault(self, text='', title='', buttons=['OK'], callback=None,
-					details=None, textEntry=False, escButton=1,
-					escOnClickAway=True, enterButton=1):
+	def OpenDefault(self, text='', title='', buttons=('OK',), callback=None,
+	                details=None, textEntry=False, escButton=1,
+	                escOnClickAway=True, enterButton=1):
 		self.Open(text, title, buttons, callback, details, textEntry, escButton,
-				  escOnClickAway, enterButton)
+		          escOnClickAway, enterButton)
 
 	def Open(self, text=None, title=None, buttons=None, callback=None,
-			 			details=None, textEntry=None, escButton=None,
-			 			escOnClickAway=None, enterButton=None):
+	         details=None, textEntry=None, escButton=None,
+	         escOnClickAway=None, enterButton=None):
 		"""
 		Open a popup dialog.
 		text goes in the center of the dialog. Default None, use pars.
@@ -81,7 +82,7 @@ class PopDialogExt:
 			self.ownerComp.par.Buttons = len(buttons)
 			for i, label in enumerate(buttons[:4]):
 				getattr(self.ownerComp.par,
-										'Buttonlabel' + str(i + 1)).val = label
+				        'Buttonlabel' + str(i + 1)).val = label
 		# callbacks
 		if callback:
 			ext.CallbacksExt.SetAssignedCallback('onSelect', callback)
@@ -100,7 +101,7 @@ class PopDialogExt:
 		self.EnteredText = self.ownerComp.par.Textentrydefault.eval()
 		self.details = details
 		self.ownerComp.op('entry/inputText').par.text = \
-				self.ownerComp.op('entry').panel.field = self.EnteredText
+			self.ownerComp.op('entry').panel.field = self.EnteredText
 		self.ownerComp.op('entry').cook(force=True)
 		if escButton is not None:
 			if escButton is False or not (1 <= escButton <= 4):
@@ -116,7 +117,7 @@ class PopDialogExt:
 				self.ownerComp.par.Enterbutton = str(enterButton)
 		self.ownerComp.op('text/sizer').module.updateHeight()
 		run("op('" + self.ownerComp.path + "').ext.PopDialogExt.actualOpen()",
-										delayFrames=1, delayRef=op.TDResources)
+		    delayFrames=1, delayRef=op.TDResources)
 
 	def actualOpen(self):
 		# needs to be deferred so that sizes can update properly
@@ -128,8 +129,8 @@ class PopDialogExt:
 			# self.ownerComp.op('entry').setFocus()
 			# hack shouldn't have to wait a frame
 			run('op("' + self.ownerComp.path + '").op("entry").'
-							'setKeyboardFocus(selectAll=True)',
-							delayFrames=1, delayRef=op.TDResources)
+			                                   'setKeyboardFocus(selectAll=True)',
+			    delayFrames=1, delayRef=op.TDResources)
 		else:
 			self.ownerComp.setFocus()
 			self.ownerComp.op('entry').setKeyboardFocus(selectAll=True)
@@ -144,23 +145,23 @@ class PopDialogExt:
 		ext.CallbacksExt.DoCallback('onClose')
 		self.windowComp.par.winclose.pulse()
 		self.ownerComp.op('entry/inputText').par.text = \
-				self.ownerComp.op('entry').panel.field = self.EnteredText
+			self.ownerComp.op('entry').panel.field = self.EnteredText
 
 	def OnButtonClicked(self, buttonNum):
 		"""
 		Callback from buttons
 		"""
 		infoDict = {'buttonNum': buttonNum,
-					'button': getattr(self.ownerComp.par,
-										'Buttonlabel' + str(buttonNum)).eval(),
-					'details': self.details}
+		            'button': getattr(self.ownerComp.par,
+		                              'Buttonlabel' + str(buttonNum)).eval(),
+		            'details': self.details}
 		if self.ownerComp.par.Textentryarea.eval():
 			infoDict['enteredText'] = self.EnteredText
 		try:
 			ext.CallbacksExt.DoCallback('onSelect', infoDict)
 		finally:
 			self.Close()
-		
+
 	def OnKeyPressed(self, key):
 		"""
 		Callback for esc or enterpressed.
@@ -203,4 +204,4 @@ class PopDialogExt:
 				print("No callback dat for", self.ownerComp.path)
 		elif par.name == 'Helppage':
 			ui.viewFile('https://docs.derivative.ca/'
-						'index.php?title=Palette:popDialog')
+			            'index.php?title=Palette:popDialog')

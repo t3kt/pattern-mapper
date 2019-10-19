@@ -245,7 +245,7 @@ def addParameterFromJSONDict(comp, jsonDict, replace=True, setValues=True,
 							try:
 								setattr(newPar, attr, value[index])
 							except:
-								debug(newPar, attr, value)
+								debug('addPar error:', newPar, attr, value)
 					elif attr == 'mode':
 						setattr(newPar, attr, getattr(ParMode, value))
 					else:
