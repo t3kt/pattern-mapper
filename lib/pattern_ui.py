@@ -1,7 +1,7 @@
-print('pattern_ui.py loading...')
-
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 import json
+
+print('pattern_ui.py loading...')
 
 if False:
 	from ._stubs import *
@@ -35,6 +35,7 @@ class PatternStatesManager(ExtensionBase):
 		super().__init__(ownerComp)
 		self.stateeditor = self.op('shape_state_editor')  # type: ShapeStateEditor
 		self.statesjson = self.op('states_json')
+		self.grouptable = self.op('groups')
 		self.isloadingstate = False
 		self.ipars = self.op('iparStatesManager')
 
@@ -99,6 +100,18 @@ class PatternStatesManager(ExtensionBase):
 	@property
 	def GroupStateButtonLabels(self):
 		return [g or '(default)' for g in self.GroupStateNames]
+
+	@property
+	def GroupNameMenuNames(self):
+		if self.grouptable.numRows < 2:
+			return ['""']
+		return ['""'] + [c.val for c in self.grouptable.col('groupname')[1:]]
+
+	@property
+	def GroupNameMenuLabels(self):
+		if self.grouptable.numRows < 2:
+			return ['(default)']
+		return ['(default)'] + [c.val for c in self.grouptable.col('groupname')[1:]]
 
 	def _GetStateDict(self, i: int) -> 'Optional[DependDict[str, Any]]':
 		if self._IsValidIndex(i):
