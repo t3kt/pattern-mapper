@@ -28,7 +28,7 @@ out Vertex
 void main()
 {
 	TransformSettings transformSettings = loadTransformSettings();
-	oVert.attrs = loadVertexAttrs(transformSettings);
+	loadVertexAttrs(oVert.attrs, transformSettings);
 
 //	int extrudePartValue = int(extrudePart);
 //	if (extrudePartValue == EXTRUDE_FRONT) {
