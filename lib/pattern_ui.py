@@ -33,11 +33,14 @@ except ImportError:
 class PatternStatesManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
-		self.stateeditor = self.op('shape_state_editor')  # type: ShapeStateEditor
 		self.statesjson = self.op('states_json')
 		self.grouptable = self.op('groups')
 		self.isloadingstate = False
 		self.ipars = self.op('iparStatesManager')
+
+	@property
+	def stateeditor(self):
+		return self.op('shape_state_editor')  # type: ShapeStateEditor
 
 		# TDF.createProperty(
 		# 	self,
@@ -100,18 +103,6 @@ class PatternStatesManager(ExtensionBase):
 	@property
 	def GroupStateButtonLabels(self):
 		return [g or '(default)' for g in self.GroupStateNames]
-
-	@property
-	def GroupNameMenuNames(self):
-		if self.grouptable.numRows < 2:
-			return ['""']
-		return ['""'] + [c.val for c in self.grouptable.col('groupname')[1:]]
-
-	@property
-	def GroupNameMenuLabels(self):
-		if self.grouptable.numRows < 2:
-			return ['(default)']
-		return ['(default)'] + [c.val for c in self.grouptable.col('groupname')[1:]]
 
 	def _GetStateDict(self, i: int) -> 'Optional[DependDict[str, Any]]':
 		if self._IsValidIndex(i):
