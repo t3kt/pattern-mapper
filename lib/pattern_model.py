@@ -1,24 +1,16 @@
 from abc import ABC
 from enum import Enum
-from dataclasses import dataclass, field, InitVar
-
-print('pattern_model.py loading...')
-
+from dataclasses import dataclass
 from colorsys import rgb_to_hsv
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
+from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs, BaseDataObject2
+from .common import parseValueList, formatValue, formatValueList, averagePoints, triangleCenter
+
+print('pattern_model.py loading...')
+
 if False:
 	from ._stubs import *
-
-try:
-	from common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs, BaseDataObject2
-except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, BaseDataObject, transformkeys, setattrs, BaseDataObject2
-
-try:
-	from common import parseValue, parseValueList, formatValue, formatValueList, addDictRow, averagePoints, triangleCenter
-except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList, addDictRow, averagePoints, triangleCenter
 
 class _BaseEnum(Enum):
 	@classmethod

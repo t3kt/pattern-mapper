@@ -1,25 +1,17 @@
-print('pattern_groups.py loading...')
+import re
+from collections import defaultdict, OrderedDict
+
+from pattern_model import *
+from .common import LoggableSubComponent, cartesiantopolar, loggedmethod, longestcommonprefix
+from .common import ValueSequence, ValueRangeSequence
+
+from typing import DefaultDict, List, Iterable
 
 if False:
 	from ._stubs import *
 
-from pattern_model import *
-from abc import ABC
-from typing import Any, List, Set, Dict, DefaultDict, Tuple
-from collections import defaultdict, OrderedDict
-import re
+print('pattern_groups.py loading...')
 
-try:
-	from common import LoggableSubComponent, cartesiantopolar, loggedmethod, longestcommonprefix
-except ImportError:
-	from .common import LoggableSubComponent, cartesiantopolar, loggedmethod, longestcommonprefix
-
-try:
-	from common import parseValue, formatValue, ValueRange, ValueSequence, ValueRangeSequence
-except ImportError:
-	from .common import parseValue, formatValue, ValueRange, ValueSequence, ValueRangeSequence
-
-from pattern_model import PatternData
 
 class _ShapePredicate:
 	def test(self, shape: ShapeInfo, index: int): raise NotImplementedError()
@@ -652,7 +644,7 @@ class _GroupCombiner(LoggableSubComponent):
 		return True
 
 	@staticmethod
-	def _combineIndexSets(indexsets: List[Set[int]], boolop: str):
+	def _combineIndexSets(indexsets: List[Iterable[int]], boolop: str):
 		if not indexsets:
 			return set()
 		combinedindices = set(indexsets[0])

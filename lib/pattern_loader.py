@@ -1,12 +1,16 @@
-print('pattern_loader.py loading...')
-
 import json
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Union
-import pathlib
 
-if False:
-	from ._stubs import *
+import pathlib
+from typing import Dict, List, Union
+
+from .common import ExtensionBase, LoggableSubComponent
+from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
+from .common import formatValue, averagePoints
+
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
+from pattern_groups import GroupGenerators
+from pattern_state import ShapeStatesBuilder
 
 # adds the 'packages/' dir to the import path
 import td_python_package_init
@@ -14,24 +18,10 @@ td_python_package_init.init()
 
 import svg.path as svgpath
 
-try:
-	from common import ExtensionBase, LoggableSubComponent
-except ImportError:
-	from .common import ExtensionBase, LoggableSubComponent
+print('pattern_loader.py loading...')
 
-try:
-	from common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar, longestcommonprefix
-except ImportError:
-	from .common import simpleloggedmethod, hextorgb, keydefaultdict, loggedmethod, cartesiantopolar, longestcommonprefix
-
-try:
-	from common import parseValue, parseValueList, formatValue, formatValueList, ValueRange, averagePoints
-except ImportError:
-	from .common import parseValue, parseValueList, formatValue, formatValueList, ValueRange, averagePoints
-
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
-from pattern_groups import GroupGenerators
-from pattern_state import ShapeStatesBuilder
+if False:
+	from ._stubs import *
 
 remap = tdu.remap
 

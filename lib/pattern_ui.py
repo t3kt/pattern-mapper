@@ -1,25 +1,14 @@
 from typing import Any, Callable, List, Optional, Union
 import json
 
-print('pattern_ui.py loading...')
+from .common import ExtensionBase
+from pattern_model import ShapeState, PatternStates
+from pattern_state import ShapeStateEditor
 
 if False:
 	from ._stubs import *
 	from ._stubs.PopDialogExt import PopDialogExt
 	from ._stubs.PopMenuExt import PopMenuExt
-
-try:
-	from common import ExtensionBase
-except ImportError:
-	from .common import ExtensionBase
-
-try:
-	from common import cleandict, excludekeys, mergedicts, addDictRow, getRowDict, setDictRow
-except ImportError:
-	from .common import cleandict, excludekeys, mergedicts, addDictRow, getRowDict, setDictRow
-
-from pattern_model import ShapeState, PatternStates
-from pattern_state import ShapeStateEditor
 try:
 	from TDStoreTools import DependDict, DependList, StorageManager
 except ImportError:
@@ -30,17 +19,16 @@ except ImportError:
 # except ImportError:
 # 	TDF = op.TDModules.mod.TDFunctions
 
+print('pattern_ui.py loading...')
+
 class PatternStatesManager(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
+		self.stateeditor = self.op('shape_state_editor')  # type: ShapeStateEditor
 		self.statesjson = self.op('states_json')
 		self.grouptable = self.op('groups')
 		self.isloadingstate = False
 		self.ipars = self.op('iparStatesManager')
-
-	@property
-	def stateeditor(self):
-		return self.op('shape_state_editor')  # type: ShapeStateEditor
 
 		# TDF.createProperty(
 		# 	self,
