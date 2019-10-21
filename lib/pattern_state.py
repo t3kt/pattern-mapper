@@ -137,34 +137,6 @@ class _SettingsEditor(ExtensionBase):
 			names += pg.tuplenames
 		return names
 
-class ShapeSettingsEditor(_SettingsEditor):
-	def __init__(self, ownerComp):
-		o = ownerComp
-		super().__init__(ownerComp, [
-			_ParGroup(o, 'Includepathalpha', 'Pathalpha'),
-			_ParGroup(o, 'Includepathoncolor', 'Pathoncolor[rgba]'),
-			_ParGroup(o, 'Includepathoffcolor', 'Pathoffcolor[rgba]'),
-			_ParGroup(o, 'Includepathphase', 'Pathphase'),
-			_ParGroup(o, 'Includepathperiod', 'Pathperiod', 'Pathreverse'),
-
-			_ParGroup(o, 'Includepanelalpha', 'Panelalpha'),
-			_ParGroup(o, 'Includepanelcolor', 'Panel*color[rgba]'),
-
-			_ParGroup(o, 'Includepanelglobaltexlevel', 'Panelglobaltexlevel'),
-			_ParGroup(o, 'Includepanelglobaluvoffset', 'Panelglobaluvoffset[uvw]'),
-			_ParGroup(o, 'Includepanellocaltexlevel', 'Panellocaltexlevel'),
-			_ParGroup(o, 'Includepanellocaluvoffset', 'Panellocaluvoffset[uvw]'),
-
-			_ParGroup(o, 'Includelocalscale', 'Localscale[xyz]', 'Localuniformscale'),
-			_ParGroup(o, 'Includelocalrotate', 'Localrotate[xyz]'),
-			_ParGroup(o, 'Includelocaltranslate', 'Localtranslate[xyz]'),
-
-			_ParGroup(o, 'Includeglobalscale', 'Globalscale[xyz]', 'Globaluniformscale'),
-			_ParGroup(o, 'Includeglobalrotate', 'Globalrotate[xyz]'),
-			_ParGroup(o, 'Includeglobaltranslate', 'Globaltranslate[xyz]'),
-		])
-
-
 class ShapeStateEditor(_SettingsEditor):
 	def __init__(self, ownerComp):
 		o = ownerComp
