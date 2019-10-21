@@ -112,7 +112,13 @@ class _SettingsEditor(ExtensionBase):
 	def BuildStateTable(self, dat, filtered=True, menuindices=False, blanks=False, switches=False):
 		dat.clear()
 		for pg in self.pargroups:
-			pg.addRows(dat, filtered=filtered, menuindices=menuindices, blanks=blanks, switches=switches)
+			pg.addRows(
+				dat,
+				filtered=filtered,
+				menuindices=menuindices,
+				blanks=blanks,
+				switches=switches,
+			)
 
 	def ReadStateRows(self, dat, column=1, clearmissing=True):
 		for pg in self.pargroups:
