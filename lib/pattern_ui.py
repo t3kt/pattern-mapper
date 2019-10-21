@@ -27,6 +27,7 @@ class PatternStatesManager(ExtensionBase):
 		self.stateeditor = self.op('shape_state_editor')  # type: ShapeStateEditor
 		self.statesjson = self.op('states_json')
 		self.grouptable = self.op('groups')
+		self.statechain = self.op('state_gen_chain')
 		self.isloadingstate = False
 		self.ipars = self.op('iparStatesManager')
 
@@ -217,10 +218,9 @@ class PatternStatesManager(ExtensionBase):
 
 	def _AddStateChainStep(self, i: int):
 		state = self._GetState(i)
-		dest = self.op('state_gen_chain')
 		statecomp = createFromTemplate(
 			self.op('state_template'),
-			dest,
+			self.statechain,
 			'state__{}'.format(i),
 			opattrs(nodepos=[200, 500 - (i * 200)])
 		)
@@ -231,7 +231,13 @@ class PatternStatesManager(ExtensionBase):
 		else:
 			srcpath = '../state__{}/out1'.format(i - 1)
 		statecomp.op('./sel_input').par.chop = srcpath
-		dest.op('./sel_output').par.chop = statecomp.op('./out1')
+		self.statechain.op('./sel_output').par.chop = statecomp.op('./out1')
+
+	def _BuildStateChain(self):
+		for o in self.statechain.ops('state__*'):
+			o.destroy()
+		for i in range(self.GroupStateCount):
+			self._AddStateChainStep(i)
 
 def _ShowPromptDialog(
 		title=None,

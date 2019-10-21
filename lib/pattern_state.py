@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Iterable
 
 from .common import LoggableSubComponent, ExtensionBase
-from .common import cleandict, mergedicts, parseValue
+from .common import cleandict, mergedicts, parseValue, formatValue
 from pattern_model import ShapeState, PatternData, TransformSpec, TextureLayer
 
 if False:
@@ -45,14 +45,24 @@ class _ParGroup:
 		elif clearmissing:
 			self.switchpar.val = False
 
-	def addRows(self, dat, filtered=True):
-		if filtered and not self.isactive:
-			return
+	def addRows(self, dat, filtered=True, menuindices=False, blanks=False, switches=False):
+		if switches:
+			dat.appendRow([self.switchpar.name, int(self.switchpar)])
+		if not self.isactive:
+			if filtered:
+				return
+			if blanks:
+				for p in self.pars:
+					dat.appendRow([p.name, ''])
+				return
 		for p in self.pars:
-			dat.appendRow([
-				p.name,
-				p if p.style != 'Toggle' else int(p)
-			])
+			if p.isToggle:
+				val = int(p)
+			elif p.isMenu and menuindices:
+				val = p.menuIndex
+			else:
+				val = formatValue(p.eval())
+			dat.appendRow([p.name, val])
 
 	def readRows(self, dat, column, clearmissing=True):
 		vals = {}
@@ -99,10 +109,10 @@ class _SettingsEditor(ExtensionBase):
 	def SetState(self, state, clearmissing=True):
 		self.SetStateDict(state, clearmissing=clearmissing)
 
-	def BuildStateTable(self, dat, filtered=True):
+	def BuildStateTable(self, dat, filtered=True, menuindices=False, blanks=False, switches=False):
 		dat.clear()
 		for pg in self.pargroups:
-			pg.addRows(dat, filtered=filtered)
+			pg.addRows(dat, filtered=filtered, menuindices=menuindices, blanks=blanks, switches=switches)
 
 	def ReadStateRows(self, dat, column=1, clearmissing=True):
 		for pg in self.pargroups:
@@ -183,6 +193,10 @@ class ShapeStateEditor(_SettingsEditor):
 	def SetState(self, state: ShapeState, clearmissing=True):
 		obj = state.ToParamsDict()
 		self.SetStateDict(obj, clearmissing=clearmissing)
+
+	def SetStateDict(self, obj: Dict[str, Any], clearmissing=True):
+		super().SetStateDict(obj, clearmissing=clearmissing)
+		self.par.Global = not obj.get('Group')
 
 
 class ShapeStatesBuilder(LoggableSubComponent):
