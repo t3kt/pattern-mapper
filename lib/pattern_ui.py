@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Optional, Union
 import json
 
-from .common import ExtensionBase
+from .common import ExtensionBase, opattrs, createFromTemplate
 from pattern_model import ShapeState, PatternStates
 from pattern_state import ShapeStateEditor
 
@@ -214,6 +214,24 @@ class PatternStatesManager(ExtensionBase):
 			menuitems,
 			autoClose=True,
 		)
+
+	def _AddStateChainStep(self, i: int):
+		state = self._GetState(i)
+		dest = self.op('state_gen_chain')
+		statecomp = createFromTemplate(
+			self.op('state_template'),
+			dest,
+			'state__{}'.format(i),
+			opattrs(nodepos=[200, 500 - (i * 200)])
+		)
+		stateeditor = statecomp.op('editor')  # type: ShapeStateEditor
+		stateeditor.SetState(state, clearmissing=True)
+		if i == 0:
+			srcpath = '../in1'
+		else:
+			srcpath = '../state__{}/out1'.format(i - 1)
+		statecomp.op('./sel_input').par.chop = srcpath
+		dest.op('./sel_output').par.chop = statecomp.op('./out1')
 
 def _ShowPromptDialog(
 		title=None,
