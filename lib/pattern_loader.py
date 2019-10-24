@@ -8,7 +8,7 @@ from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
 from .common import formatValue, averagePoints
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData, SequenceStep
 from pattern_groups import GroupGenerators
 from pattern_state import ShapeStatesBuilder
 
@@ -827,12 +827,67 @@ class PatternSettingsEditor(ExtensionBase):
 		super().__init__(ownerComp)
 		self.DBG_lastEvent = None
 		self.selectedshapes = []
+		self.previoussteps = []  # type: List[SequenceStep]
+		self.inprogressstep = None  # type: SequenceStep
 
-	@loggedmethod
+	def _KeyState(self, name):
+		return bool(self.op('key_states')[name])
+
+	# @loggedmethod
 	def OnRenderPickEvent(self, chop, event: 'RenderPickEvent'):
+		self.DBG_lastEvent = event
 		picked = bool(chop['picked'])
 		trigger = bool(chop['trigger'])
 		shapeindex = int(chop['shapeIndex'])
-		self._LogEvent('picked: {} trigger: {} shapeIndex: {}'.format(picked, trigger, shapeindex))
-		self.DBG_lastEvent = event
-		pass
+		alt = self._KeyState('alt')
+		shift = self._KeyState('shift')
+		ctrl = self._KeyState('ctrl')
+		if not picked or not trigger:
+			return
+		# self._LogEvent('picked: {} trigger: {} shapeIndex: {} keys: {} {}'.format(
+		# 	picked, trigger, shapeindex,
+		# 	'ALT' if alt else '',
+		# 	'SHIFT' if shift else '',
+		# 	'CTRL' if ctrl else '',
+		# ))
+		if alt:
+			if not shift and not ctrl:
+				self._RemoveFromCurrentStep(shapeindex)
+		elif ctrl:
+			if not alt and not shift:
+				self._ToggleInCurrentStep(shapeindex)
+		elif shift:
+			if not alt and not ctrl:
+				self._AddToCurrentStep(shapeindex)
+		else:
+			self._StartStep()
+			self._AddToCurrentStep(shapeindex)
+
+	def _CreateStepIfNeeded(self):
+		if not self.inprogressstep:
+			self._StartStep()
+
+	@loggedmethod
+	def _AddToCurrentStep(self, shapeindex):
+		self._CreateStepIfNeeded()
+		if shapeindex not in self.inprogressstep.shapeindices:
+			self.inprogressstep.shapeindices.append(shapeindex)
+
+	@loggedmethod
+	def _RemoveFromCurrentStep(self, shapeindex):
+		if not self.inprogressstep or shapeindex not in self.inprogressstep.shapeindices:
+			return False
+		self.inprogressstep.shapeindices.remove(shapeindex)
+		return True
+
+	@loggedmethod
+	def _ToggleInCurrentStep(self, shapeindex):
+		if self._RemoveFromCurrentStep(shapeindex):
+			return
+		self._AddToCurrentStep(shapeindex)
+
+	@loggedmethod
+	def _StartStep(self):
+		self.inprogressstep = SequenceStep(
+			sequenceindex=len(self.previoussteps))
+		self.previoussteps.append(self.inprogressstep)
