@@ -417,6 +417,36 @@ class _PathGroupGenerator(_GroupGenerator):
 
 _PathGroupGenerator._registerSpecType(PathGroupGenSpec)
 
+class _ManualGroupGenerator(_GroupGenerator):
+	def __init__(
+			self,
+			hostobj,
+			groupspec: ManualGroupGenSpec):
+		super().__init__(hostobj=hostobj, groupspec=groupspec, logprefix='ManualGroupGen')
+		self.stepshapeindices = list(groupspec.steps or [])
+
+	def generateGroups(self, context: PatternData):
+		allindices = []
+		sequencesteps = []
+		for stepindex, stepshapes in enumerate(self.stepshapeindices):
+			if not stepshapes:
+				continue
+			allindices += list(stepshapes)
+			sequencesteps.append(SequenceStep(
+				sequenceindex=stepindex,
+				shapeindices=stepshapes,
+			))
+		group = self._createGroup(
+			self._getName(0, issolo=True),
+			context=context,
+			shapeindices=allindices,
+			autosequence=len(sequencesteps) < 2,
+		)
+		group.sequencesteps = sequencesteps
+		context.addGroups([group])
+
+_ManualGroupGenerator._registerSpecType(ManualGroupGenSpec)
+
 class _PredicateGroupGenerator(_GroupGenerator):
 	def __init__(
 			self,

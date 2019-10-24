@@ -413,6 +413,8 @@ class GroupGenSpec(BaseDataObject, ABC):
 	@classmethod
 	def FromJsonDict(cls, obj):
 		gentypes = []
+		if _hasany(obj, 'steps'):
+			gentypes.append(ManualGroupGenSpec)
 		if _hasany(obj, 'xmin', 'xmax', 'ymin', 'ymax'):
 			gentypes.append(BoxBoundGroupGenSpec)
 		if _hasany(obj, 'anglemin', 'anglemax', 'distancemin', 'distancemax'):
@@ -439,6 +441,26 @@ class GroupGenSpec(BaseDataObject, ABC):
 
 def _hasany(obj, *keys):
 	return obj and any(k in obj for k in keys)
+
+class ManualGroupGenSpec(GroupGenSpec):
+	def __init__(
+			self,
+			steps: Iterable[List[int]]=None,
+			**attrs):
+		super().__init__(**attrs)
+		self.steps = list(steps or [])
+
+	def ToJsonDict(self):
+		return cleandict(mergedicts(super().ToJsonDict(), {
+			'steps': self.steps,
+		}))
+
+	@classmethod
+	def _SpecFromJsonDict(cls, obj):
+		return cls(
+			sequenceby=SequenceBySpec.FromOptionalJsonDict(obj.get('sequenceby')),
+			steps=SequenceStep.FromJsonDicts(obj.get('steps')),
+			**excludekeys(obj, ['sequenceby', 'steps']))
 
 class PathGroupGenSpec(GroupGenSpec):
 	def __init__(
