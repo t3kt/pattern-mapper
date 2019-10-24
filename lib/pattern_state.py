@@ -103,12 +103,6 @@ class _SettingsEditor(ExtensionBase):
 		for pg in self.pargroups:
 			pg.setVals(obj, clearmissing=clearmissing)
 
-	def GetState(self, filtered=True, channelsonly=True):
-		return self.GetStateDict(filtered=filtered, channelsonly=channelsonly)
-
-	def SetState(self, state, clearmissing=True):
-		self.SetStateDict(state, clearmissing=clearmissing)
-
 	def BuildStateTable(self, dat, filtered=True, menuindices=False, blanks=False, switches=False):
 		dat.clear()
 		for pg in self.pargroups:

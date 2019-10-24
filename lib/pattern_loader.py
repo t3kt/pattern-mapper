@@ -28,7 +28,21 @@ remap = tdu.remap
 def _rundelayed(code, delayFrames=1):
 	return mod.td.run(code, delayFrames=delayFrames)
 
+def GetPatternFileName(svgname, ext):
+	if not svgname or not svgname.endswith('.svg'):
+		return None
+	return svgname.replace('.svg', '.' + ext)
+
 class PatternBuilder(ExtensionBase):
+	"""
+	Component that takes an SVG file & PatternSettings JSON file,
+	and produces a PatternData JSON file.
+
+	The process includes:
+		- Extracting shapes from SVG
+		- Generating shape groups
+		- Cleanup and post-processing on the shapes
+	"""
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.patternsettings = None  # type: PatternSettings
@@ -36,13 +50,7 @@ class PatternBuilder(ExtensionBase):
 
 	@property
 	def PatternJsonFileName(self):
-		return self._GetPatternFileName('json')
-
-	def _GetPatternFileName(self, ext):
-		svgname = self.ownerComp.par.Svgfile.eval()
-		if not svgname or not svgname.endswith('.svg'):
-			return None
-		return svgname.replace('.svg', '.' + ext)
+		return GetPatternFileName(self.ownerComp.par.Svgfile.eval(), 'json')
 
 	@loggedmethod
 	def LoadPattern(self):
@@ -54,9 +62,17 @@ class PatternBuilder(ExtensionBase):
 		self.patterndata.title = pathlib.PurePath(self.ownerComp.par.Svgfile.eval()).stem or ''
 		self._LoadPatternFromSvg(svgxml)
 		self._BuildGroups()
+		self._PostProcessPattern()
+		self._CompleteBuild()
+
+	@loggedmethod
+	def _PostProcessPattern(self):
 		self._MergeDuplicateShapes()
 		self._ApplyDepthLayeringToShapes()
 		self._ApplyRotateAxesToShapes()
+
+	@loggedmethod
+	def _CompleteBuild(self):
 		self.FillInfoTable(self.ownerComp.op('build_info'))
 		self.BuildOutput()
 		if self.ownerComp.par.Autosave:
@@ -805,3 +821,6 @@ def _ReplaceIndices(indexlist: List[int], replacements: Dict[int, int]):
 	newlist.sort()
 	indexlist[:] = newlist
 	return True
+
+class PatternSettingsEditor(ExtensionBase):
+	pass
