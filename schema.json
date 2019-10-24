@@ -1,0 +1,213 @@
+{
+	"$schema": "http://json-schema.org/schema#",
+	"description": "Pattern Mapper Definition",
+	"definitions": {
+		"PatternSettings": {
+			"properties": {
+				"autogroup": {
+					"type": "boolean"
+				}
+			}
+		},
+		"ShapeInfo": {
+			"type": "object",
+			"properties": {
+				"shapeindex": {
+					"type": "integer"
+				},
+				"shapepath": {
+					"type": "string"
+				},
+				"parentpath": {
+					"type": "string"
+				},
+				"shapename": {
+					"type": "string"
+				},
+				"color": {
+					"type": "array",
+					"minItems": 3,
+					"maxItems": 4,
+					"items": {
+						"type": "number"
+					}
+				},
+				"center": {
+					"type": "array",
+					"minItems": 3,
+					"maxItems": 3
+				},
+				"shapelength": {
+					"type": "number"
+				},
+				"depthlayer": {
+					"type": "integer"
+				},
+				"points": {
+					"type": "array",
+					"items": {
+						"type": "object"
+					}
+				},
+				"dupcount": {
+					"type": "integer"
+				},
+				"radius": {
+					"type": "number"
+				},
+				"rotateaxis": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"shapeindex"
+			]
+		},
+		"PointData": {
+			"type": "object",
+			"properties": {
+				"pos": {
+					"type": "array",
+					"minItems": 3,
+					"maxItems": 3,
+					"items": {
+						"type": "number"
+					}
+				},
+				"absdist": {
+					"type": "number"
+				},
+				"reldist": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"pos"
+			]
+		},
+		"SequenceStep": {
+			"type": "object",
+			"properties": {
+				"sequenceindex": {
+					"type": "number"
+				},
+				"shapeindices": {
+					"type": "array",
+					"items": {
+						"type": "integer"
+					}
+				},
+				"isdefault": {
+					"type": "boolean"
+				},
+				"inferredfromvalue": {}
+			},
+			"required": [
+				"sequenceindex"
+			]
+		},
+		"GroupInfo": {
+			"type": "object",
+			"properties": {
+				"groupname": {
+					"type": "string"
+				},
+				"grouppath": {
+					"type": "string"
+				},
+				"inferencetype": {
+					"type": "string"
+				},
+				"inferredfromvalue": {},
+				"depthlayer": {},
+				"depth": {
+					"type": "number"
+				},
+				"shapeindices": {
+					"type": "array",
+					"items": {
+						"type": "integer"
+					}
+				},
+				"sequencesteps": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/SequenceStep"
+					}
+				},
+				"temporary": {
+					"type": "boolean"
+				},
+				"rotateaxis": {
+					"type": "number"
+				}
+			}
+		},
+		"SequenceBySpec": {
+			"type": "object",
+			"properties": {
+				"attr": {
+					"type": "string"
+				},
+				"rounddigits": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"reverse": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"attr"
+			]
+		},
+		"GroupGenSpec": {
+			"type": "object",
+			"properties": {
+				"groupname": {
+					"type": "string"
+				},
+				"suffixes": {
+					"type": "string"
+				},
+				"sequenceby": {
+					"$ref": "#/definitions/SequenceBySpec"
+				},
+				"temporary": {
+					"type": "boolean"
+				},
+				"depthlayer": {},
+				"mergeto": {
+					"type": "string"
+				},
+				"rotateaxis": {
+					"type": "number"
+				}
+			}
+		},
+		"PathGroupGenSpec": {
+			"type": "object",
+			"properties": {
+				"groupname": {
+					"type": "string"
+				},
+				"suffixes": {
+					"type": "string"
+				},
+				"sequenceby": {
+					"$ref": "#/definitions/SequenceBySpec"
+				},
+				"temporary": {
+					"type": "boolean"
+				},
+				"depthlayer": {},
+				"mergeto": {
+					"type": "string"
+				},
+				"rotateaxis": {
+					"type": "number"
+				}
+			}
+		}
+	}
+}

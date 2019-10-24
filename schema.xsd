@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" attributeFormDefault="unqualified" vc:minVersion="1.1">
+	<xs:element name="patternsettings" type="PatternSettings"/>
+	<xs:complexType name="PatternSettings">
+		<xs:all>
+			<xs:element name="groups" minOccurs="0">
+				<xs:complexType>
+					<xs:choice minOccurs="0" maxOccurs="unbounded">
+						<xs:element name="path" type="PathGroupGenSpec"/>
+						<xs:element name="boxbound" type="BoxBoundGroupGenSpec"/>
+						<xs:element name="polarbound" type="PolarBoundGroupGenSpec"/>
+						<xs:element name="bool" type="BooleanGroupGenSpec"/>
+						<xs:element name="merge" type="MergeGroupGenSpec"/>
+					</xs:choice>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="defaultstate" type="ShapeState" minOccurs="0"/>
+			<xs:element name="depthlayering" type="DepthLayeringSpec" minOccurs="0"/>
+		</xs:all>
+		<xs:attribute name="autogroup" type="xs:boolean"/>
+		<xs:attribute name="rescale" type="xs:boolean"/>
+		<xs:attribute name="recenter" type="xs:boolean"/>
+		<xs:attribute name="fixtrianglecenters" type="xs:boolean"/>
+		<xs:attribute name="mergedups">
+			<xs:simpleType>
+				<xs:union memberTypes="xs:boolean xs:float"/>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="GroupInfo">
+		<xs:sequence>
+			<xs:element name="step" type="SequenceStep" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="groupname" type="xs:string"/>
+		<xs:attribute name="grouppath" type="xs:string"/>
+		<xs:attribute name="inferencetype" type="xs:string"/>
+		<xs:attribute name="inferredfromvalue" type="xs:anySimpleType"/>
+		<xs:attribute name="depthlayer" type="xs:int"/>
+		<xs:attribute name="depth" type="xs:float"/>
+		<xs:attribute name="temporary" type="xs:boolean"/>
+		<xs:attribute name="rotateaxis" type="xs:float"/>
+		<xs:attribute name="shapeindices" type="IndexList"/>
+	</xs:complexType>
+	<xs:complexType name="SequenceStep">
+		<xs:attribute name="sequenceindex" type="xs:int"/>
+		<xs:attribute name="shapeindices" type="IndexList" use="required"/>
+		<xs:attribute name="isdefault" type="xs:boolean"/>
+		<xs:attribute name="inferredfromvalue" type="xs:anySimpleType"/>
+	</xs:complexType>
+	<xs:complexType name="SequenceBySpec">
+		<xs:attribute name="attr" type="SequenceByType" use="required"/>
+		<xs:attribute name="rounddigits" type="xs:int"/>
+		<xs:attribute name="reverse" type="xs:boolean"/>
+	</xs:complexType>
+	<xs:simpleType name="SequenceByType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="r"/>
+			<xs:enumeration value="red"/>
+			<xs:enumeration value="g"/>
+			<xs:enumeration value="green"/>
+			<xs:enumeration value="b"/>
+			<xs:enumeration value="blue"/>
+			<xs:enumeration value="h"/>
+			<xs:enumeration value="hue"/>
+			<xs:enumeration value="s"/>
+			<xs:enumeration value="sat"/>
+			<xs:enumeration value="saturation"/>
+			<xs:enumeration value="v"/>
+			<xs:enumeration value="val"/>
+			<xs:enumeration value="value"/>
+			<xs:enumeration value="x"/>
+			<xs:enumeration value="y"/>
+			<xs:enumeration value="d"/>
+			<xs:enumeration value="dist"/>
+			<xs:enumeration value="distance"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="ShapeState"/>
+	<xs:simpleType name="attrType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="r"/>
+			<xs:enumeration value="red"/>
+			<xs:enumeration value="g"/>
+			<xs:enumeration value="green"/>
+			<xs:enumeration value="b"/>
+			<xs:enumeration value="blue"/>
+			<xs:enumeration value="h"/>
+			<xs:enumeration value="hue"/>
+			<xs:enumeration value="s"/>
+			<xs:enumeration value="sat"/>
+			<xs:enumeration value="saturation"/>
+			<xs:enumeration value="v"/>
+			<xs:enumeration value="val"/>
+			<xs:enumeration value="value"/>
+			<xs:enumeration value="x"/>
+			<xs:enumeration value="y"/>
+			<xs:enumeration value="d"/>
+			<xs:enumeration value="dist"/>
+			<xs:enumeration value="distance"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="BoolOp">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="or"/>
+			<xs:enumeration value="and"/>
+			<xs:enumeration value="|"/>
+			<xs:enumeration value="&amp;"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="GroupGenSpec">
+		<xs:sequence>
+			<xs:element name="sequenceby" type="SequenceBySpec" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="groupname" type="xs:string"/>
+		<xs:attribute name="suffixes" type="ValueListSpec"/>
+		<xs:attribute name="temporary" type="xs:boolean"/>
+		<xs:attribute name="depthlayer" type="xs:int"/>
+		<xs:attribute name="mergeto" type="xs:string"/>
+		<xs:attribute name="rotateaxis" type="xs:float"/>
+		<xs:attribute name="sequenceby" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="PathGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="GroupGenSpec">
+				<xs:attribute name="paths" type="ValueListSpec" use="required"/>
+				<xs:attribute name="groupatdepth" type="xs:int"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:simpleType name="ValueListSpec">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:simpleType name="BoundMode">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="center"/>
+			<xs:enumeration value="full"/>
+			<xs:enumeration value="partial"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="PositionalGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="GroupGenSpec">
+				<xs:attribute name="prerotate" type="ValueListSpec"/>
+				<xs:attribute name="boundmode" type="BoundMode" default="center"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="BoxBoundGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="PositionalGroupGenSpec">
+				<xs:attribute name="xmin" type="ValueListSpec"/>
+				<xs:attribute name="xmax" type="ValueListSpec" default="center"/>
+				<xs:attribute name="ymin" type="ValueListSpec"/>
+				<xs:attribute name="ymax" type="ValueListSpec"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="PolarBoundGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="PositionalGroupGenSpec">
+				<xs:attribute name="anglemin" type="ValueListSpec"/>
+				<xs:attribute name="anglemax" type="ValueListSpec" default="center"/>
+				<xs:attribute name="distancemin" type="ValueListSpec"/>
+				<xs:attribute name="distancemax" type="ValueListSpec"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="BooleanGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="GroupGenSpec">
+				<xs:attribute name="groups" type="ValueListSpec"/>
+				<xs:attribute name="withgroups" type="ValueListSpec"/>
+				<xs:attribute name="boolop" type="BoolOp"/>
+				<xs:attribute name="permute" type="xs:boolean"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="MergeGroupGenSpec">
+		<xs:complexContent>
+			<xs:extension base="GroupGenSpec">
+				<xs:attribute name="groups" type="ValueListSpec"/>
+				<xs:attribute name="flatten" type="xs:boolean"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:simpleType name="GroupDepthMode">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="manual"/>
+			<xs:enumeration value="flat"/>
+			<xs:enumeration value="groupnameprefix"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="DepthLayeringSpec">
+		<xs:attribute name="mode" type="GroupDepthMode"/>
+		<xs:attribute name="condense" type="xs:boolean"/>
+		<xs:attribute name="layerdistance" type="xs:float"/>
+		<xs:attribute name="defaultlayer" type="xs:int"/>
+	</xs:complexType>
+	<xs:complexType name="ShapeInfo">
+		<xs:sequence>
+			<xs:element name="point" type="PointData" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="shapeindex" type="xs:int"/>
+		<xs:attribute name="shapename" type="xs:string"/>
+		<xs:attribute name="shapepath" type="xs:string"/>
+		<xs:attribute name="parentpath" type="xs:string"/>
+		<xs:attribute name="color" type="RGBAColor"/>
+		<xs:attribute name="center" type="Tuple3"/>
+		<xs:attribute name="shapelength" type="xs:float"/>
+		<xs:attribute name="depthlayer" type="xs:int"/>
+		<xs:attribute name="dupcount" type="xs:int"/>
+		<xs:attribute name="radius" type="xs:float"/>
+		<xs:attribute name="rotateaxis" type="xs:float"/>
+	</xs:complexType>
+	<xs:simpleType name="RGBAColor">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d+\w*,\w*\d+\w*,\w+\d\w*(,\w*\d+)\w*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Tuple3">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d+\w*,\w*\d+\w*,\w+\d\w*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="PointData">
+		<xs:attribute name="pos" type="Tuple3" use="required"/>
+		<xs:attribute name="absdist" type="xs:float"/>
+		<xs:attribute name="reldist" type="xs:float"/>
+	</xs:complexType>
+	<xs:simpleType name="IndexList">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d+(\w+\d+\w*)*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="PatternData">
+		<xs:all>
+			<xs:element name="shape" type="ShapeInfo" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="group" type="GroupInfo" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="patternsettings" minOccurs="0"/>
+		</xs:all>
+		<xs:attribute name="title" type="xs:string"/>
+		<xs:attribute name="svgwidth" type="xs:int"/>
+		<xs:attribute name="svgheight" type="xs:int"/>
+	</xs:complexType>
+	<xs:element name="patterndata" type="PatternData"/>
+</xs:schema>
