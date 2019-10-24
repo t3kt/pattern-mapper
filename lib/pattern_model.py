@@ -44,7 +44,7 @@ class _BaseEnum(Enum):
 
 _RGBAColor = Tuple[float, float, float, float]
 _UVOffset = Union[Tuple[float, float], Tuple[float, float, float]]
-_XYZ = Union[Tuple[float, float], Tuple[float, float, float]]
+_XYZ = Union[Tuple[float, float], Tuple[float, float, float], List[float]]
 _ValueListSpec = Union[str, List[Union[str, float]]]
 
 @dataclass
