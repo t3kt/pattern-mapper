@@ -239,3 +239,18 @@ scriptSOP = SOP
 
 class app:
 	name = ''
+
+class RenderPickEvent(tuple):
+	u: float
+	v: float
+	select: bool
+	selectStart: bool
+	selectEnd: bool
+	pickOp: OP
+	pos: _Position
+	texture: _Position
+	color: _Tuple[float, float, float, float]
+	normal: _Vector
+	depth: float
+	instanceId: int
+

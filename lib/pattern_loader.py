@@ -823,4 +823,16 @@ def _ReplaceIndices(indexlist: List[int], replacements: Dict[int, int]):
 	return True
 
 class PatternSettingsEditor(ExtensionBase):
-	pass
+	def __init__(self, ownerComp):
+		super().__init__(ownerComp)
+		self.DBG_lastEvent = None
+		self.selectedshapes = []
+
+	@loggedmethod
+	def OnRenderPickEvent(self, chop, event: 'RenderPickEvent'):
+		picked = bool(chop['picked'])
+		trigger = bool(chop['trigger'])
+		shapeindex = int(chop['shapeIndex'])
+		self._LogEvent('picked: {} trigger: {} shapeIndex: {}'.format(picked, trigger, shapeindex))
+		self.DBG_lastEvent = event
+		pass

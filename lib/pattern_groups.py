@@ -442,7 +442,8 @@ class _ManualGroupGenerator(_GroupGenerator):
 			shapeindices=allindices,
 			autosequence=len(sequencesteps) < 2,
 		)
-		group.sequencesteps = sequencesteps
+		if sequencesteps:
+			group.sequencesteps = sequencesteps
 		context.addGroups([group])
 
 _ManualGroupGenerator._registerSpecType(ManualGroupGenSpec)
