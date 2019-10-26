@@ -182,6 +182,19 @@ class _Vector:
 	def project(self, vec1: '_Vector', vec2: '_Vector'): pass
 	def reflect(self, vec: '_Vector'): pass
 
+class _ArcBall:
+	def beginPan(self, u, v) -> None: pass
+	def beginRotate(self, u, v) -> None: pass
+	def beginDolly(self, u, v) -> None: pass
+	def pan(self, u, v) -> None: pass
+	def panTo(self, u, v, scale=1.0) -> None: pass
+	def rotateTo(self, u, v, scale=1.0) -> None: pass
+	def dolly(self, z) -> None: pass
+	def dollyTo(self, u, v, scale=1.0) -> None: pass
+	def transform(self) -> _Matrix: pass
+	def setTransform(self, matrix: _Matrix) -> None: pass
+	def identity(self) -> None: pass
+
 class tdu:
 	@staticmethod
 	def legalName(s):
@@ -210,6 +223,8 @@ class tdu:
 
 	@staticmethod
 	def match(pattern, inputList, caseSensitive=True) -> _T.List[str]: pass
+
+	ArcBall = _ArcBall
 
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0
