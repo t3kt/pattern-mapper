@@ -9,12 +9,12 @@ class Item:
 	def __init__(
 			self,
 			text,
+			callback=None,
 			disabled=False,
 			dividerafter=False,
 			highlighted=False,
 			checked=None,
-			hassubmenu=False,
-			callback=None):
+			hassubmenu=False):
 		self.text = text
 		self.disabled = disabled
 		self.dividerafter = dividerafter

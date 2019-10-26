@@ -9,6 +9,8 @@ File
 Edit									
 Selection									
 	Invert		onSelectionAction						
+	Add All Steps		onSelectionAction						
+	Remove All Steps		onSelectionAction						
 	Deselect All		onSelectionAction						
 Steps									
 	Add		onStepsAction						

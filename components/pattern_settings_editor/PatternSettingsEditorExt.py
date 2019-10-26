@@ -36,6 +36,8 @@ class PatternSettingsEditor(ExtensionBase):
 			'Selection': {
 				'Deselect All': lambda info: self._ClearSelection(),
 				'Invert': lambda info: self._InvertSelection(),
+				'Add All Steps': lambda info: self._AdjustSelection(adds=self._AllStepShapeIndices),
+				'Remove All Steps': lambda info: self._AdjustSelection(removes=self._AllStepShapeIndices),
 			},
 			'Steps': {
 				'Add': lambda info: self._SaveSelectionToNewStep(allowempty=True),
@@ -134,7 +136,13 @@ class PatternSettingsEditor(ExtensionBase):
 
 	@loggedmethod
 	def _InvertSelection(self):
-		pass
+		orig = list(self.SelectedShapes)
+		inverted = [
+			shape
+			for shape in self._AllShapeIndices
+			if shape not in orig
+		]
+		self.SelectedShapes = inverted
 
 	def OnMenuAction(self, menuname: str, info: dict):
 		action = info['item']
@@ -181,6 +189,37 @@ class PatternSettingsEditor(ExtensionBase):
 			labels.append(str(i) if shapes else '({})'.format(i))
 		return labels + ['+']
 
+	@property
+	def _AllShapeIndices(self):
+		return [int(v) for v in self.op('shape_attrs')['index'].vals]
+
+	@property
+	def _AllStepShapeIndices(self):
+		shapes = []
+		for step in self.Steps:
+			for shape in step:
+				if shape not in shapes:
+					shapes.append(shape)
+		return shapes
+
+	def _GetStepShapes(self, i):
+		if 0 <= i < len(self.Steps):
+			return list(self.Steps[i])
+		return []
+
+	@loggedmethod
+	def _AdjustSelection(self, adds=None, removes=None):
+		shapes = list(self.SelectedShapes)
+		if adds:
+			for index in adds:
+				if index not in shapes:
+					shapes.append(index)
+		if removes:
+			for index in removes:
+				if index in shapes:
+					shapes.remove(index)
+		self.SelectedShapes = shapes
+
 	def OpenStepButtonContextMenu(self, button):
 		i = button.digits
 		if i is None:
@@ -188,7 +227,15 @@ class PatternSettingsEditor(ExtensionBase):
 		menuitems = [
 			menu.Item(
 				'Delete',
-				callback=lambda: self._DeleteStep(i),
+				lambda: self._DeleteStep(i)
+			),
+			menu.Item(
+				'Add To Selection',
+				lambda: self._AdjustSelection(adds=self._GetStepShapes(i))
+			),
+			menu.Item(
+				'Remove From Selection',
+				lambda: self._AdjustSelection(removes=self._GetStepShapes(i))
 			),
 		]
 		menu.fromButton(button).Show(
