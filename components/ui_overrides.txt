@@ -1,4 +1,5 @@
 path	parameter	value
 *	*[Ff]ont	'Roboto'
-*	Buttonofffontcolor[rgb] Buttononfontcolor[rgb] *[Bb]uttonfontcolor[rgb]	.8
+*	Buttononfontcolor[rgb] *[Bb]uttonfontcolor[rgb] Radioonfontcolor[rgb]	.8
+*	Buttonofffontcolor[rgb] Radioofffontcolor[rgb]	.5
 *_dropfield *windowHeader	Buttonfont	'Material Design Icons'

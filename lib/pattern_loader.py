@@ -836,6 +836,7 @@ class PatternSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.DBG_lastEvent = None
+		self.statepar = ownerComp.op('state').par
 
 		storageSpecs = [
 			{'name': 'Steps', 'default': [], 'dependable': 'deep'},
@@ -855,7 +856,7 @@ class PatternSettingsEditor(ExtensionBase):
 
 		self.menuHandlers = {
 			'Selection': {
-				'Clear': lambda info: self._ClearSelection(),
+				'Deselect All': lambda info: self._ClearSelection(),
 				'Invert': lambda info: self._InvertSelection(),
 			},
 			'Steps': {
@@ -893,7 +894,7 @@ class PatternSettingsEditor(ExtensionBase):
 				if isshape:
 					self._RemoveFromSelectedShapes(shapeindex)
 				else:
-					self.ClearSelection()
+					self._ClearSelection()
 		elif ctrl:
 			if not alt and not shift:
 				if isshape:
@@ -934,6 +935,7 @@ class PatternSettingsEditor(ExtensionBase):
 		shapes = self.SelectedShapes.getRaw(None)
 		self.Steps.append(shapes)
 		self.SelectedShapes.clear()
+		self.statepar.Selectedstep += 1
 
 	@loggedmethod
 	def _ClearSteps(self):
@@ -953,3 +955,23 @@ class PatternSettingsEditor(ExtensionBase):
 			handler = self.menuHandlers[menuname].get(action, None)
 			if handler:
 				handler(info)
+
+	def _SelectShapesInStep(self, i):
+		shapes = self.Steps[i] or []
+		self.SelectedShapes = shapes
+
+	def _SelectStep(self, i):
+		stepcount = len(self.Steps)
+		if i < 0:
+			return
+		if i >= stepcount:
+			self._ClearSelection()
+		else:
+			self._SelectShapesInStep(i)
+
+	def OnStateParChange(self, par):
+		if par.name == 'Selectedstep':
+			self._SelectStep(int(par))
+
+	def OpenStepButtonContextMenu(self, button):
+		pass

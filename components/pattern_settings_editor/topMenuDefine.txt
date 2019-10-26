@@ -9,7 +9,7 @@ File
 Edit									
 Selection									
 	Invert		onSelectionAction						
-	Clear		onSelectionAction						
+	Deselect All		onSelectionAction						
 Steps									
 	Add		onStepsAction						
 	Clear		onStepsAction						
