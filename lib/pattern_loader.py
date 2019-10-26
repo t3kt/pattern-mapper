@@ -8,7 +8,7 @@ from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
 from .common import formatValue, averagePoints
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData, SequenceStep
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
 from pattern_groups import GroupGenerators
 from pattern_state import ShapeStatesBuilder
 
