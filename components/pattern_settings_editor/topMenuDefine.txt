@@ -1,0 +1,16 @@
+button	item1	item2	callback	dividerAfter	disable	checked	highlight	shortcut	rowCallback
+File									
+	New							Alt N	
+	Open				True			Alt O	
+	Recent			True					
+									getRecentFiles
+		Clear Recent File List							
+	Quit		onQuit				True		
+Edit									
+Selection									
+	Clear		onSelectionAction
+Steps									
+	Clear Steps		onStepsAction						
+Settings									
+	Show Guides		onSetting			me.par.Callbackdat.eval().module.guides			
+	Show Grid		onSetting			me.par.Callbackdat.eval().module.grid			

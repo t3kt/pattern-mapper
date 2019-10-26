@@ -925,9 +925,18 @@ class PatternSettingsEditor(ExtensionBase):
 		self.SelectedShapes.clear()
 
 	@loggedmethod
-	def ClearSteps(self):
+	def _ClearSteps(self):
 		self.Steps.clear()
 
 	@loggedmethod
-	def ClearSelection(self):
+	def _ClearSelection(self):
 		self.SelectedShapes.clear()
+
+	def OnMenuAction(self, info: dict, parentname=None):
+		action = info['item']
+		if parentname == 'Steps':
+			if action == 'Clear Steps':
+				self._ClearSteps()
+		elif parentname == 'Selection':
+			if action == 'Clear':
+				self._ClearSelection()
