@@ -13,6 +13,7 @@ ui.panes.current = None
 ui.status = ''
 PaneType = _Expando()
 PaneType.NETWORKEDITOR = None
+ext = _Expando()
 
 class project:
 	name = ''
@@ -253,4 +254,7 @@ class RenderPickEvent(tuple):
 	normal: _Vector
 	depth: float
 	instanceId: int
+
+def debug(*args):
+	pass
 
