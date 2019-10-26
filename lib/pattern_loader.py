@@ -12,6 +12,11 @@ from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSp
 from pattern_groups import GroupGenerators
 from pattern_state import ShapeStatesBuilder
 
+try:
+	from TDStoreTools import DependDict, DependList, StorageManager
+except ImportError:
+	from _stubs.TDStoreTools import DependDict, DependList, StorageManager
+
 # adds the 'packages/' dir to the import path
 import td_python_package_init
 td_python_package_init.init()
@@ -22,6 +27,11 @@ print('pattern_loader.py loading...')
 
 if False:
 	from ._stubs import *
+
+try:
+	import _stubs.TDFunctions as TDF
+except ImportError:
+	TDF = op.TDModules.mod.TDFunctions
 
 remap = tdu.remap
 
@@ -826,9 +836,22 @@ class PatternSettingsEditor(ExtensionBase):
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.DBG_lastEvent = None
-		self.selectedshapes = []
-		self.previoussteps = []  # type: List[SequenceStep]
-		self.inprogressstep = None  # type: SequenceStep
+
+		storageSpecs = [
+			{'name': 'Steps', 'default': [], 'dependable': 'deep'},
+			{'name': 'SelectedShapes', 'default': [], 'dependable': True},
+			{'name': 'SelectedStep', 'default': None},
+		]
+		self.storage = StorageManager(
+			self,
+			self.ownerComp,
+			storageSpecs,
+		)
+		# TDF.createProperty(self, 'Steps', value=[], dependable=True)
+		# TDF.createProperty(self, 'SelectedShapes', value=[], dependable='deep')
+		if False:
+			self.Steps = DependList()  # type: DependList[DependList[int]]
+			self.SelectedShapes = DependList()  # type: DependList[int]
 
 	def _KeyState(self, name):
 		return bool(self.op('key_states')[name])
@@ -842,52 +865,69 @@ class PatternSettingsEditor(ExtensionBase):
 		alt = self._KeyState('alt')
 		shift = self._KeyState('shift')
 		ctrl = self._KeyState('ctrl')
-		if not picked or not trigger:
-			return
-		# self._LogEvent('picked: {} trigger: {} shapeIndex: {} keys: {} {}'.format(
+		# self._LogEvent('picked: {} trigger: {} shapeIndex: {} keys: {} {} {}\n\t{}'.format(
 		# 	picked, trigger, shapeindex,
 		# 	'ALT' if alt else '',
 		# 	'SHIFT' if shift else '',
 		# 	'CTRL' if ctrl else '',
+		# 	event,
 		# ))
+
+		if not picked or not trigger:
+			return
+
+		isshape = 'hidden_picker_panels_geo' in event.pickOp.path
 		if alt:
 			if not shift and not ctrl:
-				self._RemoveFromCurrentStep(shapeindex)
+				if isshape:
+					self._RemoveFromSelectedShapes(shapeindex)
+				else:
+					self.ClearSelection()
 		elif ctrl:
 			if not alt and not shift:
-				self._ToggleInCurrentStep(shapeindex)
+				if isshape:
+					self._ToggleInShapeSelection(shapeindex)
 		elif shift:
 			if not alt and not ctrl:
-				self._AddToCurrentStep(shapeindex)
+				if isshape:
+					self._AddToSelectedShapes(shapeindex)
+				else:
+					self._SaveSelectionToNewStep(allowempty=True)
 		else:
-			self._StartStep()
-			self._AddToCurrentStep(shapeindex)
-
-	def _CreateStepIfNeeded(self):
-		if not self.inprogressstep:
-			self._StartStep()
+			self._SaveSelectionToNewStep()
+			if isshape:
+				self._AddToSelectedShapes(shapeindex)
 
 	@loggedmethod
-	def _AddToCurrentStep(self, shapeindex):
-		self._CreateStepIfNeeded()
-		if shapeindex not in self.inprogressstep.shapeindices:
-			self.inprogressstep.shapeindices.append(shapeindex)
+	def _AddToSelectedShapes(self, shapeindex):
+		if shapeindex not in self.SelectedShapes:
+			self.SelectedShapes.append(shapeindex)
 
 	@loggedmethod
-	def _RemoveFromCurrentStep(self, shapeindex):
-		if not self.inprogressstep or shapeindex not in self.inprogressstep.shapeindices:
+	def _RemoveFromSelectedShapes(self, shapeindex):
+		if not self.SelectedShapes or shapeindex not in self.SelectedShapes:
 			return False
-		self.inprogressstep.shapeindices.remove(shapeindex)
+		self.SelectedShapes.remove(shapeindex)
 		return True
 
 	@loggedmethod
-	def _ToggleInCurrentStep(self, shapeindex):
-		if self._RemoveFromCurrentStep(shapeindex):
+	def _ToggleInShapeSelection(self, shapeindex):
+		if self._RemoveFromSelectedShapes(shapeindex):
 			return
-		self._AddToCurrentStep(shapeindex)
+		self._AddToSelectedShapes(shapeindex)
 
 	@loggedmethod
-	def _StartStep(self):
-		self.inprogressstep = SequenceStep(
-			sequenceindex=len(self.previoussteps))
-		self.previoussteps.append(self.inprogressstep)
+	def _SaveSelectionToNewStep(self, allowempty=False):
+		if not allowempty and not self.SelectedShapes:
+			return
+		shapes = self.SelectedShapes.getRaw(None)
+		self.Steps.append(shapes)
+		self.SelectedShapes.clear()
+
+	@loggedmethod
+	def ClearSteps(self):
+		self.Steps.clear()
+
+	@loggedmethod
+	def ClearSelection(self):
+		self.SelectedShapes.clear()
