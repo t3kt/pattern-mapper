@@ -1,6 +1,8 @@
 # trick pycharm
 
-from typing import List as _List, Union as _Union, Tuple as _Tuple
+# noinspection PyShadowingBuiltins
+import typing as _T
+
 
 class _Expando:
 	def __init__(self):
@@ -27,51 +29,72 @@ class _Parent:
 		pass
 
 class op:
-	def __init__(self, arg=None):
-		self.id = 0
-		self.path = ''
-		self.name = ''
-		self.par = _Expando()
-		self.customTuplets = []
-		self.parent = _Parent()
-		self.op = op
-		self.storage = {}
-		self.isCOMP = False
-		self.isTOP = False
-		self.isCHOP = False
-		self.depth = 0
-		self.tags = set()
-		self.valid = True
+	id: int
+	path: str
+	name: str
+	par: _T.Any
+	customTuplets: _T.List[_T.Tuple['Par']]
+	parent: '_Parent'
+	storage: _T.Dict[str, _T.Any]
+	isBase: bool
+	isCOMP: bool
+	isTOP: bool
+	isCHOP: bool
+	isDAT: bool
+	isObject: bool
+	isPanel: bool
+	isSOP: bool
+	depth: int
+	tags: _T.Set[str]
+	valid: bool
+	icon: str
+
+	def __init__(self, arg=None): pass
 
 	def destroy(self): pass
 
-	def ops(self, *args): return [op()]
+	def op(self, path) -> 'op': pass
+	def ops(self, *args) -> _T.List[_T.Union['op', 'COMP', 'DAT', 'SOP', 'CHOP']]: pass
+	def findChildren(self, maxDepth=1, tags=None) -> '_T.List[op]': pass
+	def copy(self, o: 'op', name=None) -> 'op': pass
+	def create(self, OPtype, name, initialize=True) -> 'op': pass
+	def shortcutPath(self, o: 'op', toParName=None) -> str: pass
+	def relativePath(self, o: 'op') -> str: pass
+	def openMenu(self, x=None, y=None): pass
+	def var(self, name, search=True) -> str: pass
+	def evalExpression(self, expr) -> _T.Any: pass
+	def dependenciesTo(self, o: 'op') -> _T.List['op']: pass
+	def changeType(self, optype: type) -> 'op': pass
+	def copyParameters(self, o: 'op', custom=True, builtin=True): pass
+	def cook(self, force=False, recurse=False): pass
+	def pars(self, pattern) -> _T.List['Par']: pass
 
 	def openParameters(self): pass
-
 	def openViewer(self, unique=False, borders=True): pass
-
 	def closeViewer(self): pass
 
 	def store(self, key, value): pass
-
 	def unstore(self, keys1, *morekeys): pass
+	def storeStartupValue(self, key, value): pass
+	def unstoreStartupValue(self, *keys): pass
+	def fetch(self, key, default, search=True, storeDefault=False): pass
+	def fetchOwner(self, key) -> 'op': pass
 
-	def findChildren(self, maxDepth=1, tags=None) -> '_List[op]': pass
-
-	def addScriptError(self, msg): pass
-
-	def copy(self, o: 'op', name=None) -> 'op': pass
-
-	def create(self, OPtype, name, initialize=True) -> 'op': pass
+	def addScriptErrors(self, msg): pass
+	def addError(self, msg): pass
+	def addWarning(self, msg): pass
+	def errors(self, recurse=False) -> str: pass
+	def warnings(self, recurse=False) -> str: pass
+	def scriptErrors(self, recurse=False) -> str: pass
+	def clearScriptErrors(self, recurse=False, error='*'): pass
 
 	TDResources = _Expando()
 
 op.TDResources = _Expando()
 op.TDResources.op = op
 
-def ops(*paths):
-	return []
+def ops(*paths) -> _T.List[_T.Union['op', 'COMP', 'DAT', 'SOP', 'CHOP']]:
+	pass
 
 def var(name):
 	return ''
@@ -91,42 +114,36 @@ class td:
 			self.name = ''
 			self.size = 0
 			self.type = None  # type: type
-			self.default = None  # type: _Union[float, int, str, tuple, _Position, _Vector]
+			self.default = None  # type: _T.Union[float, int, str, tuple, _Position, _Vector]
 
 del _TD_ERROR
 
 
 class _Matrix:
-	def __init__(self, *values):
-		self.vals = []  # type: _List[float]
-		self.rows = []  # type: _List[_List[float]]
-		self.cols = []  # type: _List[_List[float]]
+	vals: _T.List[float]
+	rows: _T.List[_T.List[float]]
+	cols: _T.List[_T.List[float]]
+
+	def __init__(self, *values): pass
 
 	def transpose(self): pass
-
 	def invert(self): pass
-
 	def determinant(self) -> float: pass
-
 	def copy(self) -> '_Matrix': pass
-
 	def identity(self): pass
-
 	def translate(self, tx, ty, tz, fromRight=False): pass
-
 	def rotate(self, rx, ry, rz, fromRight=False, pivot=None): pass
-
 	def rotateOnAxis(self, rotationAxis, angle, fromRight=False, pivot=None): pass
-
 	def scale(self, sx, sy, sz, fromRight=False, pivot=None): pass
-
 	def lookat(self, eyePos, target, up): pass
-
-	def decompose(self) -> _Tuple[_Tuple]: pass
+	def decompose(self) -> _T.Tuple[_T.Tuple]: pass
 
 class _Position:
-	def __init__(self, *vals):
-		self.x = self.y = self.z = 0
+	x: int
+	y: int
+	z: int
+
+	def __init__(self, *vals): pass
 
 	def translate(self, x, y, z): pass
 
@@ -135,50 +152,34 @@ class _Position:
 	def copy(self) -> '_Position': pass
 
 	def __getitem__(self, item: int) -> float: pass
-
 	def __setitem__(self, key, value): pass
-
-	def __mul__(self, other: _Union[float, _Matrix]) -> _Union[float, '_Position']: pass
-
-	def __add__(self, other: _Union[float, '_Position', '_Vector']) -> _Union[float, '_Position']: pass
-
-	def __sub__(self, other: _Union[float, '_Position', '_Vector']) -> _Union[float, '_Position']: pass
-
+	def __mul__(self, other: _T.Union[float, _Matrix]) -> _T.Union[float, '_Position']: pass
+	def __add__(self, other: _T.Union[float, '_Position', '_Vector']) -> _T.Union[float, '_Position']: pass
+	def __sub__(self, other: _T.Union[float, '_Position', '_Vector']) -> _T.Union[float, '_Position']: pass
 	def __div__(self, other: float) -> '_Position': pass
-
 	def __abs__(self) -> '_Position': pass
-
 	def __neg__(self) -> '_Position': pass
 
 
 class _Vector:
-	def __init__(self, *vals):
-		self.x = self.y = self.z = 0
+	x: int
+	y: int
+	z: int
+
+	def __init__(self, *vals): pass
 
 	def translate(self, x, y, z): pass
-
 	def scale(self, x, y, z): pass
-
 	def __getitem__(self, item: int) -> float: pass
-
 	def __setitem__(self, key, value): pass
-
 	def normalize(self): pass
-
 	def length(self) -> float: pass
-
 	def lengthSquared(self) -> float: pass
-
 	def copy(self) -> '_Vector': pass
-
 	def distance(self, vec: '_Vector') -> float: pass
-
 	def lerp(self, vec: '_Vector', t: float) -> '_Vector': pass
-
 	def slerp(self, vec: '_Vector', t: float) -> '_Vector': pass
-
 	def project(self, vec1: '_Vector', vec2: '_Vector'): pass
-
 	def reflect(self, vec: '_Vector'): pass
 
 class tdu:
@@ -186,13 +187,12 @@ class tdu:
 	def legalName(s):
 		return s
 
+	# noinspection PyShadowingBuiltins
 	@staticmethod
-	def clamp(inputVal, min, max):
-		return inputVal
+	def clamp(inputVal, min, max): pass
 
 	@staticmethod
-	def remap(inputVal, fromMin, fromMax, toMin, toMax):
-		return inputVal
+	def remap(inputVal, fromMin, fromMax, toMin, toMax): pass
 
 	class Dependency:
 		def __init__(self, _=None):
@@ -204,11 +204,12 @@ class tdu:
 	Vector = _Vector
 	Matrix = _Matrix
 
+	# noinspection PyShadowingBuiltins
 	@staticmethod
-	def split(string, eval=False)-> '_List': pass
+	def split(string, eval=False)-> _T.List[str]: pass
 
 	@staticmethod
-	def match(pattern, inputList, caseSensitive=True) -> '_List[str]': pass
+	def match(pattern, inputList, caseSensitive=True) -> _T.List[str]: pass
 
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0
@@ -227,7 +228,7 @@ class Par:
 OP = op
 
 class DAT(OP):
-	def row(self, nameorindex): return []
+	def row(self, nameorindex): pass
 
 COMP = OP
 CHOP = OP
@@ -250,7 +251,7 @@ class RenderPickEvent(tuple):
 	pickOp: OP
 	pos: _Position
 	texture: _Position
-	color: _Tuple[float, float, float, float]
+	color: _T.Tuple[float, float, float, float]
 	normal: _Vector
 	depth: float
 	instanceId: int
