@@ -12,6 +12,7 @@ Selection
 	Deselect All		onSelectionAction						
 Steps									
 	Add		onStepsAction						
+	Delete		onStepsAction		not ext.Editor.HasSelectedStep				
 	Clear		onStepsAction						
 Settings									
 	Show Guides		onSetting			me.par.Callbackdat.eval().module.guides			

@@ -1,5 +1,6 @@
 from common import ExtensionBase, loggedmethod
 from typing import Callable, Dict
+import menu
 
 try:
 	from TDStoreTools import DependDict, DependList, StorageManager
@@ -37,8 +38,9 @@ class PatternSettingsEditor(ExtensionBase):
 				'Invert': lambda info: self._InvertSelection(),
 			},
 			'Steps': {
-				'Clear': lambda info: self._ClearSteps(),
 				'Add': lambda info: self._SaveSelectionToNewStep(allowempty=True),
+				'Delete': lambda info: self._DeleteStep(),
+				'Clear': lambda info: self._ClearSteps(),
 			}
 		}  # type: Dict[str, Dict[str, Callable]]
 
@@ -81,11 +83,19 @@ class PatternSettingsEditor(ExtensionBase):
 				if isshape:
 					self._AddToSelectedShapes(shapeindex)
 				else:
-					self._SaveSelectionToNewStep(allowempty=True)
+					if self.statepar.Selectedstep == len(self.Steps):
+						self._SaveSelectionToNewStep(allowempty=True)
+					else:
+						self.statepar.Selectedstep = len(self.Steps)
 		else:
-			self._SaveSelectionToNewStep()
 			if isshape:
+				self._SaveSelectionToNewStep()
 				self._AddToSelectedShapes(shapeindex)
+			else:
+				if self.statepar.Selectedstep == len(self.Steps):
+					self._SaveSelectionToNewStep()
+				else:
+					self.statepar.Selectedstep = len(self.Steps)
 
 	@loggedmethod
 	def _AddToSelectedShapes(self, shapeindex):
@@ -150,5 +160,38 @@ class PatternSettingsEditor(ExtensionBase):
 		if par.name == 'Selectedstep':
 			self._SelectStep(int(par))
 
+	def _DeleteStep(self, i=None):
+		if i is None:
+			i = int(self.statepar.Selectedstep)
+		if i < 0 or i >= len(self.Steps):
+			return
+		shouldshift = self.statepar.Selectedstep >= i and i < len(self.Steps)
+		del self.Steps[i]
+		if shouldshift:
+			self.statepar.Selectedstep += 1
+
+	@property
+	def HasSelectedStep(self):
+		return 0 <= self.statepar.Selectedstep < len(self.Steps)
+
+	@property
+	def StepButtonLabels(self):
+		labels = []
+		for i, shapes in enumerate(self.Steps):
+			labels.append(str(i) if shapes else '({})'.format(i))
+		return labels + ['+']
+
 	def OpenStepButtonContextMenu(self, button):
-		pass
+		i = button.digits
+		if i is None:
+			return
+		menuitems = [
+			menu.Item(
+				'Delete',
+				callback=lambda: self._DeleteStep(i),
+			),
+		]
+		menu.fromButton(button).Show(
+			menuitems,
+			autoClose=True,
+		)
