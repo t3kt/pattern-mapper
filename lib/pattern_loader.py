@@ -2,7 +2,7 @@ import json
 import xml.etree.ElementTree as ET
 
 import pathlib
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
 from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
@@ -853,6 +853,17 @@ class PatternSettingsEditor(ExtensionBase):
 			self.Steps = DependList()  # type: DependList[DependList[int]]
 			self.SelectedShapes = DependList()  # type: DependList[int]
 
+		self.menuHandlers = {
+			'Selection': {
+				'Clear': lambda info: self._ClearSelection(),
+				'Invert': lambda info: self._InvertSelection(),
+			},
+			'Steps': {
+				'Clear': lambda info: self._ClearSteps(),
+				'Add': lambda info: self._SaveSelectionToNewStep(allowempty=True),
+			}
+		}  # type: Dict[str, Dict[str, Callable]]
+
 	def _KeyState(self, name):
 		return bool(self.op('key_states')[name])
 
@@ -932,11 +943,13 @@ class PatternSettingsEditor(ExtensionBase):
 	def _ClearSelection(self):
 		self.SelectedShapes.clear()
 
-	def OnMenuAction(self, info: dict, parentname=None):
+	@loggedmethod
+	def _InvertSelection(self):
+		pass
+
+	def OnMenuAction(self, menuname: str, info: dict):
 		action = info['item']
-		if parentname == 'Steps':
-			if action == 'Clear Steps':
-				self._ClearSteps()
-		elif parentname == 'Selection':
-			if action == 'Clear':
-				self._ClearSelection()
+		if menuname in self.menuHandlers:
+			handler = self.menuHandlers[menuname].get(action, None)
+			if handler:
+				handler(info)

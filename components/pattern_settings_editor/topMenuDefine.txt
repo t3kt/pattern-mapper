@@ -8,9 +8,11 @@ File
 	Quit		onQuit				True		
 Edit									
 Selection									
-	Clear		onSelectionAction
+	Invert		onSelectionAction						
+	Clear		onSelectionAction						
 Steps									
-	Clear Steps		onStepsAction						
+	Add		onStepsAction						
+	Clear		onStepsAction						
 Settings									
 	Show Guides		onSetting			me.par.Callbackdat.eval().module.guides			
 	Show Grid		onSetting			me.par.Callbackdat.eval().module.grid			

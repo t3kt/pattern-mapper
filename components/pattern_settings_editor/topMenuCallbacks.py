@@ -19,15 +19,11 @@ TopMenu info keys:
 	'menu': the popMenu component inside topMenu
 """
 
-def onClearSteps(info):
-	ext.Editor.ClearSteps()
-
-
 def onStepsAction(info):
-	ext.Editor.OnMenuAction(info, 'Steps')
+	ext.Editor.OnMenuAction('Steps', info)
 
 def onSelectionAction(info):
-	ext.Editor.OnMenuAction(info, 'Selection')
+	ext.Editor.OnMenuAction('Selection', info)
 
 #################################
 # exampleMenuDefine callbacks
