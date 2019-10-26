@@ -1,3 +1,4 @@
 path	parameter	value
 ^*_dropfield	*[Ff]ont	'Roboto'
 *_dropfield	Font	'Roboto'
+*	Buttonofffontcolor[rgb] Buttononfontcolor[rgb]	.8
