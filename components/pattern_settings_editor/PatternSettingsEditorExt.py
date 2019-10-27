@@ -24,8 +24,8 @@ class PatternSettingsEditor(ExtensionBase):
 			{'name': 'Steps', 'default': [], 'dependable': 'deep'},
 			{'name': 'SelectedShapes', 'default': [], 'dependable': True},
 			{'name': 'PatternData', 'dependable': False},
-			{'name': 'PatternSettingsDict', 'dependable': 'deep'},
-			{'name': 'Groups', 'dependable': 'deep'},
+			{'name': 'PatternSettingsDict', 'default': {}, 'dependable': 'deep'},
+			{'name': 'Groups', 'default': [], 'dependable': 'deep'},
 		]
 		self.storage = StorageManager(
 			self,
