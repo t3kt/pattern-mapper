@@ -274,7 +274,7 @@ class PatternSettingsEditor(ExtensionBase):
 	def _GetGroupShapes(self, i):
 		if 0 <= i < len(self.Groups):
 			group = self.Groups[i]
-			return group.get('shapes') or []
+			return list(group.get('shapes') or [])
 		return []
 
 	def _AddGroupToSelection(self, groupindex):
