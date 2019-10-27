@@ -3,3 +3,4 @@ path	parameter	value
 *	Buttononfontcolor[rgb] *[Bb]uttonfontcolor[rgb] Radioonfontcolor[rgb]	.8
 *	Buttonofffontcolor[rgb] Radioofffontcolor[rgb]	.5
 *_dropfield *windowHeader	Buttonfont	'Material Design Icons'
+*icon	Font	'Material Design Icons'

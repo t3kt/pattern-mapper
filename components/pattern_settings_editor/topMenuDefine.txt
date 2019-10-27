@@ -4,18 +4,16 @@ File
 	Open				True			Alt O	
 	Recent			True					
 									getRecentFiles
-		Clear Recent File List							
 	Quit		onQuit				True		
-Edit									
 Selection									
 	Invert		onSelectionAction						
-	Add All Steps		onSelectionAction						
-	Remove All Steps		onSelectionAction						
+	Add All Steps		onSelectionAction		not ext.Editor.Steps				
+	Remove All Steps		onSelectionAction		not ext.Editor.Steps				
 	Deselect All		onSelectionAction						
 Steps									
 	Add		onStepsAction						
 	Delete		onStepsAction		not ext.Editor.HasSelectedStep				
-	Clear		onStepsAction						
+	Clear		onStepsAction		not ext.Editor.Steps				
 Settings									
 	Show Guides		onSetting			me.par.Callbackdat.eval().module.guides			
 	Show Grid		onSetting			me.par.Callbackdat.eval().module.grid			

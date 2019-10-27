@@ -424,7 +424,7 @@ class GroupGenSpec(BaseDataObject, ABC):
 				gentypes.append(BooleanGroupGenSpec)
 			else:
 				gentypes.append(MergeGroupGenSpec)
-		if 'paths' in obj:
+		if 'paths' in obj or 'path' in obj:
 			gentypes.append(PathGroupGenSpec)
 		if not gentypes:
 			raise Exception('Unsupported group gen spec: {}'.format(obj))
@@ -474,9 +474,16 @@ class PathGroupGenSpec(GroupGenSpec):
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
-			'path': self.paths,
+			'paths': self.paths,
 			'groupatdepth': self.groupatdepth or None,
 		}))
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			paths=obj.get('paths') or obj.get('path') or [],
+			**excludekeys(obj, ['paths', 'path'])
+		)
 
 class BoundMode(_BaseEnum):
 	center = 0

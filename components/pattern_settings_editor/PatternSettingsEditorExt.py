@@ -1,6 +1,9 @@
+import json
+
 from common import ExtensionBase, loggedmethod
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 import menu
+from pattern_model import PatternData, PatternSettings, GroupInfo
 
 try:
 	from TDStoreTools import DependDict, DependList, StorageManager
@@ -20,7 +23,9 @@ class PatternSettingsEditor(ExtensionBase):
 		storageSpecs = [
 			{'name': 'Steps', 'default': [], 'dependable': 'deep'},
 			{'name': 'SelectedShapes', 'default': [], 'dependable': True},
-			{'name': 'SelectedStep', 'default': None},
+			{'name': 'PatternData', 'dependable': False},
+			{'name': 'PatternSettingsDict', 'dependable': 'deep'},
+			{'name': 'Groups', 'dependable': 'deep'},
 		]
 		self.storage = StorageManager(
 			self,
@@ -29,8 +34,11 @@ class PatternSettingsEditor(ExtensionBase):
 		)
 		# noinspection PyUnreachableCode
 		if False:
-			self.Steps = DependList()  # type: DependList[DependList[int]]
-			self.SelectedShapes = DependList()  # type: DependList[int]
+			self.Steps = None  # type: DependList[DependList[int]]
+			self.SelectedShapes = None  # type: DependList[int]
+			self.PatternData = None  # type: PatternData
+			self.PatternSettingsDict = None  # type: DependDict[str, Any]
+			self.Groups = None  # type: DependList[DependDict[str, Any]]
 
 		self.menuHandlers = {
 			'Selection': {
@@ -46,10 +54,28 @@ class PatternSettingsEditor(ExtensionBase):
 			}
 		}  # type: Dict[str, Dict[str, Callable]]
 
+	def LoadPatternData(self):
+		jsondat = self.op('pattern_data_json')
+		jsondat.par.loadonstartpulse.pulse()
+		jsonstr = jsondat.text
+		obj = json.loads(jsonstr) if jsonstr else {}
+		patterndata = PatternData.FromJsonDict(obj)
+		self.Groups = [
+			self._CreateGroupDict(groupinfo)
+			for groupinfo in patterndata.groups
+		]
+
+	@staticmethod
+	def _CreateGroupDict(groupinfo: GroupInfo):
+		return {
+			'name': groupinfo.groupname,
+			'generated': True,
+			'info': groupinfo.ToJsonDict(),
+		}
+
 	def _KeyState(self, name):
 		return bool(self.op('key_states')[name])
 
-	# @loggedmethod
 	def OnRenderPickEvent(self, chop, event: 'RenderPickEvent'):
 		self.DBG_lastEvent = event
 		picked = bool(chop['picked'])
