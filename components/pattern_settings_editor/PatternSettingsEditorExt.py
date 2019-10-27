@@ -71,6 +71,11 @@ class PatternSettingsEditor(ExtensionBase):
 			'name': groupinfo.groupname,
 			'generated': True,
 			'info': groupinfo.ToJsonDict(),
+			'shapes': groupinfo.allShapeIndices,
+			'stepshapes': [
+				list(step.shapeindices)
+				for step in groupinfo.sequencesteps
+			]
 		}
 
 	def _KeyState(self, name):
@@ -264,7 +269,32 @@ class PatternSettingsEditor(ExtensionBase):
 				lambda: self._AdjustSelection(removes=self._GetStepShapes(i))
 			),
 		]
-		menu.fromButton(button).Show(
-			menuitems,
-			autoClose=True,
+		menu.fromButton(button).Show(menuitems, autoClose=True)
+
+	def _GetGroupShapes(self, i):
+		if 0 <= i < len(self.Groups):
+			group = self.Groups[i]
+			return group.get('shapes') or []
+		return []
+
+	def _AddGroupToSelection(self, groupindex):
+		pass
+
+	@loggedmethod
+	def OpenGroupContextMenu(self, button):
+		i = int(
+			button.par.Groupindex
+			if hasattr(button.par, 'Groupindex') else
+			button.parent.Group.par.Groupindex
 		)
+		menuitems = [
+			menu.Item(
+				'Add To Selection',
+				lambda: self._AdjustSelection(adds=self._GetGroupShapes(i))
+			),
+			menu.Item(
+				'Remove From Selection',
+				lambda: self._AdjustSelection(removes=self._GetGroupShapes(i))
+			),
+		]
+		menu.fromButton(button).Show(menuitems, autoClose=True)
