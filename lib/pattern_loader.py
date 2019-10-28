@@ -2,7 +2,7 @@ import json
 import xml.etree.ElementTree as ET
 
 import pathlib
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 
 from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
@@ -496,16 +496,17 @@ class _SvgParser(LoggableSubComponent):
 		self.minbound = tdu.Vector(0, 0, 0)
 		self.maxbound = tdu.Vector(0, 0, 0)
 		self.settings = settings
+		self.root = None  # type: Optional[ET.ElementTree]
 
 	def parse(self, svgxml):
 		if not svgxml:
 			return
-		root = ET.fromstring(svgxml)
-		self.svgwidth = float(root.get('width', 1))
-		self.svgheight = float(root.get('height', 1))
+		self.root = ET.fromstring(svgxml)
+		self.svgwidth = float(self.root.get('width', 1))
+		self.svgheight = float(self.root.get('height', 1))
 		self.scale = 1 / max(self.svgwidth, self.svgheight)
 		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
-		self._handleElem(root, 0, namestack=[])
+		self._handleElem(self.root, 0, namestack=[])
 		if not self.shapes:
 			return
 		minbounds = [shape.minbound for shape in self.shapes]
@@ -524,6 +525,9 @@ class _SvgParser(LoggableSubComponent):
 			self._rescaleCoords()
 		self._calculateShapeCenters()
 		self._calculateShapeRadiuses()
+
+	def getProcessedSvgRoot(self):
+		pass
 
 	def _getShapeByName(self, shapename: str):
 		for shape in self.shapes:
@@ -637,8 +641,9 @@ class _SvgParser(LoggableSubComponent):
 		totaldist = path.length()
 		distances = _segmentDistances(path, self.scale)
 		totaldist *= self.scale
+		shapeindex = len(self.shapes)
 		self.shapes.append(ShapeInfo(
-			shapeindex=len(self.shapes),
+			shapeindex=shapeindex,
 			shapename=pathelem.get('id', None),
 			shapepath='/'.join(namestack + [elemname]),
 			parentpath='/'.join(namestack),
@@ -653,6 +658,7 @@ class _SvgParser(LoggableSubComponent):
 				for i, pos in enumerate(pointpositions)
 			],
 		))
+		pathelem['data-idx'] = shapeindex
 
 def _localName(fullname: str):
 	if '}' in fullname:
