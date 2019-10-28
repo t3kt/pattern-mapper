@@ -1,6 +1,5 @@
 import json
 from typing import Dict, Callable, Union
-import urllib.parse
 
 from common import ExtensionBase, loggedmethod, BaseDataObject, BaseDataObject2
 from pattern_model import PatternData, PatternSettings
@@ -135,9 +134,6 @@ class PatternEditorServer(ExtensionBase):
 	@loggedmethod
 	def OnHttpRequest(self, serverdat, requestobj, responseobj):
 		request = _Request(requestobj)
-		url = urllib.parse.urlparse(request.uri)
-		self._LogEvent('URL: {}'.format(url))
-
 		response = _Response(responseobj)
 		response.statusCode = 200
 		response.statusReason = 'OK'
