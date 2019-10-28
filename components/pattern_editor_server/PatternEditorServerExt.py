@@ -47,21 +47,36 @@ class _Response:
 	@data.setter
 	def data(self, val): self.d['data'] = val
 
+	@property
+	def contentType(self): return self.d.get('Content-Type')
+
+	@contentType.setter
+	def contentType(self, val): self.d['Content-Type'] = val
+
 class _Handler:
-	def __call__(self, request: _Request, response: _Response):
+	def __init__(self, contentType: str = None, responseattrs: dict = None):
+		self.contentType = contentType
+		self.responseattrs = responseattrs or {}
+
+	def Handle(self, request: _Request, response: _Response):
 		data = self._GetData(request.uri)
 		response.data = data
+		response.d.update(self.responseattrs)
+		if self.contentType:
+			response.contentType = self.contentType
 
 	def _GetData(self, uri: str): raise NotImplementedError()
 
 class _TextHandler(_Handler):
-	def __init__(self, getter: Callable[[str], str]):
+	def __init__(self, getter: Callable[[str], str], contentType: str = None):
+		super().__init__(contentType or 'text/plain')
 		self.getter = getter
 
 	def _GetData(self, uri: str): return self.getter(uri)
 
 class _JsonHandler(_Handler):
 	def __init__(self, getter: Callable[[str], Union[BaseDataObject, BaseDataObject2]]):
+		super().__init__('application/json')
 		self.getter = getter
 
 	def _GetData(self, uri):
@@ -81,7 +96,7 @@ class PatternEditorServer(ExtensionBase):
 		self.handlers = {
 			'/patterndata.json': _JsonHandler(lambda uri: self._GetPatternData()),
 			'/patternsettings.json': _JsonHandler(lambda uri: self._GetPatternSettings()),
-			'/pattern.svg': _TextHandler(lambda uri: self._GetPatternSvg()),
+			'/pattern.svg': _TextHandler(lambda uri: self._GetPatternSvg(), 'image/svg+xml'),
 		}
 
 	def LoadPatternData(self):
@@ -128,9 +143,13 @@ class PatternEditorServer(ExtensionBase):
 		response.statusReason = 'OK'
 		handler = self.handlers.get(request.uri)
 		if handler:
-			handler(request, response)
+			handler.Handle(request, response)
 		else:
-			response.data = '<b>Pattern Mapper: </b>' + serverdat.name
+			response.data = '''
+				<b>Pattern Mapper: </b>
+				<hr/>
+				<img src="pattern.svg" style="max-width: 80%;"/>
+			'''
 		return response.d
 
 	def OnWebSocketOpen(self, serverdat, client):
