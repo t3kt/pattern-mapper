@@ -34,11 +34,11 @@ class PatternSettingsEditor(ExtensionBase):
 		)
 		# noinspection PyUnreachableCode
 		if False:
-			self.Steps = None  # type: DependList[DependList[int]]
-			self.SelectedShapes = None  # type: DependList[int]
-			self.PatternData = None  # type: PatternData
-			self.PatternSettingsDict = None  # type: DependDict[str, Any]
-			self.Groups = None  # type: DependList[DependDict[str, Any]]
+			self.Steps = DependList()  # type: DependList[DependList[int]]
+			self.SelectedShapes = DependList()  # type: DependList[int]
+			self.PatternData = PatternData()  # type: PatternData
+			self.PatternSettingsDict = DependDict()  # type: DependDict[str, Any]
+			self.Groups = DependList()  # type: DependList[DependDict[str, Any]]
 
 		self.menuHandlers = {
 			'Selection': {
