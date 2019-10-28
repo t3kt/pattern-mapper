@@ -22,13 +22,13 @@ class project:
 	folder = ''
 
 class _Parent:
-	def __call__(self, *args, **kwargs):
-		return op()
+	def __call__(self, *args, **kwargs) -> '_AnyOpT':
+		pass
 
 	def __getattr__(self, item):
 		pass
 
-class op:
+class OP:
 	id: int
 	path: str
 	name: str
@@ -49,23 +49,23 @@ class op:
 	valid: bool
 	icon: str
 
-	def __init__(self, arg=None): pass
+	def __init__(self): pass
 
 	def destroy(self): pass
 
-	def op(self, path) -> 'op': pass
-	def ops(self, *args) -> _T.List[_T.Union['op', 'COMP', 'DAT', 'SOP', 'CHOP']]: pass
-	def findChildren(self, maxDepth=1, tags=None) -> '_T.List[op]': pass
-	def copy(self, o: 'op', name=None) -> 'op': pass
-	def create(self, OPtype, name, initialize=True) -> 'op': pass
-	def shortcutPath(self, o: 'op', toParName=None) -> str: pass
-	def relativePath(self, o: 'op') -> str: pass
+	def op(self, path) -> '_AnyOpT': pass
+	def ops(self, *args) -> _T.List['_AnyOpT']: pass
+	def findChildren(self, maxDepth=1, tags=None) -> '_T.List[_AnyOpT]': pass
+	def copy(self, o: '_AnyOpT', name=None) -> 'op': pass
+	def create(self, OPtype, name, initialize=True) -> '_AnyOpT': pass
+	def shortcutPath(self, o: '_AnyOpT', toParName=None) -> str: pass
+	def relativePath(self, o: '_AnyOpT') -> str: pass
 	def openMenu(self, x=None, y=None): pass
 	def var(self, name, search=True) -> str: pass
 	def evalExpression(self, expr) -> _T.Any: pass
-	def dependenciesTo(self, o: 'op') -> _T.List['op']: pass
-	def changeType(self, optype: type) -> 'op': pass
-	def copyParameters(self, o: 'op', custom=True, builtin=True): pass
+	def dependenciesTo(self, o: '_AnyOpT') -> _T.List['_AnyOpT']: pass
+	def changeType(self, optype: type) -> '_AnyOpT': pass
+	def copyParameters(self, o: '_AnyOpT', custom=True, builtin=True): pass
 	def cook(self, force=False, recurse=False): pass
 	def pars(self, pattern) -> _T.List['Par']: pass
 
@@ -78,7 +78,7 @@ class op:
 	def storeStartupValue(self, key, value): pass
 	def unstoreStartupValue(self, *keys): pass
 	def fetch(self, key, default, search=True, storeDefault=False): pass
-	def fetchOwner(self, key) -> 'op': pass
+	def fetchOwner(self, key) -> '_AnyOpT': pass
 
 	def addScriptErrors(self, msg): pass
 	def addError(self, msg): pass
@@ -90,14 +90,14 @@ class op:
 
 	TDResources = _Expando()
 
+def op(path) -> '_AnyOpT': pass
+
 op.TDResources = _Expando()
 op.TDResources.op = op
 
-def ops(*paths) -> _T.List[_T.Union['op', 'COMP', 'DAT', 'SOP', 'CHOP']]:
-	pass
+def ops(*paths) -> _T.List['_AnyOpT']: pass
 
-def var(name):
-	return ''
+def var(name) -> str: pass
 
 class _TD_ERROR(Exception):
 	pass
@@ -237,17 +237,32 @@ ParMode.CONSTANT = ParMode.EXPRESSION = ParMode.EXPORT = 0
 ExpandoStub = _Expando
 
 class Par:
-	def eval(self):
-		return None
+	def eval(self): pass
 
-OP = op
+class Cell:
+	val: str
+	row: int
+	col: int
+
+_NameOrIndex = _T.Union[str, int]
 
 class DAT(OP):
-	def row(self, nameorindex): pass
+	def row(self, nameorindex) -> _T.List[Cell]: pass
+	def col(self, nameorindex) -> _T.List[Cell]: pass
+	def clear(self): pass
+	def appendRow(self, cells: _T.List[Cell]): pass
+	def appendCol(self, cells: _T.List[Cell]): pass
+	def appendRows(self, cells: _T.List[_T.List[Cell]]): pass
+	def appendCols(self, cells: _T.List[_T.List[Cell]]): pass
+	def __getitem__(self, row: _NameOrIndex, col: _NameOrIndex) -> Cell: pass
+	def __setitem__(self, rowcol: _T.Tuple[_NameOrIndex, _NameOrIndex], value): pass
 
 COMP = OP
 CHOP = OP
 SOP = OP
+MAT = OP
+
+_AnyOpT = _T.Union[OP, DAT, COMP, CHOP, SOP, MAT]
 
 baseCOMP = panelCOMP = COMP
 evaluateDAT = mergeDAT = nullDAT = parameterexecuteDAT = tableDAT = textDAT = scriptDAT = DAT
