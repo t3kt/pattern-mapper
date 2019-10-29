@@ -427,22 +427,6 @@ class PatternLoader(ExtensionBase):
 	def FixFaceFlipping(sop):
 		fixFaceFlipping(sop)
 
-	def BuildPathLookupTable(self, chop, tablelength):
-		chop.clear()
-		shapes = self.op('raw_shapes')
-		shapecount = shapes.numPrims
-		chop.numSamples = tablelength
-		for shapeindex in range(shapecount):
-			xchan = chop.appendChan('shape{}:tx'.format(shapeindex))
-			ychan = chop.appendChan('shape{}:ty'.format(shapeindex))
-			zchan = chop.appendChan('shape{}:tz'.format(shapeindex))
-			prim = shapes.prims[shapeindex]
-			for i in range(tablelength):
-				pos = prim.eval(i / (tablelength - 1), 0)
-				xchan[i] = pos.x
-				ychan[i] = pos.y
-				zchan[i] = pos.z
-
 	@loggedmethod
 	def ExportTox(self):
 		if not self.patterndata or not self.patterndata.title:
@@ -464,7 +448,6 @@ class PatternLoader(ExtensionBase):
 			'shape_panels',
 			'shape_attrs',
 			'shape_group_sequence_indices',
-			'path_position_lookup',
 			'default_shape_state_table',
 			'groups',
 			'sequence_steps',
