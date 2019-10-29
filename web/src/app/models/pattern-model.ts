@@ -6,7 +6,11 @@ export class PatternData {}
 
 export class PatternSettings {}
 
-export class PointData {}
+export class PointData {
+  pos: number[];
+  absdist: number;
+  reldist: number;
+}
 
 export class ShapeInfo {
   shapeindex: number;
