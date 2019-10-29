@@ -196,6 +196,27 @@ class PatternBuilder(ExtensionBase):
 			])
 
 class PatternLoader(ExtensionBase):
+	"""
+	Component that loads a PatternData JSON file,
+	and produces various tables and geometry.
+
+	Parts:
+		- Metadata (DAT) - basic info about the pattern (title)
+		- Shape attributes (DAT and equivalent CHOP) - properties of each shape (index, center, color, etc)
+		- Groups (DAT) - list of all the shape groups
+			- name
+			- info about where the group came from (svg paths, group generator properties, etc)
+			- the list of all shapes in each group
+		- Group sequence steps (DAT) - sequence steps from all groups
+			- group name
+			- step index
+			- list of shapes in the step
+		- Shape group sequence indices (CHOP) - with a sample for each shape
+			- a channel for each group, with the sequence index that the shape is in for that group
+				(or -1 if it isn't in the group)
+		- Shape panels (SOP) - geometry with a primitive for each shape with various attributes
+		- Shapes (SOP) - a version of the geometry where the shapes are represented by a non-continuous path around the shape
+	"""
 	def __init__(self, ownerComp):
 		super().__init__(ownerComp)
 		self.patterndata = None  # type: PatternData
