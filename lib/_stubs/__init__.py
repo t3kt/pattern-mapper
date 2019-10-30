@@ -15,18 +15,75 @@ ui.panes.current = None
 ui.status = ''
 PaneType = _Expando()
 PaneType.NETWORKEDITOR = None
-ext = _Expando()
+ext = _Expando()  # type: _T.Any
 
-class project:
-	name = ''
-	folder = ''
+class Project:
+	name: str
+	folder: str
+	saveVersion: str
+	saveBuild: str
+	saveTime: str
+	saveOsName: str
+	saveOsVersion: str
+	paths: _T.Dict[str, str]
+	cookRate: float
+	realTime: bool
+	isPrivate: bool
+	isPrivateKey: bool
+
+project: Project
+
+class Monitor:
+	index: int
+	isPrimary = False
+	isAffinity = False
+	width: int
+	height: int
+	left: int
+	right: int
+	top: int
+	bottom: int
+	displayName: str
+	description: str
+	dpiScale: float
+	scaledWidth: int
+	scaledHeight: int
+	scaledLeft: int
+	scaledRight: int
+	scaledTop: int
+	scaledBottom: int
+	refreshRate: float
+
+class Monitors:
+	primary: Monitor
+	width: 0
+	height: 0
+	left: 0
+	right: 0
+	top: 0
+	bottom: 0
+
+	@staticmethod
+	def locate(x, y) -> Monitor:
+		pass
+
+	@staticmethod
+	def refresh():
+		pass
+
+	def __len__(self):
+		return 0
+
+monitors:  Monitors
+
+class SysInfo:
+	ram: float
+
+sysinfo: SysInfo
 
 class _Parent:
-	def __call__(self, *args, **kwargs) -> '_AnyOpT':
-		pass
-
-	def __getattr__(self, item):
-		pass
+	def __call__(self, *args, **kwargs) -> '_AnyOpT': pass
+	def __getattr__(self, item) -> '_AnyOpT': pass
 
 class OP:
 	id: int
@@ -99,24 +156,20 @@ def ops(*paths) -> _T.List['_AnyOpT']: pass
 
 def var(name) -> str: pass
 
-class _TD_ERROR(Exception):
-	pass
+class Attribute:
+	owner: OP
+	name: str
+	size: int
+	type: type
+	default: _T.Union[float, int, str, tuple, '_Position', '_Vector']
+
+def run(codeorwhatever, *args, delayFrames=0, delayMilliSeconds=0, delayRef=None): pass
 
 class td:
-	error = _TD_ERROR
-
-	@staticmethod
-	def run(codeorwhatever, delayFrames=0, delayMilliSeconds=0, delayRef=None): pass
-
-	class Attribute:
-		def __init__(self):
-			self.owner = None  # type: OP
-			self.name = ''
-			self.size = 0
-			self.type = None  # type: type
-			self.default = None  # type: _T.Union[float, int, str, tuple, _Position, _Vector]
-
-del _TD_ERROR
+	Monitor = Monitor
+	Monitors = Monitors
+	Attribute = Attribute
+	run = run
 
 
 class _Matrix:
@@ -162,9 +215,9 @@ class _Position:
 
 
 class _Vector:
-	x: int
-	y: int
-	z: int
+	x: float
+	y: float
+	z: float
 
 	def __init__(self, *vals): pass
 
@@ -219,13 +272,17 @@ class tdu:
 
 	# noinspection PyShadowingBuiltins
 	@staticmethod
-	def split(string, eval=False)-> _T.List[str]: pass
+	def split(string, eval=False) -> _T.List[str]: pass
 
 	@staticmethod
 	def match(pattern, inputList, caseSensitive=True) -> _T.List[str]: pass
 
+	@staticmethod
+	def collapsePath(path): return path
+
 	ArcBall = _ArcBall
 
+# noinspection DuplicatedCode
 JustifyType = _Expando()
 JustifyType.TOPLEFT, JustifyType.TOPCENTER, JustifyType.TOPRIGHT, JustifyType.CENTERLEFT = 0, 0, 0, 0
 JustifyType.CENTER = 0
@@ -269,8 +326,16 @@ evaluateDAT = mergeDAT = nullDAT = parameterexecuteDAT = tableDAT = textDAT = sc
 parameterCHOP = nullCHOP = selectCHOP = CHOP
 scriptSOP = SOP
 
-class app:
-	name = ''
+class App:
+	name: str
+	build: str
+	launchTime: str
+	product: str
+	version: str
+	osName: str
+	osVersion: str
+
+app: App
 
 class RenderPickEvent(tuple):
 	u: float
