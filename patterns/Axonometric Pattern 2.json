@@ -1,0 +1,18 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "fixtrianglecenters": true,
+  "depthlayering": {"mode": "manual", "layerdistance":  0.01},
+  "groups": [
+    {"groupname": "Level0", "paths": "^.*/g\\[id=Level0\\]", "depthlayer": 0, "temporary": true},
+    {"groupname": "Level1", "paths": "^.*/g\\[id=Level1\\]", "depthlayer": 1, "temporary": true},
+    {"groupname": "Level2", "paths": "^.*/g\\[id=Level2\\]", "depthlayer": 2, "temporary": true},
+    {"groupname": "Level3", "paths": "^.*/g\\[id=Level3\\]", "depthlayer": 3, "temporary": true},
+    {"groupname": "Level4", "paths": "^.*/g\\[id=Level4\\]", "depthlayer": 4, "temporary": true},
+    {"groupname": "Level5", "paths": "^.*/g\\[id=Level5\\]", "depthlayer": 5, "temporary": true},
+
+    {"groupname": "Extenders", "paths": "^.*/g\\[id=Extenders\\]", "sequenceby": "value"},
+    {"groupname": "CenterSecondaryAxisSliced", "paths": "^.*/g\\[id=CenterSecondaryAxisSliced\\]", "sequenceby": "value"},
+    {"groupname": "CenterAxisSliced", "paths": "^.*/g\\[id=CenterAxisSliced\\]", "sequenceby": "value"}
+  ]
+}
