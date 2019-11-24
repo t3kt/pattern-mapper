@@ -291,6 +291,8 @@ class PatternLoader(ExtensionBase):
 				sop.createPrimGroup(group.groupname)
 				primgroup = sop.primGroups[group.groupname]
 			for shapeindex in group.shapeindices:
+				if shapeindex >= len(sop.prims):
+					continue
 				primgroup.add(sop.prims[shapeindex])
 
 	@loggedmethod
