@@ -4,29 +4,29 @@
     {
       "groupname": "blue",
       "paths": "^svg/g\\[id=blue\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+      "sequenceby": {"seqtype":  "distance", "rounddigits":  2}
     },
     {
       "groupname": "teal",
       "paths": "^svg/g\\[id=teal\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+      "sequenceby": {"seqtype":  "distance", "rounddigits":  2}
     },
     {
       "groupname": "red",
       "paths": "^svg/g\\[id=red\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+      "sequenceby": {"seqtype":  "distance", "rounddigits":  2}
     },
     {
       "groupname": "green",
       "paths": "^svg/g\\[id=green\\]/.*",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+      "sequenceby": {"seqtype":  "distance", "rounddigits":  2}
     },
     {
       "suffixes": "rightArm topArm leftArm bottomArm",
       "anglemin": "-20",
       "anglemax": "20",
       "prerotate": "0 -90 -180 -270",
-      "sequenceby": {"attr":  "distance", "rounddigits":  2}
+      "sequenceby": {"seqtype":  "distance", "rounddigits":  2}
     },
     {
       "suffixes": "topRightArm topLeftArm bottomLeftArm bottomRightArm",

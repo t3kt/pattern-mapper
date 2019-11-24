@@ -213,9 +213,6 @@ class SequenceStep(BaseDataObject2):
 		self.shapeindices = list(self.shapeindices or [])
 		self.shapeindices.sort()
 
-	def replaceIndices(self, replacements: Dict[int, int]):
-		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
-
 	def ToJsonDict(self):
 		return cleandict({
 			'sequenceindex': self.sequenceindex,
@@ -229,18 +226,6 @@ class SequenceStep(BaseDataObject2):
 		return cls(
 			shapeindices=parseValueList(obj.get('shapeindices')),
 			**excludekeys(obj, ['shapeindices']))
-
-def _replaceIndices(indexlist: List[int], replacements: Dict[int, int]):
-	if not replacements or not indexlist:
-		return indexlist
-	newlist = []
-	for index in indexlist:
-		newindex = replacements.get(index)
-		if newindex is None:
-			newlist.append(index)
-		elif newindex not in newlist:
-			newlist.append(newindex)
-	return newlist
 
 @dataclass
 class GroupInfo(BaseDataObject2):
@@ -259,11 +244,6 @@ class GroupInfo(BaseDataObject2):
 		self.shapeindices = list(self.shapeindices or [])
 		self.shapeindices.sort()
 		self.sequencesteps = list(self.sequencesteps or [])
-
-	def replaceIndices(self, replacements: Dict[int, int]):
-		self.shapeindices = _replaceIndices(self.shapeindices, replacements)
-		for step in self.sequencesteps:
-			step.replaceIndices(replacements)
 
 	def ToJsonDict(self):
 		return cleandict({
@@ -339,6 +319,7 @@ class SequenceByTypes:
 	x = 'x'
 	y = 'y'
 	distance = 'distance'
+	path = 'path'
 
 	aliases = {
 		'r': red, 'red': red,
@@ -359,22 +340,29 @@ class SequenceByTypes:
 
 @dataclass
 class SequenceBySpec(BaseDataObject2):
-	attr: str
+	seqtype: str
 	rounddigits: int = None
 	reverse: bool = None
+	pathname: str = None
 
 	def ToJsonDict(self):
 		return cleandict({
-			'attr': self.attr,
+			'seqtype': self.seqtype,
 			'rounddigits': self.rounddigits,
 			'reverse': self.reverse or None,
+			'pathname': self.pathname,
 		})
 
 	@classmethod
 	def FromJsonDict(cls, obj):
 		if isinstance(obj, str):
-			return cls(attr=obj)
+			return cls(seqtype=obj)
 		return cls(**obj)
+
+@dataclass
+class SequencePath(BaseDataObject2):
+	name: str = None
+	points: List[_XYZ] = None
 
 class GroupGenSpec(BaseDataObject, ABC):
 	def __init__(
@@ -431,10 +419,10 @@ class GroupGenSpec(BaseDataObject, ABC):
 		if len(gentypes) > 1:
 			raise Exception('Multiple conflicting group gen types: {}'.format(gentypes))
 		t = gentypes[0]
-		return t._SpecFromJsonDict(obj)
+		return t.SpecFromJsonDict(obj)
 
 	@classmethod
-	def _SpecFromJsonDict(cls, obj):
+	def SpecFromJsonDict(cls, obj):
 		return cls(
 			sequenceby=SequenceBySpec.FromOptionalJsonDict(obj.get('sequenceby')),
 			**excludekeys(obj, ['sequenceby']))
@@ -456,7 +444,7 @@ class ManualGroupGenSpec(GroupGenSpec):
 		}))
 
 	@classmethod
-	def _SpecFromJsonDict(cls, obj):
+	def SpecFromJsonDict(cls, obj):
 		return cls(
 			sequenceby=SequenceBySpec.FromOptionalJsonDict(obj.get('sequenceby')),
 			steps=SequenceStep.FromJsonDicts(obj.get('steps')),
@@ -1221,6 +1209,7 @@ class PatternSettings(BaseDataObject):
 			recenter: Union[bool, str]=None,  # str is a reference to a shapename
 			fixtrianglecenters: bool=None,
 			mergedups: Union[bool, float]=None,  # number is a distance tolerance
+			seqpaths: List[SequencePath]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
@@ -1230,6 +1219,7 @@ class PatternSettings(BaseDataObject):
 		self.depthlayering = depthlayering
 		self.fixtrianglecenters = fixtrianglecenters
 		self.mergedups = mergedups
+		self.seqpaths = list(seqpaths or [])
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1240,6 +1230,7 @@ class PatternSettings(BaseDataObject):
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 			'fixtrianglecenters': self.fixtrianglecenters or None,
 			'mergedups': self.mergedups or None,
+			'seqpaths': SequencePath.ToJsonDicts(self.seqpaths),
 		}))
 
 	@classmethod

@@ -502,17 +502,16 @@ class _SvgParser(LoggableSubComponent):
 		self.minbound = tdu.Vector(0, 0, 0)
 		self.maxbound = tdu.Vector(0, 0, 0)
 		self.settings = settings
-		self.root = None  # type: Optional[ET.ElementTree]
 
 	def parse(self, svgxml):
 		if not svgxml:
 			return
-		self.root = ET.fromstring(svgxml)
-		self.svgwidth = float(self.root.get('width', 1))
-		self.svgheight = float(self.root.get('height', 1))
+		root = ET.fromstring(svgxml)
+		self.svgwidth = float(root.get('width', 1))
+		self.svgheight = float(root.get('height', 1))
 		self.scale = 1 / max(self.svgwidth, self.svgheight)
 		self.offset = tdu.Vector(-self.svgwidth / 2, -self.svgheight / 2, 0)
-		self._handleElem(self.root, 0, namestack=[])
+		self._handleElem(root, 0, namestack=[])
 		if not self.shapes:
 			return
 		minbounds = [shape.minbound for shape in self.shapes]

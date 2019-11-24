@@ -48,7 +48,7 @@
 		<xs:attribute name="inferredfromvalue" type="xs:anySimpleType"/>
 	</xs:complexType>
 	<xs:complexType name="SequenceBySpec">
-		<xs:attribute name="attr" type="SequenceByType" use="required"/>
+		<xs:attribute name="seqtype" type="SequenceByType" use="required"/>
 		<xs:attribute name="rounddigits" type="xs:int"/>
 		<xs:attribute name="reverse" type="xs:boolean"/>
 	</xs:complexType>

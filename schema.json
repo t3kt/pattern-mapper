@@ -146,7 +146,7 @@
 		"SequenceBySpec": {
 			"type": "object",
 			"properties": {
-				"attr": {
+				"seqtype": {
 					"type": "string"
 				},
 				"rounddigits": {
@@ -158,7 +158,7 @@
 				}
 			},
 			"required": [
-				"attr"
+				"seqtype"
 			]
 		},
 		"GroupGenSpec": {

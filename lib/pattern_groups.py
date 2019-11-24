@@ -718,7 +718,7 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 	def __init__(
 			self, hostobj,
 			seqbyspec: SequenceBySpec):
-		part = SequenceByTypes.aliases.get(seqbyspec.attr)
+		part = SequenceByTypes.aliases.get(seqbyspec.seqtype)
 		LoggableSubComponent.__init__(
 			self, hostobj=hostobj, logprefix='AttrShapeSeq[{}]'.format(part))
 		if part in SequenceByTypes.rgb:
@@ -733,7 +733,7 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 			index = SequenceByTypes.xy.index(part)
 			self.accessor = lambda s: s.center[index]
 		else:
-			raise Exception('Unsupported attribute: {!r}'.format(seqbyspec.attr))
+			raise Exception('Unsupported attribute: {!r}'.format(seqbyspec.seqtype))
 		self.rounddigits = seqbyspec.rounddigits
 		self.reverse = seqbyspec.reverse
 		self.shapesbykey = defaultdict(list)  # type: DefaultDict[Any, List[ShapeInfo]]
