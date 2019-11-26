@@ -48,24 +48,45 @@ _XYZ = Union[Tuple[float, float], Tuple[float, float, float], List[float]]
 _ValueListSpec = Union[str, List[Union[str, float]]]
 
 @dataclass
-class ShapeInfo(BaseDataObject2):
-	shapeindex: int = 0
+class ShapeInfoBase(BaseDataObject2):
 	shapename: str = None
 	shapepath: str = None
 	parentpath: str = None
+	shapelength: float = None
+	points: List['PointData'] = None
+	center: _XYZ = None
+
+	def __post_init__(self):
+		self.points = list(self.points or [])
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		return cls(
+			points=PointData.FromJsonDicts(obj.get('points')),
+			**excludekeys(obj, ['points']))
+
+	def offsetPoints(self, offset: 'tdu.Vector'):
+		for point in self.points:
+			point.pos = list(tdu.Vector(point.pos) + offset)
+
+	def scalePoints(self, scale: float):
+		for point in self.points:
+			point.pos = list(tdu.Vector(point.pos) * scale)
+
+@dataclass
+class ShapeInfo(ShapeInfoBase):
+	shapeindex: int = 0
 	color: _RGBAColor = None
 	center: _XYZ = None
-	shapelength: float = None
 	depthlayer: int = None
-	points: List['PointData'] = None
 	dupcount: int = None
 	radius: float = None
 	rotateaxis: float = None
 
 	def __post_init__(self):
+		super().__post_init__()
 		self.color = list(self.color) if self.color else None
 		self.center = list(self.center) if self.center else None
-		self.points = list(self.points or [])
 		self.dupcount = self.dupcount or 0
 
 	@property
@@ -145,6 +166,9 @@ class ShapeInfo(BaseDataObject2):
 			return False
 		return True
 
+	def containsPoint(self, testpoint: 'PointData'):
+		return _shapeContainsPoint(self._pointsWithoutOpenLoop, testpoint)
+
 	@property
 	def isopenloop(self):
 		if len(self.points) < 4:
@@ -176,11 +200,39 @@ class ShapeInfo(BaseDataObject2):
 				'points': PointData.ToJsonDicts(self.points),
 			})
 
-	@classmethod
-	def FromJsonDict(cls, obj):
-		return cls(
-			points=PointData.FromJsonDicts(obj.get('points')),
-			**excludekeys(obj, ['points']))
+def _shapeContainsPoint(shapepoints: List['PointData'], testpoint: 'PointData'):
+	testx, testy = testpoint.pos[0], testpoint.pos[1]
+	nshapepoints = len(shapepoints)
+	inside = False
+	p1x, p1y = shapepoints[0].pos[0], shapepoints[0].pos[1]
+	for i in range(nshapepoints + 1):
+		shapepoint = shapepoints[i % nshapepoints]
+		p2x, p2y = shapepoint.pos[0], shapepoint.pos[1]
+		if testy > min(p1y, p2y):
+			if testy <= max(p1y, p2y):
+				if testx <= max(p1x, p2x):
+					if p1y != p2y:
+						xints = (testy - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+					else:
+						xints = -99999999
+					if p1x == p2x or testx <= xints:
+						inside = not inside
+		p1x, p1y = p2x, p2y
+	return inside
+
+@dataclass
+class PathInfo(ShapeInfoBase):
+
+	def ToJsonDict(self):
+		return cleandict(
+			{
+				'shapename': self.shapename,
+				'shapepath': self.shapepath,
+				'parentpath': self.parentpath,
+				'shapelength': self.shapelength,
+				'center': self.center,
+				'points': PointData.ToJsonDicts(self.points),
+			})
 
 @dataclass
 class PointData(BaseDataObject2):
@@ -319,6 +371,7 @@ class SequenceByTypes:
 	x = 'x'
 	y = 'y'
 	distance = 'distance'
+
 	path = 'path'
 
 	aliases = {
@@ -343,14 +396,14 @@ class SequenceBySpec(BaseDataObject2):
 	seqtype: str
 	rounddigits: int = None
 	reverse: bool = None
-	pathname: str = None
+	path: str = None
 
 	def ToJsonDict(self):
 		return cleandict({
 			'seqtype': self.seqtype,
 			'rounddigits': self.rounddigits,
 			'reverse': self.reverse or None,
-			'pathname': self.pathname,
+			'path': self.path,
 		})
 
 	@classmethod
@@ -358,11 +411,6 @@ class SequenceBySpec(BaseDataObject2):
 		if isinstance(obj, str):
 			return cls(seqtype=obj)
 		return cls(**obj)
-
-@dataclass
-class SequencePath(BaseDataObject2):
-	name: str = None
-	points: List[_XYZ] = None
 
 class GroupGenSpec(BaseDataObject, ABC):
 	def __init__(
@@ -1209,7 +1257,6 @@ class PatternSettings(BaseDataObject):
 			recenter: Union[bool, str]=None,  # str is a reference to a shapename
 			fixtrianglecenters: bool=None,
 			mergedups: Union[bool, float]=None,  # number is a distance tolerance
-			seqpaths: List[SequencePath]=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
@@ -1219,7 +1266,6 @@ class PatternSettings(BaseDataObject):
 		self.depthlayering = depthlayering
 		self.fixtrianglecenters = fixtrianglecenters
 		self.mergedups = mergedups
-		self.seqpaths = list(seqpaths or [])
 
 	def ToJsonDict(self):
 		return cleandict(mergedicts(self.attrs, {
@@ -1230,7 +1276,6 @@ class PatternSettings(BaseDataObject):
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 			'fixtrianglecenters': self.fixtrianglecenters or None,
 			'mergedups': self.mergedups or None,
-			'seqpaths': SequencePath.ToJsonDicts(self.seqpaths),
 		}))
 
 	@classmethod
@@ -1238,7 +1283,7 @@ class PatternSettings(BaseDataObject):
 		return cls(
 			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
 			depthlayering=DepthLayeringSpec.FromOptionalJsonDict(obj.get('depthlayering')),
-			**excludekeys(obj, ['groups', 'depthlayering'])
+			**excludekeys(obj, ['groups', 'depthlayering', 'paths'])
 		)
 
 
@@ -1246,6 +1291,7 @@ class PatternData(BaseDataObject):
 	def __init__(
 			self,
 			shapes: List[ShapeInfo]=None,
+			paths: List[PathInfo]=None,
 			groups: List[GroupInfo]=None,
 			settings: PatternSettings=None,
 			title: str=None,
@@ -1254,6 +1300,7 @@ class PatternData(BaseDataObject):
 			**attrs):
 		super().__init__(**attrs)
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
+		self.paths = list(paths or [])  # type: List[PathInfo]
 		self.groups = []  # type: List[GroupInfo]
 		self.groupsbyname = {}  # type: Dict[str, GroupInfo]
 		if groups:
@@ -1266,6 +1313,9 @@ class PatternData(BaseDataObject):
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
 		self.shapes += shapes
+
+	def addPaths(self, paths: Iterable[PathInfo]):
+		self.paths += paths
 
 	def addGroup(self, group: GroupInfo):
 		self.groups.append(group)
@@ -1326,6 +1376,8 @@ class PatternData(BaseDataObject):
 		return cleandict(mergedicts(self.attrs, {
 			'shapes': ShapeInfo.ToJsonDicts(
 				sorted(self.shapes, key=lambda s: s.shapeindex)),
+			'paths': PathInfo.ToJsonDicts(
+				sorted(self.paths, key=lambda p: p.shapepath)),
 			'groups': GroupInfo.ToJsonDicts(
 				sorted(self.groups, key=lambda g: g.groupname)),
 			'title': self.title,
@@ -1338,7 +1390,8 @@ class PatternData(BaseDataObject):
 	def FromJsonDict(cls, obj):
 		return cls(
 			shapes=ShapeInfo.FromJsonDicts(obj.get('shapes')),
+			paths=PathInfo.FromJsonDicts(obj.get('paths')),
 			groups=GroupInfo.FromJsonDicts(obj.get('groups')),
 			settings=PatternSettings.FromOptionalJsonDict(obj.get('settings')),
-			**excludekeys(obj, ['shapes', 'groups', 'settings'])
+			**excludekeys(obj, ['shapes', 'groups', 'settings', 'paths'])
 		)

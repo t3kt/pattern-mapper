@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="1000" height="500" viewBox="0, 0, 1000, 500">
+  <g id="TestGroup">
+    <path d="M55.016,162.345 L229.625,162.345 L229.625,315.039 L55.016,315.039 L55.016,162.345 z" fill="#3C7F44" id="Shape1"/>
+    <path d="M654.14,134.88 L702.693,268.727 L550.668,323.874 z" fill="#7F613C" id="Shape2"/>
+    <path d="M303.339,176.816 L436.113,176.816 L436.113,300.568 L303.339,300.568 L303.339,176.816 z" fill="#7F613C" id="Shape3"/>
+    <path d="M802.367,311.716 L754.829,229.377 L802.367,147.037 L897.445,147.037 L944.984,229.377 L897.445,311.716 z" fill="#7F3C77" id="Shape4"/>
+  </g>
+  <g id="TestPaths">
+    <path d="M131.911,241.513 L644.854,229.96 L866.667,241.513 L624.059,272.705" fill-opacity="0" stroke="#000000" stroke-width="1" id="TestPath1"/>
+  </g>
+</svg>

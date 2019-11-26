@@ -1,0 +1,14 @@
+{
+  "autogroup": false,
+  "rescale": false,
+  "groups": [
+    {
+      "groupname": "TestGroup",
+      "paths": "^.*/g\\[id=TestGroup\\]",
+      "sequenceby": {
+        "seqtype": "path",
+        "path": "^.*\\[id=TestPath1\\]"
+      }
+    }
+  ]
+}

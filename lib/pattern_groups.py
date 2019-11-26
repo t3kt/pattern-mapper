@@ -705,6 +705,8 @@ class _ShapeSequencer(ABC):
 	def FromSpec(cls, groupspec: GroupGenSpec, hostobj):
 		if not groupspec.sequenceby:
 			return _NoOpShapeSequencer()
+		if groupspec.sequenceby.path:
+			return _PathShapeSequencer(hostobj=hostobj, seqbyspec=groupspec.sequenceby)
 		return _AttributeShapeSequencer(hostobj=hostobj, seqbyspec=groupspec.sequenceby)
 
 class _NoOpShapeSequencer(_ShapeSequencer):
@@ -782,6 +784,55 @@ class _AttributeShapeSequencer(LoggableSubComponent, _ShapeSequencer):
 				isdefault=len(stepkeys) == 1,
 			))
 		return steps
+
+class _PathShapeSequencer(LoggableSubComponent, _ShapeSequencer):
+	def __init__(
+			self, hostobj,
+			seqbyspec: SequenceBySpec):
+		LoggableSubComponent.__init__(
+			self, hostobj=hostobj, logprefix='PathShapeSeq[{}]'.format(seqbyspec.path))
+		self.pathpattern = seqbyspec.path
+		self.reverse = seqbyspec.reverse
+		self.allshapes = []  # type: List[ShapeInfo]
+
+	def sequenceShapes(
+			self,
+			shapeindices: List[int],
+			context: PatternData) -> List[SequenceStep]:
+		path = self._getPath(context)
+		if not path:
+			self._LogEvent('Unable to find sequence path by pattern: {!r}'.format(self.pathpattern))
+			return []
+		for shapeindex in shapeindices:
+			shape = context.getShapeByIndex(shapeindex)
+			if shape:
+				self.allshapes.append(shape)
+		if not self.allshapes:
+			return []
+		steps = []
+		for stepindex, pathpoint in enumerate(path.points):
+			pointshapes = self._findShapesByPoint(pathpoint)
+			steps.append(SequenceStep(
+				sequenceindex=stepindex,
+				shapeindices=[s.shapeindex for s in pointshapes],
+				inferredfromvalue='point ({})'.format(pathpoint.pos),
+			))
+		return steps
+
+	def _findShapesByPoint(self, point: PointData) -> List[ShapeInfo]:
+		return [
+			shape
+			for shape in self.allshapes
+			if shape.containsPoint(point)
+		]
+
+	def _getPath(self, context: PatternData) -> Optional[PathInfo]:
+		if not self.pathpattern:
+			return None
+		for path in context.paths:
+			if re.match(self.pathpattern, path.shapepath):
+				return path
+
 
 class _InferredGroupExtractor:
 	"""

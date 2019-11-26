@@ -8,7 +8,7 @@ from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
 from .common import formatValue, averagePoints
 
-from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData
+from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData, PathInfo
 from pattern_groups import GroupGenerators
 from pattern_state import ShapeStatesBuilder
 
@@ -104,6 +104,7 @@ class PatternBuilder(ExtensionBase):
 		parser = _SvgParser(self, self.patternsettings)
 		parser.parse(svgxml)
 		self.patterndata.addShapes(parser.shapes)
+		self.patterndata.addPaths(parser.paths)
 		self.patterndata.svgwidth = parser.svgwidth
 		self.patterndata.svgheight = parser.svgheight
 
@@ -499,6 +500,7 @@ class _SvgParser(LoggableSubComponent):
 		self.scale = 1
 		self.offset = tdu.Vector(0, 0, 0)
 		self.shapes = []  # type: List[ShapeInfo]
+		self.paths = []  # type: List[PathInfo]
 		self.minbound = tdu.Vector(0, 0, 0)
 		self.maxbound = tdu.Vector(0, 0, 0)
 		self.settings = settings
@@ -531,9 +533,6 @@ class _SvgParser(LoggableSubComponent):
 		self._calculateShapeCenters()
 		self._calculateShapeRadiuses()
 
-	def getProcessedSvgRoot(self):
-		pass
-
 	def _getShapeByName(self, shapename: str):
 		for shape in self.shapes:
 			if shape.shapename == shapename:
@@ -557,16 +556,19 @@ class _SvgParser(LoggableSubComponent):
 			center = tdu.Vector(averagePoints([centershape.center for centershape in centershapes]))
 		else:
 			center = tdu.Vector(averagePoints([self.minbound, self.maxbound]))
+		offset = -center
 		for shape in self.shapes:
-			for point in shape.points:
-				point.pos = list(tdu.Vector(point.pos) - center)
+			shape.offsetPoints(offset)
+		for path in self.paths:
+			path.offsetPoints(offset)
 
 	def _rescaleCoords(self):
 		size = self.maxbound - self.minbound
 		scale = 1 / max(size.x, size.y, size.z)
 		for shape in self.shapes:
-			for point in shape.points:
-				point.pos = list(tdu.Vector(point.pos) * scale)
+			shape.scalePoints(scale)
+		for path in self.paths:
+			path.scalePoints(scale)
 
 	def _calculateShapeCenter(self, shape: ShapeInfo):
 		if shape.istriangle and self.settings.fixtrianglecenters:
@@ -646,24 +648,36 @@ class _SvgParser(LoggableSubComponent):
 		totaldist = path.length()
 		distances = _segmentDistances(path, self.scale)
 		totaldist *= self.scale
-		shapeindex = len(self.shapes)
-		self.shapes.append(ShapeInfo(
-			shapeindex=shapeindex,
-			shapename=pathelem.get('id', None),
-			shapepath='/'.join(namestack + [elemname]),
-			parentpath='/'.join(namestack),
-			color=_getPathElementColor(pathelem),
-			shapelength=totaldist,
-			points=[
-				PointData(
-					pos=list((pos + self.offset) * self.scale),
-					absdist=distances[i],
-					reldist=distances[i] / totaldist
-				)
-				for i, pos in enumerate(pointpositions)
-			],
-		))
-		pathelem['data-idx'] = shapeindex
+		points = [
+			PointData(
+				pos=list((pos + self.offset) * self.scale),
+				absdist=distances[i],
+				reldist=distances[i] / totaldist
+			)
+			for i, pos in enumerate(pointpositions)
+		]
+		shapename = pathelem.get('id', None)
+		shapepath = '/'.join(namestack + [elemname])
+		parentpath = '/'.join(namestack)
+		if path.closed:
+			shapeindex = len(self.shapes)
+			self.shapes.append(ShapeInfo(
+				shapeindex=shapeindex,
+				shapename=shapename,
+				shapepath=shapepath,
+				parentpath=parentpath,
+				color=_getPathElementColor(pathelem),
+				shapelength=totaldist,
+				points=points,
+			))
+		else:
+			self.paths.append(PathInfo(
+				shapename=shapename,
+				shapepath=shapepath,
+				parentpath=parentpath,
+				shapelength=totaldist,
+				points=points,
+			))
 
 def _localName(fullname: str):
 	if '}' in fullname:
