@@ -1,0 +1,45 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "mergedups": 0.0001,
+  "groups": [
+    {
+      "groupname": "BlueRings",
+      "paths": "^.*/g\\[id=BlueRings\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PurpleVerticalRings",
+      "paths": "^.*/g\\[id=PurpleVerticalRings\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PinkHorizRings",
+      "paths": "^.*/g\\[id=PinkHorizRings\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "GreenRows",
+      "paths": "^.*/g\\[id=GreenRows\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "BlueRows",
+      "paths": "^.*/g\\[id=BlueRows\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PinkRows",
+      "paths": "^.*/g\\[id=PinkRows\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "PinkRowsPath1",
+      "paths": "^.*/g\\[id=PinkRows\\]",
+      "sequenceby": {
+        "seqtype": "path",
+        "path": "^.*\\[id=PinkRowsPath1\\]"
+      }
+    }
+  ]
+}
