@@ -1,0 +1,123 @@
+{
+  "autogroup": false,
+  "rescale": true,
+  "mergedups": 0.0001,
+  "depthlayering": {"mode": "manual", "layerdistance":  0.01, "generategroups":  false},
+  "groups": [
+    {"groupname": "DepthLayer1", "paths": "^.*/g\\[id=DepthLayer1\\]", "depthlayer": 0},
+    {"groupname": "DepthLayer2", "paths": "^.*/g\\[id=DepthLayer2\\]", "depthlayer": 1},
+    {"groupname": "DepthLayer3", "paths": "^.*/g\\[id=DepthLayer3\\]", "depthlayer": 2},
+
+    {
+      "groupname": "Corners",
+      "paths": "^.*/g\\[id=.*Corner\\]"
+    },
+    {
+      "groupname": "Edges",
+      "paths": "^.*/g\\[id=.*Edge\\]"
+    },
+
+    {
+      "groupname": "LeftFaces",
+      "paths": "^.*/g\\[id=LeftFaces\\]",
+      "sequenceby": "value"
+    },
+    {
+      "groupname": "BottomBackCorner",
+      "paths": "^.*/g\\[id=BottomBackCorner\\]"
+    },
+    {
+      "groupname": "BottomLeftBackEdge",
+      "paths": "^.*/g\\[id=BottomLeftBackEdge\\]"
+    },
+    {
+      "groupname": "BottomRightBackEdge",
+      "paths": "^.*/g\\[id=BottomRightBackEdge\\]"
+    },
+    {
+      "groupname": "BackEdge",
+      "paths": "^.*/g\\[id=BackEdge\\]"
+    },
+    {
+      "groupname": "BottomRightCorner",
+      "paths": "^.*/g\\[id=BottomRightCorner\\]"
+    },
+    {
+      "groupname": "BottomLeftCorner",
+      "paths": "^.*/g\\[id=BottomLeftCorner\\]"
+    },
+    {
+      "groupname": "TopBackCorner",
+      "paths": "^.*/g\\[id=TopBackCorner\\]"
+    },
+    {
+      "groupname": "BottomRightFrontEdge",
+      "paths": "^.*/g\\[id=BottomRightFrontEdge\\]"
+    },
+    {
+      "groupname": "TopRightBackEdge",
+      "paths": "^.*/g\\[id=TopRightBackEdge\\]"
+    },
+    {
+      "groupname": "RightEdge",
+      "paths": "^.*/g\\[id=RightEdge\\]"
+    },
+    {
+      "groupname": "LeftEdge",
+      "paths": "^.*/g\\[id=LeftEdge\\]"
+    },
+    {
+      "groupname": "BottomLeftFrontEdge",
+      "paths": "^.*/g\\[id=BottomLeftFrontEdge\\]"
+    },
+    {
+      "groupname": "TopBackRightEdge",
+      "paths": "^.*/g\\[id=TopBackRightEdge\\]"
+    },
+    {
+      "groupname": "TopRightCorner",
+      "paths": "^.*/g\\[id=TopRightCorner\\]"
+    },
+    {
+      "groupname": "TopLeftCorner",
+      "paths": "^.*/g\\[id=TopLeftCorner\\]"
+    },
+    {
+      "groupname": "BottomFrontCorner",
+      "paths": "^.*/g\\[id=BottomFrontCorner\\]"
+    },
+    {
+      "groupname": "TopRightFrontEdge",
+      "paths": "^.*/g\\[id=TopRightFrontEdge\\]"
+    },
+    {
+      "groupname": "CenterFrontEdge",
+      "paths": "^.*/g\\[id=CenterFrontEdge\\]"
+    },
+    {
+      "groupname": "TopLeftFrontEdge",
+      "paths": "^.*/g\\[id=TopLeftFrontEdge\\]"
+    },
+    {
+      "groupname": "TopFrontCorner",
+      "paths": "^.*/g\\[id=TopFrontCorner\\]"
+    },
+
+    {
+      "groupname": "TopFrontCornerSpiral",
+      "paths": "^.*/g\\[id=TopFrontCorner\\]",
+      "sequenceby": {
+        "seqtype": "path",
+        "path": "^.*\\[id=TopFrontCornerSpiralPath\\]"
+      }
+    },
+    {
+      "groupname": "TopRightFrontEdgeSpiral",
+      "paths": "^.*/g\\[id=DepthLayer1\\]",
+      "sequenceby": {
+        "seqtype": "path",
+        "path": "^.*\\[id=TopRightFrontEdgeSpiralPath\\]"
+      }
+    }
+  ]
+}
