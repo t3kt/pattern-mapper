@@ -1,7 +1,6 @@
 {
   "autogroup": false,
   "rescale": true,
-  "mergedups": 0.0001,
   "depthlayering": {"mode": "manual", "layerdistance":  0.01, "generategroups":  false},
   "groups": [
     {"groupname": "DepthLayer1", "paths": "^.*/g\\[id=DepthLayer1\\]", "depthlayer": 0},

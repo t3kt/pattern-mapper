@@ -645,6 +645,30 @@ class DepthLayeringSpec(BaseDataObject2):
 			return cls(mode=obj)
 		return cls(**obj)
 
+@dataclass
+class DuplicateMergeSpec(BaseDataObject2):
+	tolerance: Optional[float] = None
+	scopes: List['DuplicateMergeScope'] = None
+
+	@classmethod
+	def FromJsonDict(cls, obj):
+		if isinstance(obj, (int, float)):
+			return cls(tolerance=obj)
+		return cls(
+			scopes=DuplicateMergeSpec.FromJsonDicts(obj.get('scopes')),
+			**excludekeys(obj, ['scopes'])
+		)
+
+	def ToJsonDict(self):
+		return cleandict({
+			'tolerance': self.tolerance,
+			'scopes': DuplicateMergeScope.ToJsonDicts(self.scopes),
+		})
+
+@dataclass
+class DuplicateMergeScope(BaseDataObject2):
+	groups: _ValueListSpec = None
+
 class TransformSpec(BaseDataObject):
 	def __init__(
 			self,
@@ -1257,7 +1281,7 @@ class PatternSettings(BaseDataObject):
 			rescale: bool=None,
 			recenter: Union[bool, str]=None,  # str is a reference to a shapename
 			fixtrianglecenters: bool=None,
-			mergedups: Union[bool, float]=None,  # number is a distance tolerance
+			mergedups: DuplicateMergeSpec=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.groups = list(groups or [])
@@ -1276,7 +1300,7 @@ class PatternSettings(BaseDataObject):
 			'recenter': self.recenter or None,
 			'depthlayering': DepthLayeringSpec.ToOptionalJsonDict(self.depthlayering),
 			'fixtrianglecenters': self.fixtrianglecenters or None,
-			'mergedups': self.mergedups or None,
+			'mergedups': DuplicateMergeSpec.ToOptionalJsonDict(self.mergedups),
 		}))
 
 	@classmethod
@@ -1284,7 +1308,8 @@ class PatternSettings(BaseDataObject):
 		return cls(
 			groups=GroupGenSpec.FromJsonDicts(obj.get('groups')),
 			depthlayering=DepthLayeringSpec.FromOptionalJsonDict(obj.get('depthlayering')),
-			**excludekeys(obj, ['groups', 'depthlayering', 'paths'])
+			mergedups=DuplicateMergeSpec.FromOptionalJsonDict(obj.get('mergedups')),
+			**excludekeys(obj, ['groups', 'depthlayering', 'paths', 'mergedups'])
 		)
 
 
@@ -1349,6 +1374,16 @@ class PatternData(BaseDataObject):
 		for group in groups:
 			shapeindices.update(group.allShapeIndices)
 		return shapeindices
+
+	def getShapesByIndices(self, shapeindices: Iterable[int]) -> List[ShapeInfo]:
+		if not shapeindices:
+			return []
+		shapeindices = set(shapeindices)
+		return [
+			shape
+			for shape in self.shapes
+			if shape.shapeindex in shapeindices
+		]
 
 	def getShapeByIndex(self, shapeindex: int):
 		for shape in self.shapes:

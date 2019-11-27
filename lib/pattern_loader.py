@@ -6,7 +6,7 @@ from typing import Dict, List, Union, Optional
 
 from .common import ExtensionBase, LoggableSubComponent
 from .common import simpleloggedmethod, hextorgb, loggedmethod, cartesiantopolar
-from .common import formatValue, averagePoints
+from .common import formatValue, averagePoints, ValueSequence
 
 from pattern_model import GroupInfo, ShapeInfo, PatternSettings, DepthLayeringSpec, PatternData, PointData, PathInfo
 from pattern_groups import GroupGenerators
@@ -784,27 +784,56 @@ class _ShapeDeduplicator(LoggableSubComponent):
 	def __init__(self, hostobj, patterndata: PatternData, patternsettings: PatternSettings):
 		super().__init__(hostobj, logprefix='ShapeDedup')
 		self.patterndata = patterndata
-		self.dupremapper = _ShapeIndexRemapper(self, 'DeDup')
-		self.tolerance = _parseTolerance(patternsettings.mergedups)
+		self.dupremappers = []  # type: List[_ShapeIndexRemapper]
+		if patternsettings.mergedups is None:
+			self.tolerance = None
+			self.scopes = None
+		else:
+			self.tolerance = patternsettings.mergedups.tolerance or 0.0
+			if not patternsettings.mergedups.scopes:
+				self.scopes = None
+			else:
+				self.scopes = [
+					ValueSequence.FromSpec(scope.groups, cyclic=False)
+					for scope in patternsettings.mergedups.scopes
+				]
 
 	@loggedmethod
 	def MergeDuplicates(self):
 		if self.tolerance is None:
 			return
 		self._LoadDuplicates()
-		self._LogEvent('Found {} shapes to replace'.format(len(self.dupremapper)))
-		if self.dupremapper:
-			self.dupremapper.RemapShapesInGroups(self.patterndata)
+		self._LogEvent('Found {} remapper scopes'.format(len(self.dupremappers)))
+		modified = False
+		for remapper in self.dupremappers:
+			self._LogEvent('Found {} shapes to replace'.format(len(remapper)))
+			if remapper:
+				if remapper.RemapShapesInGroups(self.patterndata):
+					modified = True
+		if modified:
 			self._RemoveDuplicateShapes()
 
 	def _LoadDuplicates(self):
-		for i, shape1 in enumerate(self.patterndata.shapes):
-			if shape1.shapeindex in self.dupremapper:
+		if not self.scopes:
+			self.dupremappers = [self._LoadDuplicateRemapperForShapes(self.patterndata.shapes)]
+		else:
+			self.dupremappers = []
+			for scope in self.scopes:
+				shapeindices = self.patterndata.getShapeIndicesByGroupPattern(scope)
+				shapes = self.patterndata.getShapesByIndices(shapeindices)
+				if shapes:
+					self.dupremappers.append(
+						self._LoadDuplicateRemapperForShapes(shapes))
+
+	def _LoadDuplicateRemapperForShapes(self, shapes: List[ShapeInfo]):
+		dupremapper = _ShapeIndexRemapper(self, 'DeDup')
+		for i, shape1 in enumerate(shapes):
+			if shape1.shapeindex in dupremapper:
 				continue
 			dupsforshape = []
-			for shape2 in self.patterndata.shapes[i + 1:]:
+			for shape2 in shapes[i + 1:]:
 				if shape2.isEquivalentTo(shape1, self.tolerance):
-					self.dupremapper[shape2.shapeindex] = shape1.shapeindex
+					dupremapper[shape2.shapeindex] = shape1.shapeindex
 					dupsforshape.append(shape2.shapeindex)
 					shape2.dupcount = -1
 			shape1.dupcount = len(dupsforshape)
@@ -812,9 +841,10 @@ class _ShapeDeduplicator(LoggableSubComponent):
 				self._LogEvent('Found duplicates for shape {}: {}'.format(shape1.shapeindex, dupsforshape))
 			# else:
 			# 	self._LogEvent('No duplicates found for shape {}'.format(shape1.shapeindex))
+		return dupremapper
 
 	def _RemoveDuplicateShapes(self):
-		self._LogEvent('Removing {} duplicate shapes'.format(len(self.dupremapper)))
+		self._LogEvent('Removing {} duplicate shapes'.format(sum([len(remapper) for remapper in self.dupremappers])))
 		remainingshapes = []
 		removedshapecount = 0
 		resequencer = _ShapeIndexRemapper(self, 'ReSeq')
