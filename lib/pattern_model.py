@@ -637,6 +637,7 @@ class DepthLayeringSpec(BaseDataObject2):
 	condense: Optional[bool] = None
 	layerdistance: Optional[float] = None
 	defaultlayer: Optional[int] = None
+	generategroups: Optional[bool] = None
 
 	@classmethod
 	def FromJsonDict(cls, obj):

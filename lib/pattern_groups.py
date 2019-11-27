@@ -170,7 +170,7 @@ class GroupGenerators(LoggableSubComponent):
 		defaultlayer = layeringspec.defaultlayer or 0
 		layerdistance = layeringspec.layerdistance or 0.1
 
-		groupsbylayer = defaultdict(list)  # type: DefaultDict[int, List[GroupInfo]]
+		groupsbylayer = defaultdict(list)  # type: Dict[int, List[GroupInfo]]
 		for group in self.context.groups:
 			if mode == GroupDepthModes.flat:
 				grouplayer = defaultlayer
@@ -205,7 +205,8 @@ class GroupGenerators(LoggableSubComponent):
 					group.depthlayer = layer
 					group.depth = layer * layerdistance
 
-		self._generateLayerGroups(groupsbylayer)
+		if layeringspec.generategroups is not False:
+			self._generateLayerGroups(groupsbylayer)
 
 	def _generateLayerGroups(self, groupsbylayer: Dict[int, List[GroupInfo]]):
 		for layer in sorted(groupsbylayer.keys()):
