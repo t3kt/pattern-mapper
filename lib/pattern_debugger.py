@@ -31,6 +31,23 @@ class PatternDebugger(ExtensionBase):
 	def _shapeCount(self):
 		return self._shapeAttrs.numSamples
 
+	def HandleKeyPress(self, key):
+		mode = self.ownerComp.par.Uimode
+		if key == 'left':
+			if mode == 'shapes':
+				self.PrevShape()
+			elif mode == 'groups':
+				self.PrevGroup()
+		elif key == 'right':
+			if mode == 'shapes':
+				self.NextShape()
+			elif mode == 'groups':
+				self.NextGroup()
+		elif key == 'up':
+			mode.menuIndex = (mode.menuIndex + 1) % len(mode.menuNames)
+		elif key == 'down':
+			mode.menuIndex = (mode.menuIndex - 1) % len(mode.menuNames)
+
 	def SelectShape(self, i, toggle=False):
 		n = self._shapeCount
 		if i < 0 or i >= n or (toggle and i == self.ownerComp.par.Selectedshape):
@@ -56,38 +73,6 @@ class PatternDebugger(ExtensionBase):
 			i = 0
 		self.SelectShape(i)
 
-	def BuildShapeInfo(self, dat):
-		dat.clear()
-		i = self.ownerComp.par.Selectedshape.eval()
-		attrs = self._shapeAttrs
-		if i == -1 or i >= attrs.numSamples:
-			i = None
-			dat.appendRow(['index', ''])
-		else:
-			dat.appendRow(['index', i])
-		groups = {}
-		vals = {}
-		for chan in attrs.chans():
-			if chan.name == 'index':
-				continue
-			if chan.name.startswith('seq_'):
-				continue
-			if i is None:
-				val = ''
-			else:
-				val = chan[i]
-			if chan.name.startswith('group_'):
-				groupname = chan.name.replace('group_', '')
-				groups[groupname] = int(val) if isinstance(val, (float,int)) else val
-			elif isinstance(val, str):
-				vals[chan.name] = val
-			else:
-				vals[chan.name] = round(val, 4)
-		for name in sorted(vals.keys()):
-			dat.appendRow([name, vals[name]])
-		for name in sorted(groups.keys()):
-			dat.appendRow(['group[{}]'.format(name), groups[name]])
-
 	def PrevGroup(self):
 		self._StepSelectedGroup(-1)
 
@@ -106,19 +91,4 @@ class PatternDebugger(ExtensionBase):
 			index = (groupnames.index(grouppar.eval()) + offset) % len(groupnames)
 		grouppar.val = groupnames[index]
 		self.ownerComp.par.Uimode = 'groups'
-
-	def BuildUIShapeAttrs(self, chop):
-		chop.clear()
-		mode = self.ownerComp.par.Uimode.eval()
-		shapeattrs = self.ownerComp.op('shape_attrs')
-		highlight = chop.appendChan('highlight')
-		n = shapeattrs.numSamples
-		chop.numSamples = n
-		if mode == 'shapes':
-			selshapeindex = self.ownerComp.par.Selectedshape
-			for i in range(n):
-				highlight[i] = selshapeindex == -1 or i == selshapeindex
-		elif mode == 'groups':
-			# seqindices =
-			pass
 
