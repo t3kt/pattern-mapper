@@ -1323,6 +1323,7 @@ class PatternData(BaseDataObject):
 			title: str=None,
 			svgwidth: float=None,
 			svgheight: float=None,
+			scale: float=None,
 			**attrs):
 		super().__init__(**attrs)
 		self.shapes = list(shapes or [])  # type: List[ShapeInfo]
@@ -1336,6 +1337,7 @@ class PatternData(BaseDataObject):
 		self.settings = settings
 		self.svgwidth = svgwidth
 		self.svgheight = svgheight
+		self.scale = scale
 
 	def addShapes(self, shapes: Iterable[ShapeInfo]):
 		self.shapes += shapes
@@ -1420,6 +1422,7 @@ class PatternData(BaseDataObject):
 			'settings': PatternSettings.ToOptionalJsonDict(self.settings),
 			'svgwidth': formatValue(self.svgwidth, nonevalue=None),
 			'svgheight': formatValue(self.svgheight, nonevalue=None),
+			'scale': formatValue(self.scale, nonevalue=None),
 		}))
 
 	@classmethod

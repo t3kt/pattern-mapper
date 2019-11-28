@@ -107,6 +107,7 @@ class PatternBuilder(ExtensionBase):
 		self.patterndata.addPaths(parser.paths)
 		self.patterndata.svgwidth = parser.svgwidth
 		self.patterndata.svgheight = parser.svgheight
+		self.patterndata.scale = parser.scale
 
 	@loggedmethod
 	def _LoadPatternSettings(self):
@@ -252,6 +253,7 @@ class PatternLoader(ExtensionBase):
 		dat.appendRow(['title', (self.patterndata.title if self.patterndata else None) or ''])
 		dat.appendRow(['svgwidth', (self.patterndata.svgwidth if self.patterndata else None) or 512])
 		dat.appendRow(['svgheight', (self.patterndata.svgheight if self.patterndata else None) or 512])
+		dat.appendRow(['scale', (self.patterndata.scale if self.patterndata else None) or 1])
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):
@@ -566,11 +568,11 @@ class _SvgParser(LoggableSubComponent):
 
 	def _rescaleCoords(self):
 		size = self.maxbound - self.minbound
-		scale = 1 / max(size.x, size.y, size.z)
+		self.scale = 1 / max(size.x, size.y, size.z)
 		for shape in self.shapes:
-			shape.scalePoints(scale)
+			shape.scalePoints(self.scale)
 		for path in self.paths:
-			path.scalePoints(scale)
+			path.scalePoints(self.scale)
 
 	def _calculateShapeCenter(self, shape: ShapeInfo):
 		if shape.istriangle and self.settings.fixtrianglecenters:
