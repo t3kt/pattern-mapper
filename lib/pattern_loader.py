@@ -250,6 +250,8 @@ class PatternLoader(ExtensionBase):
 	def _BuildMetadata(self, dat):
 		dat.clear()
 		dat.appendRow(['title', (self.patterndata.title if self.patterndata else None) or ''])
+		dat.appendRow(['svgwidth', (self.patterndata.svgwidth if self.patterndata else None) or 512])
+		dat.appendRow(['svgheight', (self.patterndata.svgheight if self.patterndata else None) or 512])
 
 	@loggedmethod
 	def _BuildGeometry(self, sop):
