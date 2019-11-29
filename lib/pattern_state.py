@@ -4,8 +4,10 @@ from .common import LoggableSubComponent, ExtensionBase
 from .common import cleandict, mergedicts, parseValue, formatValue
 from pattern_model import ShapeState, PatternData, TransformSpec, TextureLayer
 
+# noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 print('pattern_state.py loading...')
 

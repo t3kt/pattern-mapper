@@ -8,7 +8,9 @@ import sys
 
 print('common.py loading...')
 
+# noinspection PyUnreachableCode
 if False:
+	# noinspection PyUnresolvedReferences
 	from _stubs import *
 
 

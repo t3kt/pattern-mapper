@@ -7,8 +7,10 @@ from .common import ValueSequence, ValueRangeSequence
 
 from typing import DefaultDict, List, Iterable
 
+# noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 print('pattern_groups.py loading...')
 

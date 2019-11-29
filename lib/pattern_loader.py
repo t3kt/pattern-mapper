@@ -27,7 +27,8 @@ print('pattern_loader.py loading...')
 
 # noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 remap = tdu.remap
 

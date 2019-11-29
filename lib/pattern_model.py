@@ -9,8 +9,10 @@ from .common import parseValueList, formatValue, formatValueList, averagePoints,
 
 print('pattern_model.py loading...')
 
+# noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 class _BaseEnum(Enum):
 	@classmethod

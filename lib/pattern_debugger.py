@@ -1,7 +1,9 @@
 print('pattern_debugger.py loading...')
 
+# noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 try:
 	from common import LoggableSubComponent, ExtensionBase, loggedmethod

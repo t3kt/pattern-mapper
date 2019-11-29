@@ -5,12 +5,16 @@ print('pattern_lighting.py loading...')
 from typing import Dict, List, Union
 import json
 
+# noinspection PyUnreachableCode
 if False:
-	from ._stubs import *
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
 
 TDF = op.TDModules.mod.TDFunctions
 
+# noinspection PyUnreachableCode
 if False:
+	# noinspection PyUnresolvedReferences
 	import TDFunctions as TDF
 
 try:
