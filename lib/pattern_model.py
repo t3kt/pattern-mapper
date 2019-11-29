@@ -1189,21 +1189,12 @@ class PatternStates(BaseDataObject2):
 			groupshapestates=ShapeState.FromOptionalJsonDict(obj.get('groupshapestates')))
 
 
-class LightSegment(BaseDataObject):
-	def __init__(
-			self,
-			shape: int,
-			start: int=0,
-			end: int=1,
-			count: int=3):
-		super().__init__()
-		self.shape = shape
-		self.start = start
-		self.end = end
-		self.count = count
-
-	def ToJsonDict(self):
-		return {'shape': self.shape, 'start': self.start, 'end': self.end, 'count': self.count}
+@dataclass
+class LightSegment(BaseDataObject2):
+	shape: int = None
+	start: int = 0
+	end: int = 1
+	count: int = 3
 
 	def __str__(self):
 		return '{},{},{},{}'.format(self.shape, self.start, self.end, self.count)
@@ -1217,16 +1208,16 @@ class LightSegment(BaseDataObject):
 			return cls(**val)
 		raise Exception('Invalid light segment value: {!r}'.format(val))
 
-class LightStrip(BaseDataObject):
-	def __init__(
-			self,
-			segments: Union[str, List[LightSegment]]=None):
-		super().__init__()
-		if isinstance(segments, str):
-			segstrs = segments.split(' ')
+@dataclass
+class LightStrip(BaseDataObject2):
+	segments: Union[str, List[LightSegment]] = None
+
+	def __post_init__(self):
+		if isinstance(self.segments, str):
+			segstrs = self.segments.split(' ')
 			self.segments = [LightSegment.Parse(s) for s in segstrs]
 		else:
-			self.segments = list(segments or [])
+			self.segments = list(self.segments or [])
 
 	def ToJsonDict(self):
 		return {'segments': [str(s) for s in self.segments]}
@@ -1250,12 +1241,12 @@ class LightStrip(BaseDataObject):
 	def __str__(self):
 		return ' '.join(str(segment) for segment in self.segments)
 
-class LightPattern(BaseDataObject):
-	def __init__(
-			self,
-			strips: List[LightStrip]=None):
-		super().__init__()
-		self.strips = list(strips or [])
+@dataclass
+class LightPattern(BaseDataObject2):
+	strips: List[LightStrip] = None
+
+	def __post_init__(self):
+		self.strips = list(self.strips or [])
 
 	def ToJsonDict(self):
 		return {'strips': LightStrip.ToJsonDicts(self.strips)}
