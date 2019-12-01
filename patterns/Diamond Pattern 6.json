@@ -2,7 +2,9 @@
   "autogroup": false,
   "rescale": true,
   "fixtrianglecenters": true,
-  "mergedups": 0.0001,
+  "mergedups": {
+    "tolerance": 0.0001
+  },
   "groups": [
     {
       "groupname": "orange1",
